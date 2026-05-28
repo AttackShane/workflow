@@ -351,7 +351,7 @@ export function showStatsDetail(data, isJson) {
             if (workflowData?.nodes) {
                 const nodeTypes = {};
                 workflowData.nodes.forEach(node => {
-                    const rawType = node.type || node.data?.nodeMeta?.type || node.data?.nodeMeta?.title || '未知';
+                    const rawType = node.type !== undefined && node.type !== null ? String(node.type) : '未知';
                     const displayType = getNodeTypeName(rawType);
                     nodeTypes[displayType] = (nodeTypes[displayType] || 0) + 1;
                 });

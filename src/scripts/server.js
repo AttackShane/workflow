@@ -53,10 +53,11 @@ function logRequest(req) {
 const routeMap = {
     '/': '/views/workflow-manager.html',
     '/index.html': '/views/workflow-manager.html',
-    '/converter': '/views/converter.html',
-    '/converter.html': '/views/converter.html',
+    '/converter': '/views/workflow-converter.html',
+    '/converter.html': '/views/workflow-converter.html',
     '/editor': '/views/workflow-editor.html',
-    '/editor.html': '/views/workflow-editor.html'
+    '/editor.html': '/views/workflow-editor.html',
+    '/favicon.ico': '/assets/favicon.svg'
 };
 
 const server = http.createServer((req, res) => {
