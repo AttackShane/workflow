@@ -1,0 +1,443 @@
+schema_version: 1.0.0
+name: G001_lj_PPT
+id: 7628056168170766345
+description: "G001一键生成PPT"
+mode: workflow
+icon: plugin_icon/workflow.png
+nodes:
+    - id: "100001"
+      type: start
+      title: 开始
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg
+      description: "工作流的起始节点，用于设定启动工作流需要的信息"
+      position:
+        x: -574.4530624158298
+        y: -514.7214198525479
+      parameters:
+        node_outputs:
+            topic:
+                type: string
+                required: true
+                value: null
+                description: 大纲主题
+    - id: "900001"
+      type: end
+      title: 结束
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg
+      description: "工作流的最终节点，用于返回工作流运行后的结果信息"
+      position:
+        x: 1680.666774048067
+        y: -527.6714198525478
+      parameters:
+        node_inputs:
+            - name: output
+              input:
+                type: string
+                value:
+                    path: data.file
+                    ref_node: "101311"
+        terminatePlan: returnVariables
+    - id: "132882"
+      type: plugin
+      title: 根1号：据主题生成大纲
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg
+      description: "输入标题或内容，通过大模型生成PPT大纲"
+      position:
+        x: -132.4749873982715
+        y: -527.671419852548
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7525010731419516963"
+            - name: apiName
+              input:
+                type: string
+                value: "generate_outline"
+            - name: pluginID
+              input:
+                type: string
+                value: "7525010731419484195"
+            - name: pluginName
+              input:
+                type: string
+                value: "iSlide"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: topic
+              input:
+                value:
+                    path: topic
+                    ref_node: "100001"
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: object
+                properties:
+                    id:
+                        type: string
+                        value: null
+                    outline:
+                        type: object
+                        properties:
+                            sections:
+                                type: list
+                                items:
+                                    type: object
+                                    properties:
+                                        contents:
+                                            type: list
+                                            items:
+                                                type: object
+                                                properties:
+                                                    items:
+                                                        type: list
+                                                        items:
+                                                            type: object
+                                                            properties:
+                                                                items:
+                                                                    type: list
+                                                                    items:
+                                                                        type: string
+                                                                        value: null
+                                                                    value: null
+                                                                title:
+                                                                    type: string
+                                                                    value: null
+                                                            value: null
+                                                        value: null
+                                                    subtitle:
+                                                        type: string
+                                                        value: null
+                                                    title:
+                                                        type: string
+                                                        value: null
+                                                value: null
+                                            value: null
+                                        subtitle:
+                                            type: string
+                                            value: null
+                                        title:
+                                            type: string
+                                            value: null
+                                    value: null
+                                value: null
+                            subtitle:
+                                type: string
+                                value: null
+                            title:
+                                type: string
+                                value: null
+                        value: null
+                    status:
+                        type: string
+                        value: null
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "155369"
+      type: plugin
+      title: 2号：获取主题模板id
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg
+      description: "获取主题模板的id、缩略图、关键字等"
+      position:
+        x: 318.074254852824
+        y: -527.671419852548
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7525010731419549731"
+            - name: apiName
+              input:
+                type: string
+                value: "get_themes"
+            - name: pluginID
+              input:
+                type: string
+                value: "7525010731419484195"
+            - name: pluginName
+              input:
+                type: string
+                value: "iSlide"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: keywords
+              input:
+                value:
+                    path: data.outline.title
+                    ref_node: "132882"
+            - name: size
+              input:
+                type: integer
+                value: 10
+            - name: start
+              input:
+                type: integer
+                value: 3
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: object
+                properties:
+                    items:
+                        type: list
+                        items:
+                            type: object
+                            properties:
+                                gallery:
+                                    type: list
+                                    items:
+                                        type: string
+                                        value: null
+                                    value: null
+                                id:
+                                    type: float
+                                    value: null
+                                keywords:
+                                    type: string
+                                    value: null
+                                thumbnail:
+                                    type: string
+                                    value: null
+                                title:
+                                    type: string
+                                    value: null
+                                type:
+                                    type: string
+                                    value: null
+                            value: null
+                        value: null
+                    size:
+                        type: float
+                        value: null
+                    start:
+                        type: float
+                        value: null
+                    total:
+                        type: float
+                        value: null
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "121751"
+      type: plugin
+      title: 3号：返回ppt模板
+      icon: https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D
+      description: "传入标准大纲，结合主题模板生成PPT，返回PPT名称、总页数、首页图、单页缩略图等"
+      position:
+        x: 768.6234971039196
+        y: -527.6714198525478
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7525010731419533347"
+            - name: apiName
+              input:
+                type: string
+                value: "generate_presentation"
+            - name: pluginID
+              input:
+                type: string
+                value: "7525010731419484195"
+            - name: pluginName
+              input:
+                type: string
+                value: "iSlide"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: outline
+              input:
+                value:
+                    path: data.outline
+                    ref_node: "132882"
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: object
+                properties:
+                    historyId:
+                        type: string
+                        value: null
+                    pages:
+                        type: list
+                        items:
+                            type: object
+                            properties:
+                                index:
+                                    type: float
+                                    value: null
+                                slideLayout:
+                                    type: string
+                                    value: null
+                                thumbnail:
+                                    type: string
+                                    value: null
+                            value: null
+                        value: null
+                    status:
+                        type: string
+                        value: null
+                    thumbnail:
+                        type: string
+                        value: null
+                    title:
+                        type: string
+                        value: null
+                    totalPage:
+                        type: float
+                        value: null
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "101311"
+      type: plugin
+      title: 模板下载地址
+      icon: https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D
+      description: "返回下载链接，pptx源文件可编辑"
+      position:
+        x: 1224.6451355759932
+        y: -539.6714198525478
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7525010731419500579"
+            - name: apiName
+              input:
+                type: string
+                value: "download_presentation"
+            - name: pluginID
+              input:
+                type: string
+                value: "7525010731419484195"
+            - name: pluginName
+              input:
+                type: string
+                value: "iSlide"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: historyId
+              input:
+                value:
+                    path: data.historyId
+                    ref_node: "121751"
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: object
+                properties:
+                    file:
+                        type: string
+                        value: null
+                    historyId:
+                        type: string
+                        value: null
+                    status:
+                        type: string
+                        value: null
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "101151"
+      type: comment
+      title: ""
+      icon: ""
+      description: ""
+      position:
+        x: -634.4530624158298
+        y: -345.7825382731441
+      size:
+        width: 240
+        height: 150
+      parameters:
+        note: '[{"type":"heading-one","children":[{"text":"topic 大纲主题","type":"text"}]}]'
+        schemaType: slate
+edges:
+    - source_node: "100001"
+      target_node: "132882"
+    - source_node: "101311"
+      target_node: "900001"
+    - source_node: "132882"
+      target_node: "155369"
+    - source_node: "155369"
+      target_node: "121751"
+    - source_node: "121751"
+      target_node: "101311"

@@ -1,0 +1,11 @@
+type: Workflow
+version: 1.0.0
+main:
+    id: 7627051069458219035
+    name: Z002_lj_biaoqing_1
+    desc: Z002一键自动生成16宫格表情包
+    icon: FileBizType.BIZ_BOT_WORKFLOW/1839923645136380_1775810452028718227_VNUe6ttoIt.png
+    version: ""
+    flowMode: 0
+    commitId: ""
+sub: []

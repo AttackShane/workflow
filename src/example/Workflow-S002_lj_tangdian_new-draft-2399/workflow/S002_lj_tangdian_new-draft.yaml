@@ -1,0 +1,664 @@
+schema_version: 1.0.0
+name: S002_lj_tangdian_new
+id: 7626943441603706932
+description: "探店开头视频"
+mode: workflow
+icon: plugin_icon/workflow.png
+nodes:
+    - id: "100001"
+      type: start
+      title: 开始
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg
+      description: "工作流的起始节点，用于设定启动工作流需要的信息"
+      position:
+        x: -1756.8818333387949
+        y: 165.4518843374672
+      parameters:
+        node_outputs:
+            apikey:
+                type: string
+                required: true
+                value: null
+            dpi:
+                type: string
+                required: true
+                value: null
+                default_value: "9:16"
+                description: 9:16 默认 16:9
+            duration:
+                type: integer
+                required: true
+                value: null
+                description: 时长 5|10 秒
+            mentou:
+                type: image
+                required: true
+                value: null
+                description: 门头照
+            wenan:
+                type: string
+                required: true
+                value: null
+                description: 文案
+    - id: "900001"
+      type: end
+      title: 结束
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg
+      description: "工作流的最终节点，用于返回工作流运行后的结果信息"
+      position:
+        x: 666.7474858700144
+        y: 152.45188433746722
+      parameters:
+        node_inputs:
+            - name: output
+              input:
+                type: video
+                value:
+                    path: Group1
+                    ref_node: "144476"
+        terminatePlan: returnVariables
+    - id: "191716"
+      type: llm
+      title: 图片提示词
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: -1275.2168621632666
+        y: -82.55838241384629
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: apiMode
+              input:
+                type: integer
+                value: "0"
+            - name: frequencyPenalty
+              input:
+                type: float
+                value: "0"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: spCurrentTime
+              input:
+                type: boolean
+                value: false
+            - name: spAntiLeak
+              input:
+                type: boolean
+                value: false
+            - name: thinkingType
+              input:
+                type: string
+                value: enabled
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·2.0·lite
+            - name: modelType
+              input:
+                type: integer
+                value: "1772546477"
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: parameters
+              input:
+                type: object
+                properties:
+                    max_completion_tokens:
+                        type: integer
+                        value: "0"
+                    reasoning_effort:
+                        type: string
+                        value: medium
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: |
+                    {{mentou}}
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: |+
+                    # 角色
+                    你是**COZE平台专属的视频生成插件前置图片整合构图助手**，核心职责是为探店视频生成插件提供标准化、高识别度的图片整合素材方案。专注于固定探店主播形象与任意探店背景图自然融合、构图随机规范化处理，无艺术化修饰，仅输出适配探店镜头逻辑的单条完整出图提示词。
+
+                    ## 核心任务
+                    仅接收用户提供的**任意探店背景图{{mentou}}**（如店铺内景、街景、特色探店地点），使用固定探店主播形象融入背景图，**随机选用全景构图方案**，严格按指定排版格式输出可直接解析的完整提示词。
+
+                    ## 处理逻辑
+                    1. **元素优先级规则**
+                    - 探店场景核心优先：完整保留背景图全部关键信息，包括店铺招牌文字、logo、特色装饰、环境布局、产品陈列区及整体轮廓与色彩，作为场景核心视觉锚点。
+                    - 主播视觉主体：采用固定探店主播形象，姿态贴合探店互动场景（如手持商品、指向招牌、微笑体验），自然融入背景，严禁遮挡背景任何核心信息、logo及文字。
+                    2. **图片融合规则**
+                    - 固定输入：仅背景图{{mentou}}（如店铺内景、街景或特色地点）。
+                    - 主播与背景无违和融合、无分割痕迹，整体为统一真实探店场景。
+                    3. **主播细节规范**
+                    - 严格遵循固定探店主播描述，姿态、比例无修改变形，光影与背景自然光方向一致。
+                    - 主播不遮挡背景核心区域（如店铺招牌、特色装饰），与背景保持自然合理间距。
+                    4. **构图与景别规范**
+                    - 景别：全景（背景完整+主播全身/半身）
+                    - 构图：**随机选用**左侧三分法构图、右侧三分法构图、居中对称构图
+                    - 比例：主播高度统一占画面35%，背景完整保留全部核心区域
+
+                    ## 主播形象
+                    ### 一、基础形象设定
+                    年龄：20–28岁，典型年轻东方女性，气质亲和专业，兼具探店博主的活力与少女感，适配各类探店场景（美食/服装/文创/餐饮等），可根据探店风格切换气场。
+                    脸型：流畅柔和的鹅蛋脸（或小圆脸），面部线条饱满圆润，无凌厉棱角，贴合东方女性温婉轮廓，上镜自然不突兀。
+
+                    ### 二、面部细节规范
+                    - 肤质与底妆：皮肤白皙细腻，在4500K–5000K暖白光下呈现清透哑光质感，毛孔细腻；底妆轻薄服帖，无假面感、无卡粉、无油光，肤色均匀透亮，保留自然肤质纹理。极致的漂亮
+                    - 眉毛：自然雾感眉，眉形平缓舒展，颜色为深棕或自然黑，贴合原生眉形，边缘干净利落。
+                    - 眼妆：眼型为柔和杏眼，眼妆清淡精致；浅大地色打底消肿，细内眼线纤细隐形，睫毛纤长卷翘自然，卧蚕轻微提亮，眼神明亮专注，讲解时眼神灵动不飘忽。
+                    - 鼻型与修容：鼻型小巧立体，鼻影自然过渡，仅轻微提升面部立体度。
+                    - 腮红与苹果肌：腮红轻扫苹果肌，颜色淡雅自然（淡桃色、浅玫瑰色），透出自然好气色。
+                    - 唇妆：低饱和色系，质地水润轻薄，美妆/美食探店用奶茶色/豆沙色，服装/文创探店用冷调裸色/玫瑰茶，唇形饱满匀称，嘴角带温和浅笑。
+                    - 表情：自然放松，讲解时专注热情，介绍店铺特色时眼神带笑意，情绪饱满有感染力。
+
+                    ### 三、发型细节规范（随探店风格适配）
+                    - 美妆/美食探店：柔顺黑长直（自然垂肩）、低马尾、温柔半扎发，可留少量碎发修饰脸颊。
+                    - 服装/文创探店：慵懒微卷、锁骨发、侧分卷发，突出肩颈线条，衬托穿搭细节。
+                    - 餐饮/甜品探店：高马尾、丸子头，额前碎发整理干净，清爽干练。
+
+                    ### 四、穿搭细节规范（随探店场景适配）
+                    - 核心原则：简约舒适，风格贴合探店场景，不抢视觉焦点，色调柔和统一。
+                    - 美妆/美食探店：浅杏、奶白、浅咖色系上衣，圆领/方领设计，搭配围裙（若有）。
+                    - 服装/文创探店：小香风针织衫、简约衬衫，版型利落，搭配探店主题元素配饰（如围巾、发夹）。
+                    - 餐饮/甜品探店：浅色系宽松棉感上衣，舒适休闲，搭配围裙或试吃服。
+
+                    ### 五、体态细节规范
+                    - 体态：身形匀称挺拔，肩颈线条舒展，站姿端正自然；上半身微微前倾，面向镜头，姿态优雅大方，展示店铺细节与特色。
+
+                    ### 六、适配要求
+                    所有细节需与探店场景整体要求（高清1080P画质、暖白光线、低饱和背景）适配，妆容、发型、穿搭随探店风格灵活调整，始终保持干净、亲和、专业的探店主播形象。
+
+                    ## 输出要求
+                    1. 仅输出**一条完整提示词**，无任何额外解释、冗余内容。
+                    2. 输出结构：固定探店主播描述 + 图片设计排版内容
+                    3. 固定探店主播描述：
+                    一名**探店主播**，写实摄影风格，照片摄影级写实，超精细细节，1名女性，单人，**适配各类探店场景**（美食/服装/文创/餐饮），气质亲和专业，**手持探店商品/指向店铺特色区域**，姿态自然互动（如微笑看向镜头、轻扬手介绍环境），**穿着符合场景风格的服饰**（如休闲装/简约裙装），白皙皮肤，精致五官，大眼睛，淡妆，唇妆与场景适配，**姿态优雅**，**自然融入探店背景**，室外/室内场景，浅景深。
+
+                    ## 图片设计统一排版格式：
+                    【图片是全景，随机构图，主播全身自然站立、姿态保持原貌、位于画面对应构图区域、高度占画面35%、面部及身体光影与背景自然光方向一致、不遮挡店铺logo/招牌/特色装饰等核心区域，背景完整显示（含店铺招牌文字、logo、特色装饰、环境布局、产品陈列区等），图片比例16:9，右下角水印棱镜AI，风格写实摄影，图一是背景参考图】
+
+                    ## 输出示例
+                    一名探店主播，写实摄影风格，照片摄影级写实，超精细细节，1名女性，单人，适配美食探店场景，手持奶茶杯（试用装）、轻扬手微笑介绍环境，姿态自然互动，穿着浅咖色圆领上衣（搭配白色围裙），白皙皮肤，精致五官，大眼睛，淡妆，奶茶色唇妆，姿态优雅，自然融入探店背景，室内场景，浅景深。
+                    图片是全景，左侧三分法构图，主播全身自然站立、姿态保持原貌、位于画面左侧三分线下半区域、高度占画面35%、面部及身体光影与背景店铺暖白光方向一致、距离店铺玻璃招牌0.5米且不遮挡招牌文字（“XX甜品店”金色字体）、logo（心形粉色图案）及任何核心区域（含玻璃柜内产品陈列、绿植墙、“每日限定款”电子价目牌），店铺完整显示（含白色墙面、粉色灯带、玻璃柜内马卡龙/蛋糕陈列、左侧“XX甜品店”金色招牌），图片比例16:9，右下角水印棱镜AI，风格写实摄影，图一是背景参考图。
+
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: mentou
+              input:
+                value:
+                    path: mentou
+                    ref_node: "100001"
+        node_outputs:
+            output:
+                type: string
+                value: null
+            reasoning_content:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 180000
+    - id: "190244"
+      type: image_generate
+      title: 图像生成
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg
+      description: "通过文字描述/添加参考图生成图片"
+      position:
+        x: -1275.2168621632666
+        y: 125.45188433746722
+      parameters:
+        apiParam: null
+        modelSetting:
+            custom_ratio:
+                height: 1440
+                ratio_type: fixed
+                width: 2560
+            ddim_steps: 25
+            guidance_scale: 2.5
+            images_reference: {}
+            max_images: 1
+            model: 10
+            ratio: 0
+            watermark: false
+        node_inputs:
+            - name: output
+              input:
+                value:
+                    path: output
+                    ref_node: "191716"
+        node_outputs:
+            data:
+                type: image
+                value: null
+            msg:
+                type: string
+                value: null
+        prompt:
+            negative_prompt: ""
+            prompt: |+
+                {{output}}
+
+        references:
+            - url:
+                assistType: 2
+                type: string
+                value:
+                    content:
+                        blockID: "100001"
+                        name: mentou
+                        source: block-output
+                    dependencies:
+                        variables: null
+                    inputMode: ""
+                    rawMeta:
+                        type: 7
+                    type: ref
+              weight: 0.7
+        settingOnError:
+            processType: 1
+            switch: false
+            timeoutMs: 600000
+    - id: "167969"
+      type: llm
+      title: 中文视频提示词
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: -1275.2168621632666
+        y: 345.12411473276995
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: apiMode
+              input:
+                type: integer
+                value: "0"
+            - name: frequencyPenalty
+              input:
+                type: float
+                value: "0"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: spCurrentTime
+              input:
+                type: boolean
+                value: false
+            - name: spAntiLeak
+              input:
+                type: boolean
+                value: false
+            - name: thinkingType
+              input:
+                type: string
+                value: enabled
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·2.0·lite
+            - name: modelType
+              input:
+                type: integer
+                value: "1772546477"
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: parameters
+              input:
+                type: object
+                properties:
+                    max_completion_tokens:
+                        type: integer
+                        value: "0"
+                    reasoning_effort:
+                        type: string
+                        value: medium
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: |-
+                    {{url}}
+                    {{text}}
+                    {{duration}}
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: |-
+                    # 角色
+                    你是即梦Seedance2.0口播视频提示词生成助手，依托Coze大模型能力，核心职责是**直接复用参考图的人物与场景**，根据用户提供的「口播文案」「参考图」「视频时长（秒）」，输出可直接复制使用、适配即梦Seedance2.0的视频生成提示词（≤600字），让图中人物直接朗读口播文案，搭配时段运镜分镜，无冗余内容。
+
+                    ## 核心能力
+                    1.  原图复用：**直接沿用参考图的人物、场景、环境**，不修改、不重新设计人物与场景
+                    2.  文案适配：按视频时长精简过长文案，**保留原文核心含义**，保证口播吐字清晰
+                    3.  口播+运镜：指定人物直接朗读文案，添加**时段化运镜分镜**贴合口播节奏
+                    4.  结构化输出：按固定顺序生成，无解释文字，可直接粘贴使用
+
+                    ## 输出格式
+                    人物指令：直接复用参考图中的人物与场景，以图中人物为核心口播者，表情动作自然贴合口播
+                    口播要求：核心口播者清晰朗读以下适配时长文案，[语气+语速+停顿]；适配文案：[精简后文案]
+                    运镜分镜：[X秒-X秒：XX运镜，贴合口播节奏]
+
+                    ## 限制
+                    - 必须**直接复用参考图人物与场景**，不虚构、不改动任何元素
+                    - 文案按时长精简，不偏离原意，保障口播流畅清晰
+                    - 模块顺序不可调换，总字数≤600字，无多余解释
+                    - 仅输出即梦Seedance2.0可用提示词，无冗余内容
+
+                    ## 输出示例
+                    人物指令：直接复用参考图中的人物与场景，以图中女性为核心口播者
+                    口播要求：女性语气亲切、语速适中，句间自然停顿；适配文案：2026马年新春，米核AI祝伙伴们以梦为马，公司一马当先，春节快乐阖家安康！
+                    运镜分镜：0-4秒：固定近景，5-9秒：缓慢微推
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: url
+              input:
+                value:
+                    path: data
+                    ref_node: "190244"
+            - name: text
+              input:
+                value:
+                    path: wenan
+                    ref_node: "100001"
+            - name: duration
+              input:
+                value:
+                    path: duration
+                    ref_node: "100001"
+        node_outputs:
+            output:
+                type: string
+                value: null
+            reasoning_content:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 180000
+    - id: "156976"
+      type: comment
+      title: "31"
+      icon: comment_icon
+      description: ""
+      position:
+        x: -1756.8818333387949
+        y: 266.498885056928
+      size:
+        width: 358.98882055674466
+        height: 289.41227483140983
+      parameters:
+        note: '[{"type":"paragraph","children":[{"text":"工作流程步骤：","type":"text"}]},{"type":"paragraph","children":[{"text":"1.1查询生成视频尺寸ID","type":"text"}]},{"type":"paragraph","children":[{"type":"text","text":"1.2 根据输入的dpi 获取对应id"}]},{"type":"paragraph","children":[{"text":"2.1查询生成视频风格ID","type":"text"}]},{"type":"paragraph","children":[{"type":"text","text":"2.2默认即梦模型"}]},{"type":"paragraph","children":[{"text":"3.根据参数 workInputImage inputVideoUrl 是否存在 生成对应的视频","type":"text"}]},{"type":"paragraph","children":[{"type":"text","text":"4.循环查询视频任务id 直到输出视频地址"}]}]'
+        schemaType: slate
+    - id: "142379"
+      type: video_generation
+      title: 5S
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png
+      description: "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍"
+      position:
+        x: -345.3059580104234
+        y: -81.55838241384629
+      parameters:
+        cameraFixed: false
+        duration: 5
+        dynamicParameters: []
+        firstFrame:
+            assistType: 2
+            type: string
+            value:
+                content:
+                    blockID: "190244"
+                    name: data
+                    source: block-output
+                rawMeta:
+                    type: 7
+                type: ref
+        generateAudio: true
+        generateMode: image2Video
+        model: doubao-seedance-1.5-pro
+        node_inputs:
+            - name: output
+              input:
+                value:
+                    path: output
+                    ref_node: "167969"
+            - name: wenan
+              input:
+                value:
+                    path: wenan
+                    ref_node: "100001"
+        node_outputs:
+            msg:
+                type: string
+                value: null
+            video:
+                type: video
+                value: null
+        prompt: |-
+            视频提示词：{{output}}
+            口播文案：{{wenan}}
+            生成有声视频
+        ratio: adaptive
+        resolution: 720p
+        seed: -1
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 360000
+        watermark: false
+    - id: "197267"
+      type: condition
+      title: 选择器
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg
+      description: "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支"
+      position:
+        x: -759.4447751738157
+        y: 139.45188433746722
+      parameters:
+        branches:
+            - condition:
+                conditions:
+                    - left:
+                        input:
+                            value:
+                                path: duration
+                                ref_node: "100001"
+                      operator: 1
+                      right:
+                        input:
+                            type: integer
+                            value: 5
+                logic: 2
+    - id: "1453456"
+      type: video_generation
+      title: 10S
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png
+      description: "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍"
+      position:
+        x: -345.3059580104234
+        y: 346.12411473276995
+      parameters:
+        cameraFixed: false
+        duration: 10
+        dynamicParameters: []
+        firstFrame:
+            assistType: 2
+            type: string
+            value:
+                content:
+                    blockID: "190244"
+                    name: data
+                    source: block-output
+                rawMeta:
+                    type: 7
+                type: ref
+        generateAudio: true
+        generateMode: image2Video
+        model: doubao-seedance-1.5-pro
+        node_inputs:
+            - name: output
+              input:
+                value:
+                    path: output
+                    ref_node: "167969"
+            - name: wenan
+              input:
+                value:
+                    path: wenan
+                    ref_node: "100001"
+        node_outputs:
+            msg:
+                type: string
+                value: null
+            video:
+                type: video
+                value: null
+        prompt: |-
+            视频提示词：{{output}}
+            口播文案：{{wenan}}
+            生成有声视频
+        ratio: adaptive
+        resolution: 720p
+        seed: -1
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 360000
+        watermark: false
+    - id: "144476"
+      type: variable_merge
+      title: 视频聚合
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg
+      description: "对多个分支的输出进行聚合处理"
+      position:
+        x: 202.958011871643
+        y: 151.45188433746722
+      parameters:
+        mergeGroups:
+            - name: Group1
+              variables:
+                - assistType: 10
+                  type: string
+                  value:
+                    content:
+                        blockID: "142379"
+                        name: video
+                        source: block-output
+                    rawMeta:
+                        type: 16
+                    type: ref
+                - assistType: 10
+                  type: string
+                  value:
+                    content:
+                        blockID: "1453456"
+                        name: video
+                        source: block-output
+                    rawMeta:
+                        type: 16
+                    type: ref
+        node_outputs:
+            Group1:
+                type: video
+                value: null
+edges:
+    - source_node: "100001"
+      target_node: "191716"
+    - source_node: "144476"
+      target_node: "900001"
+    - source_node: "191716"
+      target_node: "190244"
+    - source_node: "190244"
+      target_node: "167969"
+    - source_node: "167969"
+      target_node: "197267"
+    - source_node: "197267"
+      target_node: "142379"
+      source_port: "true"
+    - source_node: "142379"
+      target_node: "144476"
+    - source_node: "197267"
+      target_node: "1453456"
+      source_port: "false"
+    - source_node: "1453456"
+      target_node: "144476"

@@ -1,0 +1,618 @@
+schema_version: 1.0.0
+name: G002_lj_shijuan
+id: 7628064342647816207
+description: "G002 出试卷工作流"
+mode: workflow
+icon: plugin_icon/workflow.png
+nodes:
+    - id: "100001"
+      type: start
+      title: 开始
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg
+      description: "工作流的起始节点，用于设定启动工作流需要的信息"
+      position:
+        x: -615
+        y: -212.06150903086757
+      parameters:
+        node_outputs:
+            content:
+                type: string
+                value: null
+            file:
+                type: doc
+                value: null
+            image:
+                type: image
+                value: null
+    - id: "900001"
+      type: end
+      title: 结束
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg
+      description: "工作流的最终节点，用于返回工作流运行后的结果信息"
+      position:
+        x: 2148.5121573388733
+        y: -159.14123483116958
+      parameters:
+        node_inputs:
+            - name: output
+              input:
+                type: string
+                value:
+                    path: data
+                    ref_node: "149708"
+        terminatePlan: returnVariables
+    - id: "181429"
+      type: condition
+      title: 选择器
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg
+      description: "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支"
+      position:
+        x: -148.10219103813353
+        y: -257.81150903086757
+      parameters:
+        branches:
+            - condition:
+                conditions:
+                    - left:
+                        input:
+                            value:
+                                path: file
+                                ref_node: "100001"
+                      operator: 10
+                logic: 2
+            - condition:
+                conditions:
+                    - left:
+                        input:
+                            value:
+                                path: image
+                                ref_node: "100001"
+                      operator: 10
+                logic: 2
+    - id: "183002"
+      type: plugin
+      title: read
+      icon: https://p26-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/b7145cb1c10d4ed49c883b49c2248437~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749862289&x-signature=CSrWwCiXvJJvLRxp8rn3rKYrhXc%3D
+      description: "帮助用户阅读文档内容，输入文档链接，返回文档内容，目前支持html、xml、doc、docx、txt、pdf、csv、xlsx格式。"
+      position:
+        x: 335.6477448777954
+        y: -400.8400136643842
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7405805158996934683"
+            - name: apiName
+              input:
+                type: string
+                value: "read"
+            - name: pluginID
+              input:
+                type: string
+                value: "7405805158996918299"
+            - name: pluginName
+              input:
+                type: string
+                value: "文件读取"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: url
+              input:
+                value:
+                    path: file
+                    ref_node: "100001"
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: string
+                value: null
+            log_id:
+                type: string
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "107573"
+      type: llm
+      title: 大模型-错题理解与衍生出题
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: 335.6477448777954
+        y: -238.36028011785788
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: temperature
+              input:
+                type: float
+                value: "0.8"
+            - name: topP
+              input:
+                type: float
+                value: "0.7"
+            - name: frequencyPenalty
+              input:
+                type: float
+                value: "0"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·1.5·Pro·视觉推理·128K
+            - name: modelType
+              input:
+                type: integer
+                value: "1745219190"
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: parameters
+              input:
+                type: object
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: '{{input}}'
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: "# 角色\n你是一位专业的出题专家，擅长依据上传图片内容，精准识别其中题目的知识点，并围绕这些知识点进行出题。\n\n## 技能\n### 技能 1: 按要求出题\n1. 当接收到上传图片后，仔细识别图片中题目的知识点。\n2. 根据识别出的知识点，分别生成3道选择题、3道填空题、3道判断题、3道简答或者计算题。\n\n## 限制:\n- 仅围绕上传图片中题目的知识点出题，不回答与图片知识点无关的问题。\n- 所出题目必须清晰明确，符合相应题型的规范。\n- 输出的题目需分别按照选择题、填空题、判断题、简答或计算题的类别依次列出。 "
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: input
+              input:
+                value:
+                    path: image
+                    ref_node: "100001"
+        node_outputs:
+            output_image:
+                type: string
+                value: null
+            reasoning_content:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 180000
+    - id: "146568"
+      type: llm
+      title: 大模型-根据输入知识点出题
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: 335.6477448777954
+        y: -60.51973946468617
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: modelType
+              input:
+                type: integer
+                value: "1737521813"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·1.5·Pro·32k
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: temperature
+              input:
+                type: float
+                value: "0.8"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: parameters
+              input:
+                type: object
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: '{{input}}'
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: "# 角色\n你是一位专业的出题专家，精通各类学科知识，能够依据输入的知识点，精准、高质量地出题。题目类型涵盖选择题、填空题、判断题以及简答或计算题，每种题型各出3道。\n\n## 技能\n### 技能 1: 根据知识点出题\n1. 当用户输入知识点后，仔细分析知识点内容。\n2. 围绕该知识点，分别精心设计3道选择题、3道填空题、3道判断题、3道简答或者计算题。选择题要提供4个选项；填空题需明确填写要求；判断题要保证表述清晰；简答或计算题要确保题目具有合理性和可解答性。\n3. 按照如下格式输出题目：\n    - **选择题**：\n        - 题目1：[具体题目内容]\n            A. [选项A内容]\n            B. [选项B内容]\n            C. [选项C内容]\n            D. [选项D内容]\n        - 题目2：[具体题目内容]\n            A. [选项A内容]\n            B. [选项B内容]\n            C. [选项C内容]\n            D. [选项D内容]\n        - 题目3：[具体题目内容]\n            A. [选项A内容]\n            B. [选项B内容]\n            C. [选项C内容]\n            D. [选项D内容]\n    - **填空题**：\n        - 题目1：[具体题目内容，明确填写要求]\n        - 题目2：[具体题目内容，明确填写要求]\n        - 题目3：[具体题目内容，明确填写要求]\n    - **判断题**：\n        - 题目1：[具体表述]（判断对错）\n        - 题目2：[具体表述]（判断对错）\n        - 题目3：[具体表述]（判断对错）\n    - **简答或计算题**：\n        - 题目1：[具体题目内容]\n        - 题目2：[具体题目内容]\n        - 题目3：[具体题目内容]\n\n## 限制:\n- 仅围绕用户输入的知识点出题，不涉及其他无关话题。\n- 所出题目必须符合上述规定格式，不得随意更改结构。\n- 题目内容需与输入知识点紧密相关，保证准确性和合理性。 "
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: input
+              input:
+                value:
+                    path: content
+                    ref_node: "100001"
+        node_outputs:
+            output_content:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 180000
+    - id: "192932"
+      type: llm
+      title: 大模型_2
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: 789.5972861458023
+        y: -414.8400136643842
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: modelType
+              input:
+                type: integer
+                value: "1737521813"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·1.5·Pro·32k
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: temperature
+              input:
+                type: float
+                value: "0.8"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: parameters
+              input:
+                type: object
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: '{{input}}'
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: |-
+                    # 角色
+                    你是一位专业的出题专家，擅长依据上传文件的内容进行出题工作。能够精准地从文件中提取关键知识点，通过多样化的题型全面考查对文件内容的理解与掌握。
+
+                    ## 技能
+                    ### 技能 1: 按要求出题
+                    1. 当接收到用户上传的文件后，仔细分析文件内容，分别出 3 道选择题、3 道填空题、3 道判断题、3 道简答或者计算题。
+                    2. 选择题要设置 4 个选项，其中只有一个正确答案，题目要清晰明了，选项具有一定的迷惑性。
+                    3. 填空题要准确提炼文件中的关键信息设置题目，答案简洁明确。
+                    4. 判断题要针对文件中的重要知识点设置对错判断，表述清晰准确。
+                    5. 简答或者计算题要能够考查对文件内容的深入理解和应用能力，题目要有一定的逻辑性和合理性。
+                    ===回复示例===
+                    ### 选择题
+                    1. 以下哪个选项符合文件中关于[具体内容]的描述？
+                    A. [选项 A 内容]
+                    B. [选项 B 内容]
+                    C. [选项 C 内容]
+                    D. [选项 D 内容]
+                    （答案：[正确选项]）
+                    2. ……
+
+                    ### 填空题
+                    1. 文件中提到的[关键事物]的主要特点是[填空内容]。
+                    2. ……
+
+                    ### 判断题
+                    1. 文件中所述的[具体观点]是正确的。（  ）（答案：[对/错]）
+                    2. ……
+
+                    ### 简答题
+                    1. 请简要阐述文件中关于[主题]的主要内容。
+                    答：[详细回答内容]
+                    2. ……
+
+                    ### 计算题
+                    1. 根据文件中给出的[数据条件]，计算[具体问题]。
+                    解：[计算过程和答案]
+                    2. ……
+                    ===示例结束===
+
+                    ## 限制:
+                    - 只依据用户上传的文件内容出题，拒绝回答与出题无关的话题。
+                    - 所输出的题目必须按照给定的格式进行组织，不能偏离框架要求。
+                    - 答案要准确、简洁，符合文件内容。
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: input
+              input:
+                value:
+                    path: data
+                    ref_node: "183002"
+        node_outputs:
+            output_file:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 180000
+    - id: "131540"
+      type: variable_merge
+      title: 变量聚合
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg
+      description: "对多个分支的输出进行聚合处理"
+      position:
+        x: 1278.7734266460704
+        y: -160.14123483116958
+      parameters:
+        mergeGroups:
+            - name: Group1
+              variables:
+                - type: string
+                  value:
+                    content:
+                        blockID: "107573"
+                        name: output_image
+                        source: block-output
+                    rawMeta:
+                        type: 1
+                    type: ref
+                - type: string
+                  value:
+                    content:
+                        blockID: "146568"
+                        name: output_content
+                        source: block-output
+                    rawMeta:
+                        type: 1
+                    type: ref
+                - type: string
+                  value:
+                    content:
+                        blockID: "192932"
+                        name: output_file
+                        source: block-output
+                    rawMeta:
+                        type: 1
+                    type: ref
+        node_outputs:
+            Group1:
+                type: string
+                value: null
+    - id: "149708"
+      type: plugin
+      title: 生成文档
+      icon: https://p3-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/6b59285f59514ab8ae0b0b7506045abe~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749863351&x-signature=XVDJlBGsNd17H%2F0smNqlgZ%2FfN0k%3D
+      description: "生成 pdf, docx, html, markdown, latex 格式的文档。"
+      position:
+        x: 1713.6427919924718
+        y: -159.14123483116958
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7365715035999666213"
+            - name: apiName
+              input:
+                type: string
+                value: "create_document"
+            - name: pluginID
+              input:
+                type: string
+                value: "7365715035999649829"
+            - name: pluginName
+              input:
+                type: string
+                value: "Doc Maker"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: formatted_markdown
+              input:
+                value:
+                    path: Group1
+                    ref_node: "131540"
+            - name: title
+              input:
+                type: string
+                value: "试卷"
+            - name: to_format
+              input:
+                type: string
+                value: "docx"
+        node_outputs:
+            code:
+                type: float
+                value: null
+            data:
+                type: string
+                value: null
+            log_id:
+                type: string
+                value: null
+            message:
+                type: string
+                value: null
+            msg:
+                type: string
+                value: null
+            status_code:
+                type: float
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "172247"
+      type: comment
+      title: ""
+      icon: ""
+      description: ""
+      position:
+        x: -675
+        y: -80.51150903086756
+      size:
+        width: 240
+        height: 150
+      parameters:
+        note: '[{"type":"paragraph","children":[{"text":"上传文件，系统为您智能生成试卷。","type":"text"}]},{"type":"paragraph","children":[{"type":"text","text":"上传错题图片，系统精准识别错题知识点，为您定制专属试卷。"}]},{"type":"paragraph","children":[{"type":"text","text":"输入您需要的知识点，系统即刻为您生成对应试卷。"}]}]'
+        schemaType: slate
+edges:
+    - source_node: "100001"
+      target_node: "181429"
+    - source_node: "149708"
+      target_node: "900001"
+    - source_node: "181429"
+      target_node: "183002"
+      source_port: "true"
+    - source_node: "181429"
+      target_node: "107573"
+      source_port: true_1
+    - source_node: "181429"
+      target_node: "146568"
+      source_port: "false"
+    - source_node: "183002"
+      target_node: "192932"
+    - source_node: "107573"
+      target_node: "131540"
+    - source_node: "146568"
+      target_node: "131540"
+    - source_node: "192932"
+      target_node: "131540"
+    - source_node: "131540"
+      target_node: "149708"

@@ -1,0 +1,10 @@
+{
+  "description": "",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "scripts": {
+    "dev": "node src/scripts/server.js",
+    "build": "node src/scripts/build.js"
+  }
+}

@@ -1,0 +1,521 @@
+schema_version: 1.0.0
+name: H003_lj_mps
+id: 7628490741963669554
+description: "名画照相馆"
+mode: workflow
+icon: plugin_icon/workflow.png
+nodes:
+    - id: "100001"
+      type: start
+      title: 开始
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg
+      description: "工作流的起始节点，用于设定启动工作流需要的信息"
+      position:
+        x: -658.3332041377711
+        y: -109.66327029523143
+      parameters:
+        node_outputs:
+            image_url:
+                type: image
+                required: true
+                value: null
+    - id: "900001"
+      type: end
+      title: 结束
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg
+      description: "工作流的最终节点，用于返回工作流运行后的结果信息"
+      position:
+        x: 1532.4975155640113
+        y: -122.61327029523147
+      parameters:
+        node_inputs:
+            - name: image
+              input:
+                type: image
+                value:
+                    path: data
+                    ref_node: "100495"
+        terminatePlan: returnVariables
+    - id: "186394"
+      type: llm
+      title: 历史撰写
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg
+      description: "调用大语言模型,使用变量和提示词生成回复"
+      version: "3"
+      position:
+        x: 675.2259129363392
+        y: -57.92005438184799
+      parameters:
+        fcParamVar:
+            knowledgeFCParam: {}
+        llmParam:
+            - name: apiMode
+              input:
+                type: integer
+                value: "0"
+            - name: frequencyPenalty
+              input:
+                type: float
+                value: "0"
+            - name: maxTokens
+              input:
+                type: integer
+                value: "4096"
+            - name: spCurrentTime
+              input:
+                type: boolean
+                value: false
+            - name: spAntiLeak
+              input:
+                type: boolean
+                value: false
+            - name: thinkingType
+              input:
+                type: string
+                value: enabled
+            - name: responseFormat
+              input:
+                type: integer
+                value: "2"
+            - name: modelName
+              input:
+                type: string
+                value: 豆包·2.0·lite
+            - name: modelType
+              input:
+                type: integer
+                value: "1772546477"
+            - name: generationDiversity
+              input:
+                type: string
+                value: balance
+            - name: parameters
+              input:
+                type: object
+                properties:
+                    max_completion_tokens:
+                        type: integer
+                        value: "0"
+                    reasoning_effort:
+                        type: string
+                        value: medium
+                value: null
+            - name: prompt
+              input:
+                type: string
+                value: |+
+                    请根据{{topic}}生成这幅名画历史的一句话概括{brief_intro}和详细解读{context}，并以JSON格式输出。
+
+            - name: enableChatHistory
+              input:
+                type: boolean
+                value: false
+            - name: chatHistoryRound
+              input:
+                type: integer
+                value: "3"
+            - name: systemPrompt
+              input:
+                type: string
+                value: |-
+                    ## 角色
+                    你是名画历史解读专家。请根据《名画名》生成这幅名画历史的一句话概括{brief_intro}和详细解读{context}，并以JSON格式输出。
+
+                    ## 输出案例
+                    {
+                        "brief_intro": "《戴珍珠耳环的少女》是荷兰画家约翰内斯·维米尔的名作，描绘了一位戴着头巾和珍珠耳环的年轻女性。",
+                        "context": "《戴珍珠耳环的少女》是一幅充满神秘和优雅的肖像画，创作于1665年左右。画中的少女以其深邃的眼神和含蓄的微笑著称，她头戴蓝黄色的头巾，耳饰一颗闪亮的珍珠。维米尔巧妙地运用光影效果，突出了少女的面部表情和配饰的质感，使画面充满了细腻的层次感和真实感。这幅画被誉为“北方的蒙娜丽莎”，展现了维米尔卓越的艺术技巧和对人物内心世界的深刻洞察。"
+                    }
+
+                    ## 限制
+                    1. 必须确保输出的{brief_intro}和{context}有内容，且{brief_intro}仅有一句话概括，{context}为详细解读，不得包含其他内容。
+                    2. 必须以JSON格式输出。
+            - name: stableSystemPrompt
+              input:
+                type: string
+                value: ""
+            - name: canContinue
+              input:
+                type: boolean
+                value: false
+            - name: loopPromptVersion
+              input:
+                type: string
+                value: ""
+            - name: loopPromptName
+              input:
+                type: string
+                value: ""
+            - name: loopPromptId
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: topic
+              input:
+                type: string
+                value:
+                    path: optionContent
+                    ref_node: "100977"
+        node_outputs:
+            brief_intro:
+                type: string
+                value: null
+                description: 一句话概括
+            context:
+                type: string
+                value: null
+                description: 详细解读
+            reasoning_content:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            switch: false
+            timeoutMs: 600000
+    - id: "159163"
+      type: output
+      title: 消息
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg
+      description: "支持中间过程的消息输出，支持流式和非流式两种方式"
+      position:
+        x: 1094.5243120635819
+        y: -43.92005438184799
+      parameters:
+        callTransferVoice: true
+        chatHistoryWriting: historyWrite
+        content:
+            type: string
+            value:
+                content: "### \U0001F4A1 关于“{{topic}}”\n---\n***一句话总结***<br>\n{{brief_intro}}\n<br>\n---\n***详细介绍***<br>\n{{context}}\n<br>\n---\n![image]({{imageurl}})"
+                type: literal
+        node_inputs:
+            - name: brief_intro
+              input:
+                value:
+                    path: brief_intro
+                    ref_node: "186394"
+            - name: imageurl
+              input:
+                type: string
+                value:
+                    path: image_url
+                    ref_node: "147891"
+            - name: context
+              input:
+                value:
+                    path: context
+                    ref_node: "186394"
+            - name: topic
+              input:
+                type: string
+                value:
+                    path: optionContent
+                    ref_node: "100977"
+        streamingOutput: true
+    - id: "125699"
+      type: plugin
+      title: 画质提升
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg
+      description: "提升图像清晰度"
+      position:
+        x: 675.2259129363392
+        y: -225.65703760825087
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7438835880728543282"
+            - name: apiName
+              input:
+                type: string
+                value: "image_quality_improve"
+            - name: pluginID
+              input:
+                type: string
+                value: "7438835880728526898"
+            - name: pluginName
+              input:
+                type: string
+                value: "画质提升"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: image_url
+              input:
+                type: image
+                value:
+                    path: image_url
+                    ref_node: "147891"
+        node_outputs:
+            data:
+                type: image
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "100495"
+      type: plugin
+      title: 智能换脸
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg
+      description: "为图片替换参考图的人脸"
+      position:
+        x: 1105.7271055110123
+        y: -225.65703760825087
+      parameters:
+        apiParam:
+            - name: apiID
+              input:
+                type: string
+                value: "7438917954420637723"
+            - name: apiName
+              input:
+                type: string
+                value: "swap_face"
+            - name: pluginID
+              input:
+                type: string
+                value: "7438917954420621339"
+            - name: pluginName
+              input:
+                type: string
+                value: "智能换脸"
+            - name: pluginVersion
+              input:
+                type: string
+                value: ""
+            - name: tips
+              input:
+                type: string
+                value: ""
+            - name: outDocLink
+              input:
+                type: string
+                value: ""
+        node_inputs:
+            - name: reference_picture_url
+              input:
+                value:
+                    path: image_url
+                    ref_node: "100001"
+            - name: template_picture_url
+              input:
+                value:
+                    path: data
+                    ref_node: "125699"
+        node_outputs:
+            data:
+                type: image
+                value: null
+            msg:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 180000
+    - id: "100977"
+      type: question
+      title: 问答
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg
+      description: "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式"
+      position:
+        x: -207.5303867357182
+        y: -266.51327029523145
+      parameters:
+        answer_type: option
+        dynamic_option:
+            type: string
+            value:
+                content:
+                    blockID: ""
+                    name: ""
+                    source: block-output
+                rawMeta:
+                    type: 1
+                type: ref
+        extra_output: false
+        limit: 3
+        llmParam:
+            frequencyPenalty: 0
+            generationDiversity: balance
+            maxTokens: 4096
+            modelName: 豆包·2.0·mini
+            modelType: 1.772003209e+09
+            parameters:
+                max_completion_tokens: 0
+                reasoning_effort: medium
+            responseFormat: 2
+            systemPrompt: ""
+            temperature: 0.5
+            thinkingType: enabled
+            topP: 1
+        node_outputs:
+            QUESTION_DATA:
+                type: object
+                properties:
+                    options:
+                        type: list
+                        items:
+                            type: object
+                            properties:
+                                name:
+                                    type: string
+                                    value: null
+                            value: null
+                        value: null
+                    title:
+                        type: string
+                        value: null
+                value: null
+            optionContent:
+                type: string
+                value: null
+            optionId:
+                type: string
+                value: null
+        option_type: static
+        options:
+            - name: 维米尔《戴珍珠耳环的少女》
+            - name: 达芬奇《蒙娜丽莎的微笑》
+            - name: 拉斐尔《自画像》
+            - name: 梵高《戴灰毡帽的自画像》
+            - name: 达芬奇《抱貂的女子》
+            - name: 梵高《梵高耳朵缠着绷带、拿着烟斗的自画像》
+            - name: 哈尔斯《笑容骑士》
+            - name: 拉斐尔《戴头纱的女子》
+        question: 请选择要使用的名画
+    - id: "147891"
+      type: code
+      title: 获取对应的url
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg
+      description: "编写代码，处理输入变量来生成返回值"
+      version: v2
+      position:
+        x: 280.9908162137245
+        y: -122.61327029523147
+      parameters:
+        code: |
+            async function main({ params }: Args): Promise<{ image_url: string }> {
+                const cases = [
+                    {
+                        case: "A",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/519d672931d746d08c587f66202a7842.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936066&x-signature=wxdxQ20jDdZHodSI0uY3Hw6HvsM%3D",
+                    },
+                    {
+                        case: "B",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/1884585d8fc94d398748a236913afa74.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781935968&x-signature=GP%2F0YvgwSVQevkSKXUQTkqevkqw%3D",
+                    },
+                    {
+                        case: "C",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/64cfc0fdaf71422787f3b426f06c5212.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936101&x-signature=Mmi1givYhNqCiC6JUy4v95JWEbI%3D",
+                    },
+                    {
+                        case: "D",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/51816a64aee84c559c93dbf81710974b.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936197&x-signature=vgom%2FcGkImt%2BLTraYGTE7PwFhMM%3D",
+                    },
+                    {
+                        case: "E",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/1bec591f64b9419bb5b6563bf22fb2a8.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936252&x-signature=Lj9klw4dlYyxy0vlgGqD5ZAdQ1A%3D",
+                    },
+                    {
+                        case: "F",
+                        painting: "https://p26-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/574c3ace2ef5494e828e81b616eca52d.jpeg~tplv-mdko3gqilj-image.image?rk3s=81d4c505&x-expires=1807256443&x-signature=pmMkRoDrd799naZeyHyE4a%2FRXW4%3D&x-wf-file_name=2de6ed05db88e8c9ad5edbd0cdd5ec2d.jpeg",
+                    },
+                    {
+                        case: "G",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/d9ee8e4824fc4a748979169c981fcd37.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936311&x-signature=9ECGKXzVOaZ8Q9vRaD18Ol%2Fss4A%3D",
+                    },
+                    {
+                        case: "H",
+                        painting: "https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/f8143ee85cfc48ecb5800de890c57ada.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936346&x-signature=BsUn0PLr5z76LXUF3E0e779eaDk%3D",
+                    }
+                ];
+
+                // 使用params.input 而不是params.query
+                const inputQuery = params.optionId;
+
+                // 直接匹配查询的数字和名画的case字段
+                const matchedCase = cases.find(caseItem => caseItem.case === inputQuery);
+
+                // 如果匹配到名画，则返回对应的图像链接；否则随机返回一个
+                if (matchedCase) {
+                    return { image_url: matchedCase.painting };
+                } else {
+                    const randomCase = cases[Math.floor(Math.random() * cases.length)];
+                    return { image_url: randomCase.painting };
+                }
+            }
+        language: 5
+        node_inputs:
+            - name: optionId
+              input:
+                value:
+                    path: optionId
+                    ref_node: "100977"
+        node_outputs:
+            image_url:
+                type: string
+                value: null
+        settingOnError:
+            processType: 1
+            retryTimes: 0
+            timeoutMs: 60000
+edges:
+    - source_node: "100001"
+      target_node: "100977"
+    - source_node: "100495"
+      target_node: "900001"
+    - source_node: "159163"
+      target_node: "900001"
+    - source_node: "100977"
+      target_node: "900001"
+      source_port: default
+    - source_node: "147891"
+      target_node: "186394"
+    - source_node: "186394"
+      target_node: "159163"
+    - source_node: "147891"
+      target_node: "125699"
+    - source_node: "125699"
+      target_node: "100495"
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_0
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_1
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_2
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_3
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_4
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_5
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_6
+    - source_node: "100977"
+      target_node: "147891"
+      source_port: branch_7

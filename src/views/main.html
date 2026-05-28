@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作流格式转换工具</title>
+    <link rel="stylesheet" href="/styles/style.css">
+</head>
+<body>
+    <div id="app-container">
+        <!-- 路由内容将在这里渲染 -->
+    </div>
+
+    <script type="module">
+        import { Router } from '/modules/router.js';
+        
+        const router = new Router();
+        router.init('app-container');
+    </script>
+</body>
+</html>

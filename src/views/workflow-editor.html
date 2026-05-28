@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作流编辑器</title>
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles/workflow-editor.css">
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <span>🛠️</span>
+            <span>工作流编辑器</span>
+        </h1>
+        <div class="status">
+            <span class="dot"></span>
+            <span>就绪</span>
+        </div>
+        <div class="actions">
+            <button class="btn btn-primary" onclick="window.location.href='/converter'">🏠 转换器</button>
+            <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 保存并返回</button>
+            <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ 验证工作流</button>
+            <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 导出工作流</button>
+            <button class="btn btn-danger" onclick="workflowUI.clearCanvas()">🗑️ 清空画布</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>历史记录</h3>
+                <div class="history-panel" id="historyPanel">
+                    <div class="history-list" id="historyList">
+                        <div class="history-item initial">初始化</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <h3>节点面板</h3>
+                <div class="node-palette">
+                    <div class="node-item" draggable="true" data-node-type="start" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">🚀</div>
+                        <div class="label">开始</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="end" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">🏁</div>
+                        <div class="label">结束</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="llm" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">🤖</div>
+                        <div class="label">大模型</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="condition" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">🔀</div>
+                        <div class="label">选择器</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="image_generate" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">🖼️</div>
+                        <div class="label">图片生成</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="text" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">📝</div>
+                        <div class="label">文本处理</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="code" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">💻</div>
+                        <div class="label">代码执行</div>
+                    </div>
+                    <div class="node-item" draggable="true" data-node-type="comment" ondragstart="window.dragStartHandler(event)">
+                        <div class="icon">📋</div>
+                        <div class="label">注释</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-section">
+                <h3>使用提示</h3>
+                <div class="sidebar-info">
+                    <p>🖱️ 拖拽节点到画布创建</p>
+                    <p>🔗 点击输出点拖拽创建连接</p>
+                    <p>🖼️ 双击节点编辑属性</p>
+                    <p>🗑️ Delete键删除选中节点</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="canvas" id="canvas" ondragover="window.dragOverHandler(event)" ondrop="window.dropHandler(event)">
+            <svg class="svg-layer" id="svgLayer"></svg>
+            <div class="canvas-content" id="canvasContent"></div>
+            <svg class="svg-hit-layer" id="svgHitLayer"></svg>
+            <div class="empty-state" id="emptyState">
+                <div class="icon">📦</div>
+                <p>从左侧拖拽节点到画布</p>
+                <p style="font-size: 0.8rem;">或从转换器导入工作流</p>
+            </div>
+        </div>
+        
+        <div class="property-panel">
+            <div class="property-panel-header">
+                <h3>属性面板</h3>
+            </div>
+            <div class="property-panel-body" id="propertyContent">
+                <div id="importedNodeInfo" class="imported-node-info" style="display: none;">
+                    <span class="icon">✓</span>
+                    <div>
+                        <div class="title">已导入节点</div>
+                        <div class="desc">节点已从转换器导入</div>
+                    </div>
+                </div>
+                
+                <div class="workflow-summary">
+                    <div class="summary-row">
+                        <span class="label">节点数量</span>
+                        <span class="value" id="nodeCount">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">连接数量</span>
+                        <span class="value" id="edgeCount">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">开始节点</span>
+                        <span class="value" id="startCount">0</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="label">结束节点</span>
+                        <span class="value" id="endCount">0</span>
+                    </div>
+                </div>
+                
+                <p style="color: var(--text-secondary); font-size: 0.875rem; text-align: center; padding: 1rem;">
+                    选择节点查看属性
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { WorkflowCore } from '/modules/workflow-core.js';
+        import { WorkflowUI } from '/modules/workflow-ui.js';
+        
+        const core = new WorkflowCore();
+        
+        // 优先从 sessionStorage 加载（从工作流管理器跳转过来）
+        const editingWorkflow = sessionStorage.getItem('editingWorkflow');
+        
+        if (editingWorkflow) {
+            const workflow = JSON.parse(editingWorkflow);
+            sessionStorage.setItem('editingWorkflowId', workflow.id);
+            sessionStorage.removeItem('editingWorkflow');
+            
+            // 清除 localStorage，避免与从管理器加载的工作流冲突
+            core.clearSavedWorkflow();
+            
+            if (workflow.nodes && workflow.nodes.length > 0) {
+                core.nodes = JSON.parse(JSON.stringify(workflow.nodes));
+                core.edges = JSON.parse(JSON.stringify(workflow.edges || []));
+                core.selectedNode = workflow.selectedNode || null;
+                core.selectedEdge = workflow.selectedEdge || null;
+                core.history = [];
+                core.historyIndex = -1;
+                core.saveHistory('从工作流管理器加载');
+            }
+        } else if (core.hasSavedWorkflow()) {
+            // 页面刷新后从 localStorage 恢复
+            core.loadFromLocalStorage();
+        }
+        // 否则使用空工作流（首次访问）
+        
+        window.workflowUI = new WorkflowUI(core);
+        window.workflowUI.init();
+        
+        window.draggedNodeType = null;
+        
+        window.dragStartHandler = function(event) {
+            window.draggedNodeType = event.target.dataset.nodeType;
+            event.dataTransfer.effectAllowed = 'copy';
+            event.dataTransfer.setData('text/plain', window.draggedNodeType);
+        };
+        
+        window.dragOverHandler = function(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        };
+        
+        window.dropHandler = function(event) {
+            event.preventDefault();
+            
+            if (!window.draggedNodeType) {
+                window.draggedNodeType = event.dataTransfer.getData('text/plain');
+            }
+            
+            if (!window.draggedNodeType) {
+                return;
+            }
+            
+            const canvas = document.getElementById('canvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            window.workflowUI.addNodeToCanvas(window.draggedNodeType, x - 90, y - 40);
+            window.draggedNodeType = null;
+        };
+    </script>
+</body>
+</html>
