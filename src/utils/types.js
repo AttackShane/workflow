@@ -88,7 +88,7 @@ export function getMainColor(t) {
 export function getSubTitle(t) {
     const displayName = NODE_DISPLAY_NAMES[t?.toLowerCase()];
     if (displayName) {
-        return displayName.replace(/^[🚀🏁🤖🔌💻🔀🌐📝🎨📚🔄🧠⏹️📦📤🔗🎬⏳📥❓]/, '');
+        return displayName.replace(/^[🚀🏁🤖🔌💻🔀🌐📝🎨📚🔄🧠⏹️📦📤🔗🎬⏳📥❓] ?/, '');
     }
     return "";
 }
@@ -98,9 +98,16 @@ export function getBounds(node) {
     
     const x = node.position?.x ?? 0;
     const y = node.position?.y ?? 0;
-    const lt = node.type?.toLowerCase() || "";
+    const type = node.type?.toLowerCase() || "";
     
-    return { x: x - 180, y, width: 360, height: NODE_HEIGHTS[lt] || 112 };
+    let width = 360;
+    let height = 112;
+    
+    if (type === "question" || type === "18") {
+        height = 295;
+    }
+    
+    return { x: x - 180, y, width, height };
 }
 
 let refCache = new Map();

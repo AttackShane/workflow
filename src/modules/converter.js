@@ -10,9 +10,14 @@ function getNodeDefaultTitle(type) {
     return DEFAULT_TITLES[type] || "节点";
 }
 
-function processPluginNode(data, nodeMeta, params) {
+function cleanIcon(icon) {
+    if (!icon) return "";
+    return String(icon).replace(/[`'"\\]/g, '').trim();
+}
+
+function processPluginNode(data, nodeMeta, params, type) {
     const apiParam = params.apiParam;
-    if (data.nodeMeta?.subTitle === "plugin" && apiParam) {
+    if (type === "plugin" && apiParam) {
         const pluginName = apiParam.find(p => p.name === "pluginName")?.input?.value?.content;
         const apiName = apiParam.find(p => p.name === "apiName")?.input?.value?.content;
         if (pluginName && apiName) nodeMeta.subtitle = `${pluginName}:${apiName}`;
@@ -21,7 +26,7 @@ function processPluginNode(data, nodeMeta, params) {
 }
 
 function buildExternalData(node, type, params) {
-    const ext = { icon: node.icon || "", description: node.description || "", title: node.title || "", mainColor: getMainColor(type) };
+    const ext = { icon: cleanIcon(node.icon), description: node.description || "", title: node.title || "", mainColor: getMainColor(type) };
     if (type === "plugin" && params.apiParam) {
         const pid = params.apiParam.find(p => p.name === "pluginID");
         if (pid) ext.pluginID = pid.input?.value;
@@ -63,19 +68,45 @@ export function convertNode(node, outputMap) {
         subTitle: getSubTitle(type)
     };
     
-    const data = { nodeMeta };
     const params = node.parameters || {};
     const inputParams = convertInputParameters(params.node_inputs, outputMap, type);
     
+    const inputs = {};
+    const outputs = [];
+    const handlerData = { inputs, outputs };
     const handler = nodeHandlers[type] || nodeHandlers.default;
-    handler(data, params, { node, outputMap, inputParams, convertNode });
+    handler(handlerData, params, { node, outputMap, inputParams, convertNode });
+    
+    const data = {
+        inputs: handlerData.inputs,
+        nodeMeta: {
+            title: node.title || getNodeDefaultTitle(type),
+            icon: cleanIcon(node.icon),
+            description: node.description || "",
+            mainColor: getMainColor(type),
+            subTitle: getSubTitle(type)
+        },
+        outputs: handlerData.outputs
+    };
 
-    processPluginNode(data, nodeMeta, params);
+    processPluginNode(data, data.nodeMeta, params, type);
     
     const blocks = data.blocks;
     const edges = data.edges;
     delete data.blocks;
     delete data.edges;
+    
+    if (data.outputs && data.outputs.length > 0) {
+        const outputOrder = ['optionId', 'optionContent', 'QUESTION_DATA'];
+        data.outputs.sort((a, b) => {
+            const idxA = outputOrder.indexOf(a.name);
+            const idxB = outputOrder.indexOf(b.name);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return 0;
+        });
+    }
     
     const result = {
         id, type: mapped, meta, data,

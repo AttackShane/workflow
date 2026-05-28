@@ -1,0 +1,1275 @@
+{
+  "type": "coze-workflow-clipboard-data",
+  "source": {
+    "workflowId": "7628490741963670000",
+    "flowMode": 0,
+    "spaceId": "imported_space",
+    "isDouyin": false,
+    "host": "www.coze.cn"
+  },
+  "json": {
+    "nodes": [
+      {
+        "id": "100001",
+        "type": "1",
+        "meta": {
+          "position": {
+            "x": -658.3332041377711,
+            "y": -109.66327029523143
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "开始",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\ude80 开始"
+          },
+          "outputs": [
+            {
+              "name": "image_url",
+              "type": "string",
+              "required": true,
+              "description": "",
+              "assistType": 2,
+              "rawMeta": {
+                "type": 7
+              }
+            }
+          ],
+          "inputs": {
+            "inputParameters": []
+          }
+        },
+        "_temp": {
+          "bounds": {
+            "x": -748.3332041377711,
+            "y": -149.66327029523143,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "title": "开始",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "900001",
+        "type": "2",
+        "meta": {
+          "position": {
+            "x": 1532.4975155640113,
+            "y": -122.61327029523147
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "inputs": {
+            "terminatePlan": "returnVariables",
+            "streamingOutput": false,
+            "inputParameters": [
+              {
+                "name": "image",
+                "input": {
+                  "type": "image",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100495",
+                      "name": "data"
+                    },
+                    "rawMeta": {
+                      "type": 7
+                    }
+                  }
+                }
+              }
+            ],
+            "content": {
+              "type": "string",
+              "value": {
+                "type": "literal",
+                "content": ""
+              }
+            }
+          }
+        },
+        "_temp": {
+          "bounds": {
+            "x": 1442.4975155640113,
+            "y": -162.61327029523147,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "title": "结束",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "186394",
+        "type": "3",
+        "meta": {
+          "position": {
+            "x": 675.2259129363392,
+            "y": -57.92005438184799
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "历史撰写",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "topic",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100977",
+                      "name": "optionContent"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ],
+            "llmParam": [
+              {
+                "name": "apiMode",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0"
+                  }
+                }
+              },
+              {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0"
+                  }
+                }
+              },
+              {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096"
+                  }
+                }
+              },
+              {
+                "name": "spCurrentTime",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": "false"
+                  }
+                }
+              },
+              {
+                "name": "spAntiLeak",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": "false"
+                  }
+                }
+              },
+              {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled"
+                  }
+                }
+              },
+              {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2"
+                  }
+                }
+              },
+              {
+                "name": "modelName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·lite"
+                  }
+                }
+              },
+              {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772546477"
+                  }
+                }
+              },
+              {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance"
+                  }
+                }
+              },
+              {
+                "name": "parameters",
+                "input": {
+                  "type": "object",
+                  "value": {
+                    "type": "literal",
+                    "content": null
+                  }
+                }
+              },
+              {
+                "name": "prompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "请根据{{topic}}生成这幅名画历史的一句话概括{brief_intro}和详细解读{context}，并以JSON格式输出。\n\n"
+                  }
+                }
+              },
+              {
+                "name": "enableChatHistory",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": "false"
+                  }
+                }
+              },
+              {
+                "name": "chatHistoryRound",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "3"
+                  }
+                }
+              },
+              {
+                "name": "systemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "## 角色\n你是名画历史解读专家。请根据《名画名》生成这幅名画历史的一句话概括{brief_intro}和详细解读{context}，并以JSON格式输出。\n\n## 输出案例\n{\n    \"brief_intro\": \"《戴珍珠耳环的少女》是荷兰画家约翰内斯·维米尔的名作，描绘了一位戴着头巾和珍珠耳环的年轻女性。\",\n    \"context\": \"《戴珍珠耳环的少女》是一幅充满神秘和优雅的肖像画，创作于1665年左右。画中的少女以其深邃的眼神和含蓄的微笑著称，她头戴蓝黄色的头巾，耳饰一颗闪亮的珍珠。维米尔巧妙地运用光影效果，突出了少女的面部表情和配饰的质感，使画面充满了细腻的层次感和真实感。这幅画被誉为“北方的蒙娜丽莎”，展现了维米尔卓越的艺术技巧和对人物内心世界的深刻洞察。\"\n}\n\n## 限制\n1. 必须确保输出的{brief_intro}和{context}有内容，且{brief_intro}仅有一句话概括，{context}为详细解读，不得包含其他内容。\n2. 必须以JSON格式输出。"
+                  }
+                }
+              },
+              {
+                "name": "stableSystemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": ""
+                  }
+                }
+              },
+              {
+                "name": "canContinue",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": "false"
+                  }
+                }
+              },
+              {
+                "name": "loopPromptVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": ""
+                  }
+                }
+              },
+              {
+                "name": "loopPromptName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": ""
+                  }
+                }
+              },
+              {
+                "name": "loopPromptId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": ""
+                  }
+                }
+              }
+            ],
+            "fcParamVar": {
+              "knowledgeFCParam": {}
+            },
+            "settingOnError": {
+              "processType": 1,
+              "retryTimes": 0,
+              "switch": false,
+              "timeoutMs": 600000
+            }
+          },
+          "outputs": [
+            {
+              "name": "brief_intro",
+              "type": "string",
+              "required": false,
+              "description": "一句话概括",
+              "rawMeta": {
+                "type": 1
+              }
+            },
+            {
+              "name": "context",
+              "type": "string",
+              "required": false,
+              "description": "详细解读",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          ],
+          "version": "3"
+        },
+        "_temp": {
+          "bounds": {
+            "x": 585.2259129363392,
+            "y": -97.92005438184799,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "title": "历史撰写",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "159163",
+        "type": "13",
+        "meta": {
+          "position": {
+            "x": 1094.5243120635819,
+            "y": -43.92005438184799
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "消息",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "inputs": {
+            "streamingOutput": true,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite",
+            "content": {
+              "type": "string",
+              "value": {
+                "content": "### 💡 关于“{{topic}}”\n---\n***一句话总结***<br>\n{{brief_intro}}\n<br>\n---\n***详细介绍***<br>\n{{context}}\n<br>\n---\n![image]({{imageurl}})",
+                "type": "literal",
+                "rawMeta": {
+                  "type": 1
+                }
+              }
+            },
+            "inputParameters": [
+              {
+                "name": "brief_intro",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "186394",
+                      "name": "brief_intro"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "imageurl",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "147891",
+                      "name": "image_url"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "context",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "186394",
+                      "name": "context"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "topic",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100977",
+                      "name": "optionContent"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "outputs": []
+        },
+        "_temp": {
+          "bounds": {
+            "x": 1004.5243120635819,
+            "y": -83.92005438184799,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "消息",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "125699",
+        "type": "4",
+        "meta": {
+          "position": {
+            "x": 675.2259129363392,
+            "y": -225.65703760825087
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "画质提升",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg",
+            "description": "提升图像清晰度",
+            "mainColor": "#CA61FF",
+            "subtitle": "画质提升:image_quality_improve"
+          },
+          "inputs": {
+            "apiParam": [
+              {
+                "name": "apiID",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "7438835880728543282",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "apiName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "image_quality_improve",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginID",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "7438835880728526898",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "画质提升",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "tips",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "outDocLink",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ],
+            "inputParameters": [
+              {
+                "name": "image_url",
+                "input": {
+                  "type": "image",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "147891",
+                      "name": "image_url"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ],
+            "settingOnError": {
+              "processType": 1,
+              "retryTimes": 0,
+              "timeoutMs": 180000
+            }
+          },
+          "outputs": [
+            {
+              "name": "data",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "assistType": 2,
+              "rawMeta": {
+                "type": 7
+              }
+            },
+            {
+              "name": "msg",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          ]
+        },
+        "_temp": {
+          "bounds": {
+            "x": 585.2259129363392,
+            "y": -265.6570376082509,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg",
+            "description": "提升图像清晰度",
+            "title": "画质提升",
+            "mainColor": "#CA61FF",
+            "pluginID": {
+              "type": "literal",
+              "content": "7438835880728526898",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "100495",
+        "type": "4",
+        "meta": {
+          "position": {
+            "x": 1105.7271055110123,
+            "y": -225.65703760825087
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "智能换脸",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
+            "description": "为图片替换参考图的人脸",
+            "mainColor": "#CA61FF",
+            "subtitle": "智能换脸:swap_face"
+          },
+          "inputs": {
+            "apiParam": [
+              {
+                "name": "apiID",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "7438917954420637723",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "apiName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "swap_face",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginID",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "7438917954420621339",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "智能换脸",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "pluginVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "tips",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              },
+              {
+                "name": "outDocLink",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ],
+            "inputParameters": [
+              {
+                "name": "reference_picture_url",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100001",
+                      "name": "image_url"
+                    },
+                    "rawMeta": {
+                      "type": 7
+                    }
+                  }
+                }
+              },
+              {
+                "name": "template_picture_url",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "125699",
+                      "name": "data"
+                    },
+                    "rawMeta": {
+                      "type": 7
+                    }
+                  }
+                }
+              }
+            ],
+            "settingOnError": {
+              "processType": 1,
+              "retryTimes": 0,
+              "timeoutMs": 180000
+            }
+          },
+          "outputs": [
+            {
+              "name": "data",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "assistType": 2,
+              "rawMeta": {
+                "type": 7
+              }
+            },
+            {
+              "name": "msg",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          ]
+        },
+        "_temp": {
+          "bounds": {
+            "x": 1015.7271055110123,
+            "y": -265.6570376082509,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
+            "description": "为图片替换参考图的人脸",
+            "title": "智能换脸",
+            "mainColor": "#CA61FF",
+            "pluginID": {
+              "type": "literal",
+              "content": "7438917954420621339",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "100977",
+        "type": "18",
+        "meta": {
+          "position": {
+            "x": -207.5303867357182,
+            "y": -266.51327029523145
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "问答",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "mainColor": "#3071F2",
+            "subTitle": "问答"
+          },
+          "inputs": {
+            "llmParam": {
+              "0": {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0"
+                  }
+                }
+              },
+              "1": {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance"
+                  }
+                }
+              },
+              "2": {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096"
+                  }
+                }
+              },
+              "3": {
+                "name": "modelName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·mini"
+                  }
+                }
+              },
+              "4": {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772003209"
+                  }
+                }
+              },
+              "5": {
+                "name": "parameters",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "[object Object]"
+                  }
+                }
+              },
+              "6": {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2"
+                  }
+                }
+              },
+              "7": {
+                "name": "temperature",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0.5"
+                  }
+                }
+              },
+              "8": {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled"
+                  }
+                }
+              },
+              "9": {
+                "name": "topP",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1"
+                  }
+                }
+              },
+              "systemPrompt": ""
+            },
+            "inputParameters": [],
+            "extra_output": false,
+            "answer_type": "option",
+            "option_type": "static",
+            "dynamic_option": {
+              "type": "string",
+              "value": {
+                "content": {
+                  "blockID": "",
+                  "name": "",
+                  "source": "block-output"
+                },
+                "rawMeta": {
+                  "type": 1
+                },
+                "type": "ref"
+              }
+            },
+            "question": "请选择要使用的名画",
+            "options": [
+              {
+                "name": "维米尔《戴珍珠耳环的少女》"
+              },
+              {
+                "name": "达芬奇《蒙娜丽莎的微笑》"
+              },
+              {
+                "name": "拉斐尔《自画像》"
+              },
+              {
+                "name": "梵高《戴灰毡帽的自画像》"
+              },
+              {
+                "name": "达芬奇《抱貂的女子》"
+              },
+              {
+                "name": "梵高《梵高耳朵缠着绷带、拿着烟斗的自画像》"
+              },
+              {
+                "name": "哈尔斯《笑容骑士》"
+              },
+              {
+                "name": "拉斐尔《戴头纱的女子》"
+              }
+            ],
+            "limit": 3
+          },
+          "outputs": [
+            {
+              "name": "QUESTION_DATA",
+              "type": "object",
+              "required": false,
+              "schema": [
+                {
+                  "name": "options",
+                  "type": "list",
+                  "required": false
+                },
+                {
+                  "name": "title",
+                  "type": "string",
+                  "required": false
+                }
+              ]
+            },
+            {
+              "name": "optionContent",
+              "type": "string",
+              "required": false
+            },
+            {
+              "name": "optionId",
+              "type": "string",
+              "required": false
+            }
+          ]
+        },
+        "_temp": {
+          "bounds": {
+            "x": -297.5303867357182,
+            "y": -306.51327029523145,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "title": "问答",
+            "mainColor": "#3071F2"
+          }
+        }
+      },
+      {
+        "id": "147891",
+        "type": "5",
+        "meta": {
+          "position": {
+            "x": 280.9908162137245,
+            "y": -122.61327029523147
+          }
+        },
+        "data": {
+          "nodeMeta": {
+            "title": "获取对应的url",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+            "description": "编写代码，处理输入变量来生成返回值",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udcbb 代码"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "optionId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100977",
+                      "name": "optionId"
+                    },
+                    "rawMeta": {
+                      "type": 1
+                    }
+                  }
+                }
+              }
+            ],
+            "code": "async function main({ params }: Args): Promise<{ image_url: string }> {\n    const cases = [\n        {\n            case: \"A\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/519d672931d746d08c587f66202a7842.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936066&x-signature=wxdxQ20jDdZHodSI0uY3Hw6HvsM%3D\",\n        },\n        {\n            case: \"B\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/1884585d8fc94d398748a236913afa74.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781935968&x-signature=GP%2F0YvgwSVQevkSKXUQTkqevkqw%3D\",\n        },\n        {\n            case: \"C\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/64cfc0fdaf71422787f3b426f06c5212.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936101&x-signature=Mmi1givYhNqCiC6JUy4v95JWEbI%3D\",\n        },\n        {\n            case: \"D\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/51816a64aee84c559c93dbf81710974b.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936197&x-signature=vgom%2FcGkImt%2BLTraYGTE7PwFhMM%3D\",\n        },\n        {\n            case: \"E\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/1bec591f64b9419bb5b6563bf22fb2a8.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936252&x-signature=Lj9klw4dlYyxy0vlgGqD5ZAdQ1A%3D\",\n        },\n        {\n            case: \"F\",\n            painting: \"https://p26-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/574c3ace2ef5494e828e81b616eca52d.jpeg~tplv-mdko3gqilj-image.image?rk3s=81d4c505&x-expires=1807256443&x-signature=pmMkRoDrd799naZeyHyE4a%2FRXW4%3D&x-wf-file_name=2de6ed05db88e8c9ad5edbd0cdd5ec2d.jpeg\",\n        },\n        {\n            case: \"G\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/d9ee8e4824fc4a748979169c981fcd37.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936311&x-signature=9ECGKXzVOaZ8Q9vRaD18Ol%2Fss4A%3D\",\n        },\n        {\n            case: \"H\",\n            painting: \"https://p9-bot-workflow-sign.byteimg.com/tos-cn-i-mdko3gqilj/f8143ee85cfc48ecb5800de890c57ada.jpg~tplv-mdko3gqilj-image.image?lk3s=fff2e91a&x-expires=1781936346&x-signature=BsUn0PLr5z76LXUF3E0e779eaDk%3D\",\n        }\n    ];\n\n    // 使用params.input 而不是params.query\n    const inputQuery = params.optionId;\n\n    // 直接匹配查询的数字和名画的case字段\n    const matchedCase = cases.find(caseItem => caseItem.case === inputQuery);\n\n    // 如果匹配到名画，则返回对应的图像链接；否则随机返回一个\n    if (matchedCase) {\n        return { image_url: matchedCase.painting };\n    } else {\n        const randomCase = cases[Math.floor(Math.random() * cases.length)];\n        return { image_url: randomCase.painting };\n    }\n}\n",
+            "language": 5,
+            "settingOnError": {
+              "processType": 1,
+              "retryTimes": 0,
+              "timeoutMs": 60000
+            }
+          },
+          "outputs": [
+            {
+              "name": "image_url",
+              "type": "string",
+              "required": false,
+              "description": "",
+              "rawMeta": {
+                "type": 1
+              }
+            }
+          ],
+          "version": "v2"
+        },
+        "_temp": {
+          "bounds": {
+            "x": 190.9908162137245,
+            "y": -162.61327029523147,
+            "width": 180,
+            "height": 80
+          },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+            "description": "编写代码，处理输入变量来生成返回值",
+            "title": "获取对应的url",
+            "mainColor": "#00B2B2"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "sourceNodeID": "100001",
+        "targetNodeID": "100977"
+      },
+      {
+        "sourceNodeID": "100495",
+        "targetNodeID": "900001"
+      },
+      {
+        "sourceNodeID": "159163",
+        "targetNodeID": "900001"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "900001",
+        "sourcePortID": "default"
+      },
+      {
+        "sourceNodeID": "147891",
+        "targetNodeID": "186394"
+      },
+      {
+        "sourceNodeID": "186394",
+        "targetNodeID": "159163"
+      },
+      {
+        "sourceNodeID": "147891",
+        "targetNodeID": "125699"
+      },
+      {
+        "sourceNodeID": "125699",
+        "targetNodeID": "100495"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_0"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_1"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_2"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_3"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_4"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_5"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_6"
+      },
+      {
+        "sourceNodeID": "100977",
+        "targetNodeID": "147891",
+        "sourcePortID": "branch_7"
+      }
+    ],
+    "name": "H003_lj_mps"
+  },
+  "bounds": {
+    "x": -838.3332041377711,
+    "y": -286.51327029523145,
+    "width": 2910.8307197017825,
+    "height": 362.59321591338346
+  }
+}

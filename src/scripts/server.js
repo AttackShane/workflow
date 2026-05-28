@@ -38,7 +38,9 @@ function serveFile(res, filePath, statusCode = 200) {
         } else {
             res.writeHead(statusCode, { 
                 'Content-Type': getMimeType(filePath),
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
             });
             res.end(content, 'utf-8');
         }
@@ -63,7 +65,7 @@ const routeMap = {
 const server = http.createServer((req, res) => {
     logRequest(req);
     
-    let filePath = req.url;
+    let filePath = req.url.split('?')[0];
     
     if (routeMap[filePath]) {
         filePath = routeMap[filePath];

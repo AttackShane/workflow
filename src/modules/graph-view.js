@@ -130,8 +130,19 @@ function showNodeDetail(node) {
             }
         }
         
-        const nodeWidth = 180;
-        const nodeHeight = 80;
+        let nodeWidth = 360;
+        let nodeHeight = 112;
+        const nodeType = String(node.type).toLowerCase();
+        if (nodeType === "question" || nodeType === "18") {
+            nodeHeight = 295;
+        }
+        
+        function cleanIcon(icon) {
+            if (!icon) return "";
+            return String(icon).replace(/[`'"\\]/g, '').trim();
+        }
+        
+        const cleanIconUrl = cleanIcon(nodeMeta.icon);
         
         const clipboardData = {
             type: "coze-workflow-clipboard-data",
@@ -153,9 +164,15 @@ function showNodeDetail(node) {
                         }
                     },
                     data: {
-                        nodeMeta: nodeMeta,
-                        outputs: node.outputs || node.data?.outputs || [],
-                        inputs: inputs
+                        inputs: inputs,
+                        nodeMeta: {
+                            title: nodeMeta.title,
+                            icon: cleanIconUrl,
+                            description: nodeMeta.description,
+                            mainColor: nodeMeta.mainColor,
+                            subTitle: nodeMeta.subTitle
+                        },
+                        outputs: node.outputs || node.data?.outputs || []
                     },
                     _temp: {
                         bounds: {
@@ -165,7 +182,7 @@ function showNodeDetail(node) {
                             height: nodeHeight
                         },
                         externalData: {
-                            icon: nodeMeta.icon,
+                            icon: cleanIconUrl,
                             description: nodeMeta.description,
                             title: nodeMeta.title,
                             mainColor: nodeMeta.mainColor

@@ -1,3 +1,5 @@
+import { TYPE_MAP, getMainColor, getSubTitle } from "../utils/types.js";
+
 export class WorkflowClipboard {
     constructor(ui) {
         this.ui = ui;
@@ -22,7 +24,16 @@ export class WorkflowClipboard {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         
         selectedNodes.forEach(node => {
-            const typeNum = this.core.getTypeNumber(node.type);
+            const type = node.type.toLowerCase();
+            const typeNum = TYPE_MAP[type] || this.core.getTypeNumber(node.type);
+            
+            const nodeMeta = {
+                title: node.title || '节点',
+                icon: node.icon || '',
+                description: node.description || '',
+                mainColor: getMainColor(type),
+                subTitle: getSubTitle(type)
+            };
             
             const cozeNode = {
                 id: node.id.replace('node_', ''),
@@ -34,13 +45,7 @@ export class WorkflowClipboard {
                     }
                 },
                 data: {
-                    nodeMeta: {
-                        title: node.title,
-                        icon: '',
-                        description: node.description || '',
-                        mainColor: '#5C62FF',
-                        subTitle: ''
-                    },
+                    nodeMeta: nodeMeta,
                     outputs: [],
                     inputs: {
                         inputParameters: []
@@ -54,22 +59,125 @@ export class WorkflowClipboard {
                         height: node.height || 80
                     },
                     externalData: {
-                        icon: '',
+                        icon: node.icon || '',
                         description: node.description || '',
-                        title: node.title,
-                        mainColor: '#5C62FF'
+                        title: node.title || '',
+                        mainColor: getMainColor(type)
                     }
                 }
             };
             
-            if (node.parameters) {
-                Object.keys(node.parameters).forEach(key => {
+            if (node.node_outputs && typeof node.node_outputs === 'object') {
+                Object.entries(node.node_outputs).forEach(([name, output]) => {
                     cozeNode.data.outputs.push({
-                        name: key,
-                        type: 'string',
-                        required: true,
-                        description: '',
-                        defaultValue: node.parameters[key],
+                        name: name,
+                        type: output.type || 'string',
+                        required: output.required === true,
+                        description: output.description || '',
+                        defaultValue: output.value,
+                        rawMeta: output.rawMeta || { type: 1 },
+                        ...(output.properties && { schema: Object.entries(output.properties).map(([propName, prop]) => ({
+                            name: propName,
+                            type: prop.type || 'string',
+                            required: prop.required === true,
+                            description: prop.description || ''
+                        }))})
+                    });
+                });
+            }
+            
+            if (node.outputs && Array.isArray(node.outputs)) {
+                node.outputs.forEach(output => {
+                    const existingIndex = cozeNode.data.outputs.findIndex(o => o.name === output.name);
+                    if (existingIndex >= 0) {
+                        cozeNode.data.outputs[existingIndex] = { ...cozeNode.data.outputs[existingIndex], ...output };
+                    } else {
+                        cozeNode.data.outputs.push(output);
+                    }
+                });
+            }
+            
+            if (node.parameters && typeof node.parameters === 'object' && !Array.isArray(node.parameters)) {
+                if (type === 'variable_merge' && node.parameters.mergeGroups) {
+                    cozeNode.data.inputs.mergeGroups = node.parameters.mergeGroups;
+                } else if (type === 'output' && node.parameters.content) {
+                    cozeNode.data.inputs.content = node.parameters.content;
+                    cozeNode.data.inputs.streamingOutput = node.parameters.streamingOutput === true;
+                    cozeNode.data.inputs.callTransferVoice = node.parameters.callTransferVoice === true;
+                    cozeNode.data.inputs.chatHistoryWriting = node.parameters.chatHistoryWriting || 'historyWrite';
+                } else if (type === 'input' && node.parameters.outputSchema) {
+                    cozeNode.data.inputs.outputSchema = typeof node.parameters.outputSchema === 'string' 
+                        ? JSON.parse(node.parameters.outputSchema) 
+                        : node.parameters.outputSchema;
+                } else if (type === 'question') {
+                    cozeNode.data.inputs.answer_type = node.parameters.answer_type || 'text';
+                    cozeNode.data.inputs.option_type = node.parameters.option_type || 'static';
+                    cozeNode.data.inputs.options = node.parameters.options || [];
+                    cozeNode.data.inputs.limit = node.parameters.limit || 3;
+                    cozeNode.data.inputs.extra_output = node.parameters.extra_output === true;
+                    cozeNode.data.inputs.question = node.parameters.question || '';
+                    
+                    if (node.parameters.llmParam) {
+                        const llmParam = {};
+                        if (Array.isArray(node.parameters.llmParam)) {
+                            node.parameters.llmParam.forEach((param, index) => {
+                                llmParam[String(index)] = {
+                                    name: param.name,
+                                    input: {
+                                        type: param.input?.type || 'string',
+                                        value: param.input?.value || { type: 'literal', content: '' }
+                                    }
+                                };
+                            });
+                            llmParam.systemPrompt = node.parameters.llmParam.find(p => p.name === 'systemPrompt')?.input?.value?.content || '';
+                        } else if (typeof node.parameters.llmParam === 'object') {
+                            Object.entries(node.parameters.llmParam).forEach(([key, value]) => {
+                                if (!isNaN(key)) {
+                                    llmParam[key] = {
+                                        name: value.name || key,
+                                        input: {
+                                            type: value.input?.type || 'string',
+                                            value: value.input?.value || { type: 'literal', content: '' }
+                                        }
+                                    };
+                                }
+                            });
+                            llmParam.systemPrompt = node.parameters.llmParam.systemPrompt || '';
+                        }
+                        cozeNode.data.inputs.llmParam = llmParam;
+                    }
+                } else {
+                    Object.entries(node.parameters).forEach(([key, value]) => {
+                        if (key !== 'node_outputs' && key !== 'node_inputs') {
+                            cozeNode.data.inputs[key] = value;
+                        }
+                    });
+                }
+            }
+            
+            if (node.inputParameters && Array.isArray(node.inputParameters)) {
+                cozeNode.data.inputs.inputParameters = node.inputParameters.map(param => ({
+                    name: param.name || '',
+                    type: param.type || 'string',
+                    required: param.required === true,
+                    description: param.description || '',
+                    defaultValue: param.defaultValue,
+                    rawMeta: param.rawMeta || { type: 1 }
+                }));
+            }
+            
+            if (node.inputs && typeof node.inputs === 'object') {
+                cozeNode.data.inputs = { ...cozeNode.data.inputs, ...node.inputs };
+            }
+            
+            if (cozeNode.data.outputs.length === 0 && type === 'input') {
+                const schema = cozeNode.data.inputs.outputSchema || [];
+                schema.forEach(field => {
+                    cozeNode.data.outputs.push({
+                        name: field.name || 'output',
+                        type: field.type || 'string',
+                        required: field.required === true,
+                        description: field.description || '',
                         rawMeta: { type: 1 }
                     });
                 });
@@ -98,7 +206,9 @@ export class WorkflowClipboard {
                 nodes: cozeNodes,
                 edges: selectedEdges.map(e => ({
                     sourceNodeID: e.source.replace('node_', ''),
-                    targetNodeID: e.target.replace('node_', '')
+                    targetNodeID: e.target.replace('node_', ''),
+                    ...(e.sourcePort && { sourcePortID: e.sourcePort }),
+                    ...(e.targetPort && { targetPortID: e.targetPort })
                 }))
             },
             bounds: {
@@ -179,7 +289,6 @@ export class WorkflowClipboard {
             minY = Math.min(minY, nodeY);
         });
         
-        // 将屏幕坐标转换为画布坐标（考虑平移和缩放）
         const { canvasX: pasteX, canvasY: pasteY } = this.ui.canvas.screenToCanvas(
             this.ui.canvas.lastMouseX || 100, 
             this.ui.canvas.lastMouseY || 100
@@ -213,12 +322,10 @@ export class WorkflowClipboard {
                     });
                 }
                 
-                const title = cozeNode.data?.nodeMeta?.title || 
-                             cozeNode.title || 
-                             '节点';
-                const description = cozeNode.data?.nodeMeta?.description || 
-                                   cozeNode.description || 
-                                   '';
+                const nodeMeta = cozeNode.data?.nodeMeta || {};
+                const title = nodeMeta.title || cozeNode.title || '节点';
+                const description = nodeMeta.description || cozeNode.description || '';
+                const icon = nodeMeta.icon || cozeNode.icon || '';
                 
                 const newNode = {
                     id: newNodeId,
@@ -227,13 +334,12 @@ export class WorkflowClipboard {
                     y: y,
                     title: title,
                     description: description,
+                    icon: icon,
                     parameters: parameters,
-                    width: cozeNode._temp?.bounds?.width || 
-                           cozeNode.width || 
-                           180,
-                    height: cozeNode._temp?.bounds?.height || 
-                            cozeNode.height || 
-                            80
+                    inputParameters: cozeNode.data?.inputs?.inputParameters || [],
+                    inputs: cozeNode.data?.inputs || {},
+                    width: cozeNode._temp?.bounds?.width || cozeNode.width || 180,
+                    height: cozeNode._temp?.bounds?.height || cozeNode.height || 80
                 };
                 
                 this.core.addNode(newNode);
@@ -252,7 +358,9 @@ export class WorkflowClipboard {
                         const newEdge = {
                             id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                             source: sourceId,
-                            target: targetId
+                            target: targetId,
+                            ...(edge.sourcePortID && { sourcePort: edge.sourcePortID }),
+                            ...(edge.targetPortID && { targetPort: edge.targetPortID })
                         };
                         const result = this.core.addEdge(newEdge);
                         if (result) {

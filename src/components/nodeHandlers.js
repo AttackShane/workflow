@@ -26,7 +26,6 @@ function convertLlmParam(llmParamRaw) {
 export const nodeHandlers = {
     start: (data, params) => {
         data.outputs = convertOutputs(params.node_outputs, true);
-        data.trigger_parameters = [];
         data.inputs = { inputParameters: [] };
     },
     
@@ -221,18 +220,25 @@ export const nodeHandlers = {
     },
     
     output: (data, params, ctx) => {
-        let content = params.content
-            ? typeof params.content === "object"
-                ? params.content
-                : { type: "string", value: { type: "literal", content: params.content } }
-            : { type: "string", value: { type: "literal", content: "" } };
+        let content = params.content;
+        if (!content) {
+            content = { type: "string", value: { type: "literal", content: "" } };
+        } else if (typeof content === "object") {
+            if (content.value && typeof content.value === 'object') {
+                if (content.value.type === 'literal' && !content.value.rawMeta) {
+                    content.value.rawMeta = { type: 1 };
+                }
+            }
+        } else {
+            content = { type: "string", value: { type: "literal", content: String(content) } };
+        }
         
         data.inputs = {
             streamingOutput: params.streamingOutput === true,
             callTransferVoice: params.callTransferVoice === true,
             chatHistoryWriting: params.chatHistoryWriting || "historyWrite",
             content,
-            inputParameters: ctx.inputParams
+            inputParameters: ctx.inputParams || []
         };
         data.outputs = convertOutputs(params.node_outputs, true);
     },
@@ -248,23 +254,108 @@ export const nodeHandlers = {
         }
         
         data.inputs = {
-            outputSchema: Array.isArray(outputSchema) ? outputSchema : []
+            outputSchema: Array.isArray(outputSchema) ? outputSchema : [],
+            inputParameters: ctx.inputParams || []
         };
         data.outputs = convertOutputs(params.node_outputs, true);
     },
     
     question: (data, params, ctx) => {
+        let llmParam = {};
+        if (params.llmParam) {
+            if (Array.isArray(params.llmParam)) {
+                params.llmParam.forEach((param, index) => {
+                    llmParam[String(index)] = {
+                        name: param.name,
+                        input: {
+                            type: param.input?.type || 'string',
+                            value: param.input?.value || { type: 'literal', content: '' }
+                        }
+                    };
+                });
+                llmParam.systemPrompt = params.llmParam.find(p => p.name === 'systemPrompt')?.input?.value?.content || '';
+            } else if (typeof params.llmParam === 'object') {
+                let index = 0;
+                Object.entries(params.llmParam).forEach(([key, value]) => {
+                    if (key === 'systemPrompt') {
+                        llmParam.systemPrompt = String(value);
+                    } else if (typeof value === 'object' && value.input) {
+                        llmParam[String(index++)] = {
+                            name: value.name || key,
+                            input: {
+                                type: value.input?.type || 'string',
+                                value: value.input?.value || { type: 'literal', content: '' }
+                            }
+                        };
+                    } else {
+                        const valueType = typeof value === 'number' ? (value % 1 === 0 ? 'integer' : 'float') : 'string';
+                        llmParam[String(index++)] = {
+                            name: key,
+                            input: {
+                                type: valueType,
+                                value: { type: 'literal', content: String(value) }
+                            }
+                        };
+                    }
+                });
+                if (!llmParam.systemPrompt) llmParam.systemPrompt = '';
+            }
+        }
+        
+        let dynamicOption = params.dynamic_option || { type: "string", value: { type: "literal", content: "" } };
+        if (dynamicOption.value && typeof dynamicOption.value === 'object') {
+            if (dynamicOption.value.type === 'ref' && !dynamicOption.value.rawMeta) {
+                dynamicOption.value.rawMeta = { type: 1 };
+            }
+        }
+        
         data.inputs = {
-            llmParam: params.llmParam || {},
+            llmParam: llmParam,
             inputParameters: ctx.inputParams,
             extra_output: params.extra_output === true,
             answer_type: params.answer_type || "text",
             option_type: params.option_type || "static",
-            dynamic_option: params.dynamic_option || { type: "string", value: { type: "literal", content: "" } },
-            options: Array.isArray(params.options) ? params.options : [],
+            dynamic_option: dynamicOption,
+            question: params.question || '',
+            options: Array.isArray(params.options) ? params.options.map(opt => ({
+                name: opt.name || opt,
+                ...(opt.value !== undefined && { value: opt.value })
+            })) : [],
             limit: params.limit || 3
         };
-        data.outputs = convertOutputs(params.node_outputs, true);
+        
+        if (params.node_outputs) {
+            data.outputs = Object.entries(params.node_outputs).map(([name, output]) => {
+                const outputObj = {
+                    type: output.type || 'string',
+                    name: name,
+                    required: output.required === true
+                };
+                if (output.properties) {
+                    outputObj.schema = Object.entries(output.properties).map(([propName, prop]) => {
+                        const propObj = {
+                            type: prop.type || 'string',
+                            name: propName,
+                            required: prop.required === true
+                        };
+                        if ((prop.properties || prop.items) && prop.type === 'list') {
+                            const subProps = prop.items?.properties || prop.properties || {};
+                            propObj.schema = {
+                                type: 'object',
+                                schema: Object.entries(subProps).map(([subName, subProp]) => ({
+                                    type: subProp.type || 'string',
+                                    name: subName
+                                }))
+                            };
+                        }
+                        return propObj;
+                    });
+                }
+                return outputObj;
+            });
+        } else {
+            data.outputs = [];
+        }
     },
     
     default: (data, params, ctx) => {
