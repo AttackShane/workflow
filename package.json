@@ -1,11 +1,13 @@
 {
   "description": "",
+  "type": "module",
   "devDependencies": {
     "http-server": "^14.1.1"
   },
   "scripts": {
     "dev": "node src/scripts/server.js",
-    "build": "node src/scripts/build.js"
+    "build": "node src/scripts/build.js",
+    "test": "node src/scripts/batch-convert.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.1.1"

@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -26,17 +29,14 @@
             "mainColor": "#5C62FF",
             "subTitle": "\ude80 开始"
           },
-          "outputs": [],
-          "inputs": {
-            "inputParameters": []
-          }
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -1042.9391144359695,
-            "y": -573.5287563413442,
-            "width": 180,
-            "height": 80
+            "x": -1132.9391144359695,
+            "y": -533.5287563413442,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -56,13 +56,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -92,14 +85,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 2129.856035984217,
-            "y": -577.0757410701386,
-            "width": 180,
-            "height": 80
+            "x": 2039.8560359842172,
+            "y": -537.0757410701386,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -119,13 +120,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "问答",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
-            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
-            "mainColor": "#3071F2",
-            "subTitle": "问答"
-          },
           "inputs": {
             "llmParam": {
               "0": {
@@ -225,42 +219,58 @@
             ],
             "limit": 3
           },
+          "nodeMeta": {
+            "title": "问答",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "mainColor": "#3071F2",
+            "subTitle": "问答"
+          },
           "outputs": [
             {
-              "name": "QUESTION_DATA",
+              "type": "string",
+              "name": "optionId",
+              "required": false
+            },
+            {
+              "type": "string",
+              "name": "optionContent",
+              "required": false
+            },
+            {
               "type": "object",
+              "name": "QUESTION_DATA",
               "required": false,
               "schema": [
                 {
-                  "name": "options",
                   "type": "list",
-                  "required": false
+                  "name": "options",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "schema": [
+                      {
+                        "type": "string",
+                        "name": "name"
+                      }
+                    ]
+                  }
                 },
                 {
-                  "name": "title",
                   "type": "string",
+                  "name": "title",
                   "required": false
                 }
               ]
-            },
-            {
-              "name": "optionContent",
-              "type": "string",
-              "required": false
-            },
-            {
-              "name": "optionId",
-              "type": "string",
-              "required": false
             }
           ]
         },
         "_temp": {
           "bounds": {
-            "x": -582.3335442753121,
-            "y": -678.3787563413442,
-            "width": 180,
-            "height": 80
+            "x": -672.3335442753121,
+            "y": -638.3787563413442,
+            "width": 360,
+            "height": 295
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
@@ -280,13 +290,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "分析专业",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -519,6 +522,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "分析专业",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -529,15 +539,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 997.8212686877278,
-            "y": -827.508929885478,
-            "width": 180,
-            "height": 80
+            "x": 907.8212686877278,
+            "y": -787.508929885478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -557,13 +566,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "专业名称输入",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
-            "description": "支持中间过程的信息输入",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce5 输入"
-          },
           "inputs": {
             "outputSchema": [
               {
@@ -573,6 +575,13 @@
               }
             ],
             "inputParameters": []
+          },
+          "nodeMeta": {
+            "title": "专业名称输入",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
           },
           "outputs": [
             {
@@ -588,10 +597,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 474.8398895854481,
-            "y": -788.558929885478,
-            "width": 180,
-            "height": 80
+            "x": 384.8398895854481,
+            "y": -748.558929885478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
@@ -611,13 +620,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "输出",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": true,
             "callTransferVoice": true,
@@ -634,14 +636,21 @@
             },
             "inputParameters": []
           },
+          "nodeMeta": {
+            "title": "输出",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -48.14148951683151,
-            "y": -801.558929885478,
-            "width": 180,
-            "height": 80
+            "x": -138.1414895168315,
+            "y": -761.558929885478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -661,13 +670,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "输出_2",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": true,
             "callTransferVoice": true,
@@ -684,14 +686,21 @@
             },
             "inputParameters": []
           },
+          "nodeMeta": {
+            "title": "输出_2",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -48.14148951683151,
-            "y": -652.2249780494178,
-            "width": 180,
-            "height": 80
+            "x": -138.1414895168315,
+            "y": -612.2249780494178,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -711,13 +720,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "学校名称输入",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
-            "description": "支持中间过程的信息输入",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce5 输入"
-          },
           "inputs": {
             "outputSchema": [
               {
@@ -727,6 +729,13 @@
               }
             ],
             "inputParameters": []
+          },
+          "nodeMeta": {
+            "title": "学校名称输入",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
           },
           "outputs": [
             {
@@ -742,10 +751,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 474.8398895854481,
-            "y": -639.2249780494178,
-            "width": 180,
-            "height": 80
+            "x": 384.8398895854481,
+            "y": -599.2249780494178,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
@@ -765,13 +774,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "分析学校",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1004,6 +1006,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "分析学校",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1014,15 +1023,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 997.8212686877278,
-            "y": -678.1749780494179,
-            "width": 180,
-            "height": 80
+            "x": 907.8212686877278,
+            "y": -638.1749780494179,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1042,13 +1050,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "输出_4",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": true,
             "callTransferVoice": true,
@@ -1065,14 +1066,21 @@
             },
             "inputParameters": []
           },
+          "nodeMeta": {
+            "title": "输出_4",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -48.14148951683151,
-            "y": -487.7287563413442,
-            "width": 180,
-            "height": 80
+            "x": -138.1414895168315,
+            "y": -447.7287563413442,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -1092,13 +1100,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "省份+选科+成绩+兴趣",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
-            "description": "支持中间过程的信息输入",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce5 输入"
-          },
           "inputs": {
             "outputSchema": [
               {
@@ -1108,6 +1109,13 @@
               }
             ],
             "inputParameters": []
+          },
+          "nodeMeta": {
+            "title": "省份+选科+成绩+兴趣",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
           },
           "outputs": [
             {
@@ -1123,10 +1131,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 474.8398895854481,
-            "y": -474.72875634134425,
-            "width": 180,
-            "height": 80
+            "x": 384.8398895854481,
+            "y": -434.72875634134425,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
@@ -1146,13 +1154,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "志愿填报推荐",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1385,6 +1386,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "志愿填报推荐",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1395,15 +1403,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 997.8212686877278,
-            "y": -513.6787563413443,
-            "width": 180,
-            "height": 80
+            "x": 907.8212686877278,
+            "y": -473.6787563413443,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1423,13 +1430,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "输出_6",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": true,
             "callTransferVoice": true,
@@ -1446,14 +1446,21 @@
             },
             "inputParameters": []
           },
+          "nodeMeta": {
+            "title": "输出_6",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -48.14148951683151,
-            "y": -334.75593507695754,
-            "width": 180,
-            "height": 80
+            "x": -138.1414895168315,
+            "y": -294.75593507695754,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -1473,13 +1480,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "省份+选科+成绩+兴趣+地域+专业",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
-            "description": "支持中间过程的信息输入",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce5 输入"
-          },
           "inputs": {
             "outputSchema": [
               {
@@ -1489,6 +1489,13 @@
               }
             ],
             "inputParameters": []
+          },
+          "nodeMeta": {
+            "title": "省份+选科+成绩+兴趣+地域+专业",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
           },
           "outputs": [
             {
@@ -1504,10 +1511,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 474.8398895854481,
-            "y": -321.75593507695754,
-            "width": 180,
-            "height": 80
+            "x": 384.8398895854481,
+            "y": -281.75593507695754,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
@@ -1527,13 +1534,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "升级版大模型",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1766,6 +1766,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "升级版大模型",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1776,15 +1783,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 997.8212686877278,
-            "y": -360.70593507695753,
-            "width": 180,
-            "height": 80
+            "x": 907.8212686877278,
+            "y": -320.70593507695753,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1804,13 +1810,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "输出_8",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": false,
             "callTransferVoice": true,
@@ -1827,14 +1826,21 @@
             },
             "inputParameters": []
           },
+          "nodeMeta": {
+            "title": "输出_8",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 997.8212686877278,
-            "y": -168.33795941057042,
-            "width": 180,
-            "height": 80
+            "x": 907.8212686877278,
+            "y": -128.33795941057042,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -1854,13 +1860,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "变量聚合",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
-            "description": "对多个分支的输出进行聚合处理",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd17 变量聚合"
-          },
           "inputs": {
             "inputParameters": [],
             "mergeGroups": [
@@ -1927,6 +1926,13 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "变量聚合",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd17 变量聚合"
+          },
           "outputs": [
             {
               "name": "Group1",
@@ -1941,10 +1947,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 1610.6844405164738,
-            "y": -578.0757410701386,
-            "width": 180,
-            "height": 80
+            "x": 1520.6844405164738,
+            "y": -538.0757410701386,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",

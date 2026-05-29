@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -106,17 +109,14 @@
                 "type": 7
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": -90,
-            "y": -40,
-            "width": 180,
-            "height": 80
+            "x": -180,
+            "y": 0,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -136,13 +136,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -172,14 +165,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 3679.3116526502845,
-            "y": -38,
-            "width": 180,
-            "height": 80
+            "x": 3589.3116526502845,
+            "y": 2,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -199,13 +200,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "生成提示词",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -551,6 +545,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "生成提示词",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "image_prompt",
@@ -570,15 +571,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 324.3104870939306,
-            "y": -185.3818537776908,
-            "width": 180,
-            "height": 80
+            "x": 234.3104870939306,
+            "y": -145.3818537776908,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -598,13 +598,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "图片数组",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
-            "description": "编写代码，处理输入变量来生成返回值",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udcbb 代码"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -707,6 +700,13 @@
               "timeoutMs": 60000
             }
           },
+          "nodeMeta": {
+            "title": "图片数组",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+            "description": "编写代码，处理输入变量来生成返回值",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udcbb 代码"
+          },
           "outputs": [
             {
               "name": "images",
@@ -720,15 +720,14 @@
                 "type": "string"
               }
             }
-          ],
-          "version": "v2"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 324.3104870939306,
-            "y": 72,
-            "width": 180,
-            "height": 80
+            "x": 234.3104870939306,
+            "y": 112,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
@@ -748,6 +747,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"clothes 衣服\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"pants  裤子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"hat  帽子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"shoes  鞋子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"bag  包包\",\"type\":\"text\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "",
@@ -755,22 +758,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"clothes 衣服\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"pants  裤子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"hat  帽子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"shoes  鞋子\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"bag  包包\",\"type\":\"text\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 240,
-            "height": 150
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -30,
-            "y": 72,
-            "width": 180,
-            "height": 80
+            "x": -120,
+            "y": 112,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "",
@@ -790,13 +785,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "图像生成",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
-            "description": "通过文字描述/添加参考图生成图片",
-            "mainColor": "#FF4DC3",
-            "subTitle": "\udfa8 图像生成"
-          },
           "inputs": {
             "apiParam": null,
             "inputParameters": [
@@ -863,6 +851,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "图像生成",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
+            "description": "通过文字描述/添加参考图生成图片",
+            "mainColor": "#FF4DC3",
+            "subTitle": "\udfa8 图像生成"
+          },
           "outputs": [
             {
               "name": "data",
@@ -883,15 +878,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": ""
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 754.3439710885782,
-            "y": -79,
-            "width": 180,
-            "height": 80
+            "x": 664.3439710885782,
+            "y": -39,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
@@ -911,13 +905,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "5S",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",
-            "description": "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍",
-            "mainColor": "#3071F2",
-            "subTitle": "\udfac 视频生成"
-          },
           "inputs": {
             "cameraFixed": false,
             "duration": 5,
@@ -970,6 +957,13 @@
             },
             "watermark": false
           },
+          "nodeMeta": {
+            "title": "5S",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",
+            "description": "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍",
+            "mainColor": "#3071F2",
+            "subTitle": "\udfac 视频生成"
+          },
           "outputs": [
             {
               "name": "msg",
@@ -990,15 +984,14 @@
                 "type": 16
               }
             }
-          ],
-          "version": ""
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 2058.9896504683375,
-            "y": -171.25310919391853,
-            "width": 180,
-            "height": 80
+            "x": 1968.9896504683375,
+            "y": -131.25310919391853,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",
@@ -1018,13 +1011,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "视频提示词",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1274,6 +1260,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "视频提示词",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1284,15 +1277,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 1167.809060366183,
-            "y": -79,
-            "width": 180,
-            "height": 80
+            "x": 1077.809060366183,
+            "y": -39,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1312,13 +1304,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "添加背景音乐",
-            "icon": "https://p9-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/f4f3a3b684e24d4097945463dcf5d234~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1778380694&x-signature=Aaw6pyurH%2BRub3MMz1TxtfwE7rM%3D",
-            "description": "音视频合成：将视频、音频叠加合成视频。",
-            "mainColor": "#CA61FF",
-            "subtitle": "视频剪辑工具:compile_video_audio"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -1471,6 +1456,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "添加背景音乐",
+            "icon": "https://p9-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/f4f3a3b684e24d4097945463dcf5d234~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1778380694&x-signature=Aaw6pyurH%2BRub3MMz1TxtfwE7rM%3D",
+            "description": "音视频合成：将视频、音频叠加合成视频。",
+            "mainColor": "#CA61FF",
+            "subtitle": "视频剪辑工具:compile_video_audio"
+          },
           "outputs": [
             {
               "name": "bill_info",
@@ -1555,10 +1547,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 3147.1261226550396,
-            "y": -38,
-            "width": 180,
-            "height": 80
+            "x": 3057.1261226550396,
+            "y": 2,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://p9-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/f4f3a3b684e24d4097945463dcf5d234~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1778380694&x-signature=Aaw6pyurH%2BRub3MMz1TxtfwE7rM%3D",
@@ -1585,13 +1577,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "选择器",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
-            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd00 条件"
-          },
           "inputs": {
             "branches": [
               {
@@ -1630,14 +1615,21 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "选择器",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
+            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd00 条件"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1593.1567316941935,
-            "y": -65,
-            "width": 180,
-            "height": 80
+            "x": 1503.1567316941935,
+            "y": -25,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
@@ -1657,13 +1649,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "视频聚合",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
-            "description": "对多个分支的输出进行聚合处理",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd17 变量聚合"
-          },
           "inputs": {
             "inputParameters": [],
             "mergeGroups": [
@@ -1704,6 +1689,13 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "视频聚合",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd17 变量聚合"
+          },
           "outputs": [
             {
               "name": "Group1",
@@ -1719,10 +1711,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 2665.5532588909587,
-            "y": -39,
-            "width": 180,
-            "height": 80
+            "x": 2575.5532588909587,
+            "y": 1,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
@@ -1742,13 +1734,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "10S",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",
-            "description": "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍",
-            "mainColor": "#3071F2",
-            "subTitle": "\udfac 视频生成"
-          },
           "inputs": {
             "cameraFixed": false,
             "duration": 5,
@@ -1801,6 +1786,13 @@
             },
             "watermark": false
           },
+          "nodeMeta": {
+            "title": "10S",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",
+            "description": "通过文本描述或添加参考图生成视频，注：此节点为付费节点，具体费用可见节点文档介绍",
+            "mainColor": "#3071F2",
+            "subTitle": "\udfac 视频生成"
+          },
           "outputs": [
             {
               "name": "msg",
@@ -1821,15 +1813,14 @@
                 "type": 16
               }
             }
-          ],
-          "version": ""
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 2058.9896504683375,
-            "y": 73,
-            "width": 180,
-            "height": 80
+            "x": 1968.9896504683375,
+            "y": 113,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-VideoGeneration.png",

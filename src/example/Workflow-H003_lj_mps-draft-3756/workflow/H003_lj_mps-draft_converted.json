@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -37,17 +40,14 @@
                 "type": 7
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": -748.3332041377711,
-            "y": -149.66327029523143,
-            "width": 180,
-            "height": 80
+            "x": -838.3332041377711,
+            "y": -109.66327029523143,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -67,13 +67,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -103,14 +96,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1442.4975155640113,
-            "y": -162.61327029523147,
-            "width": 180,
-            "height": 80
+            "x": 1352.4975155640113,
+            "y": -122.61327029523147,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -130,13 +131,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "历史撰写",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -369,6 +363,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "历史撰写",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "brief_intro",
@@ -388,15 +389,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 585.2259129363392,
-            "y": -97.92005438184799,
-            "width": 180,
-            "height": 80
+            "x": 495.2259129363392,
+            "y": -57.92005438184799,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -416,13 +416,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "消息",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
-            "description": "支持中间过程的消息输出，支持流式和非流式两种方式",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udce4 输出"
-          },
           "inputs": {
             "streamingOutput": true,
             "callTransferVoice": true,
@@ -508,14 +501,21 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "消息",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1004.5243120635819,
-            "y": -83.92005438184799,
-            "width": 180,
-            "height": 80
+            "x": 914.5243120635819,
+            "y": -43.92005438184799,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
@@ -535,13 +535,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "画质提升",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg",
-            "description": "提升图像清晰度",
-            "mainColor": "#CA61FF",
-            "subtitle": "画质提升:image_quality_improve"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -661,6 +654,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "画质提升",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg",
+            "description": "提升图像清晰度",
+            "mainColor": "#CA61FF",
+            "subtitle": "画质提升:image_quality_improve"
+          },
           "outputs": [
             {
               "name": "data",
@@ -685,10 +685,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 585.2259129363392,
-            "y": -265.6570376082509,
-            "width": 180,
-            "height": 80
+            "x": 495.2259129363392,
+            "y": -225.65703760825087,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-plugin-quality_improve-v2.jpg",
@@ -715,13 +715,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "智能换脸",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
-            "description": "为图片替换参考图的人脸",
-            "mainColor": "#CA61FF",
-            "subtitle": "智能换脸:swap_face"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -858,6 +851,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "智能换脸",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
+            "description": "为图片替换参考图的人脸",
+            "mainColor": "#CA61FF",
+            "subtitle": "智能换脸:swap_face"
+          },
           "outputs": [
             {
               "name": "data",
@@ -882,10 +882,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 1015.7271055110123,
-            "y": -265.6570376082509,
-            "width": 180,
-            "height": 80
+            "x": 925.7271055110123,
+            "y": -225.65703760825087,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
@@ -912,13 +912,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "问答",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
-            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
-            "mainColor": "#3071F2",
-            "subTitle": "问答"
-          },
           "inputs": {
             "llmParam": {
               "0": {
@@ -1070,42 +1063,58 @@
             ],
             "limit": 3
           },
+          "nodeMeta": {
+            "title": "问答",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "mainColor": "#3071F2",
+            "subTitle": "问答"
+          },
           "outputs": [
             {
-              "name": "QUESTION_DATA",
+              "type": "string",
+              "name": "optionId",
+              "required": false
+            },
+            {
+              "type": "string",
+              "name": "optionContent",
+              "required": false
+            },
+            {
               "type": "object",
+              "name": "QUESTION_DATA",
               "required": false,
               "schema": [
                 {
-                  "name": "options",
                   "type": "list",
-                  "required": false
+                  "name": "options",
+                  "required": false,
+                  "schema": {
+                    "type": "object",
+                    "schema": [
+                      {
+                        "type": "string",
+                        "name": "name"
+                      }
+                    ]
+                  }
                 },
                 {
-                  "name": "title",
                   "type": "string",
+                  "name": "title",
                   "required": false
                 }
               ]
-            },
-            {
-              "name": "optionContent",
-              "type": "string",
-              "required": false
-            },
-            {
-              "name": "optionId",
-              "type": "string",
-              "required": false
             }
           ]
         },
         "_temp": {
           "bounds": {
-            "x": -297.5303867357182,
-            "y": -306.51327029523145,
-            "width": 180,
-            "height": 80
+            "x": -387.5303867357182,
+            "y": -266.51327029523145,
+            "width": 360,
+            "height": 295
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
@@ -1125,13 +1134,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "获取对应的url",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
-            "description": "编写代码，处理输入变量来生成返回值",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udcbb 代码"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1160,6 +1162,13 @@
               "timeoutMs": 60000
             }
           },
+          "nodeMeta": {
+            "title": "获取对应的url",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+            "description": "编写代码，处理输入变量来生成返回值",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udcbb 代码"
+          },
           "outputs": [
             {
               "name": "image_url",
@@ -1170,15 +1179,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "v2"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 190.9908162137245,
-            "y": -162.61327029523147,
-            "width": 180,
-            "height": 80
+            "x": 100.99081621372449,
+            "y": -122.61327029523147,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",

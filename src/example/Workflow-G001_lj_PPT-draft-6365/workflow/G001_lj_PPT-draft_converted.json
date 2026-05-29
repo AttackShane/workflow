@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -36,17 +39,14 @@
                 "type": 1
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": -664.4530624158298,
-            "y": -554.7214198525479,
-            "width": 180,
-            "height": 80
+            "x": -754.4530624158298,
+            "y": -514.7214198525479,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -66,13 +66,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -99,14 +92,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1590.666774048067,
-            "y": -567.6714198525478,
-            "width": 180,
-            "height": 80
+            "x": 1500.666774048067,
+            "y": -527.6714198525478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -126,13 +127,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "根1号：据主题生成大纲",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
-            "description": "输入标题或内容，通过大模型生成PPT大纲",
-            "mainColor": "#CA61FF",
-            "subtitle": "iSlide:generate_outline"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -252,6 +246,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "根1号：据主题生成大纲",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
+            "description": "输入标题或内容，通过大模型生成PPT大纲",
+            "mainColor": "#CA61FF",
+            "subtitle": "iSlide:generate_outline"
+          },
           "outputs": [
             {
               "name": "code",
@@ -304,10 +305,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": -222.4749873982715,
-            "y": -567.671419852548,
-            "width": 180,
-            "height": 80
+            "x": -312.47498739827154,
+            "y": -527.671419852548,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
@@ -334,13 +335,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "2号：获取主题模板id",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
-            "description": "获取主题模板的id、缩略图、关键字等",
-            "mainColor": "#CA61FF",
-            "subtitle": "iSlide:get_themes"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -483,6 +477,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "2号：获取主题模板id",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
+            "description": "获取主题模板的id、缩略图、关键字等",
+            "mainColor": "#CA61FF",
+            "subtitle": "iSlide:get_themes"
+          },
           "outputs": [
             {
               "name": "code",
@@ -541,10 +542,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 228.07425485282403,
-            "y": -567.671419852548,
-            "width": 180,
-            "height": 80
+            "x": 138.07425485282403,
+            "y": -527.671419852548,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Plugin-v2.jpg",
@@ -571,13 +572,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "3号：返回ppt模板",
-            "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
-            "description": "传入标准大纲，结合主题模板生成PPT，返回PPT名称、总页数、首页图、单页缩略图等",
-            "mainColor": "#CA61FF",
-            "subtitle": "iSlide:generate_presentation"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -694,6 +688,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "3号：返回ppt模板",
+            "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
+            "description": "传入标准大纲，结合主题模板生成PPT，返回PPT名称、总页数、首页图、单页缩略图等",
+            "mainColor": "#CA61FF",
+            "subtitle": "iSlide:generate_presentation"
+          },
           "outputs": [
             {
               "name": "code",
@@ -764,10 +765,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 678.6234971039196,
-            "y": -567.6714198525478,
-            "width": 180,
-            "height": 80
+            "x": 588.6234971039196,
+            "y": -527.6714198525478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
@@ -794,13 +795,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "模板下载地址",
-            "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
-            "description": "返回下载链接，pptx源文件可编辑",
-            "mainColor": "#CA61FF",
-            "subtitle": "iSlide:download_presentation"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -917,6 +911,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "模板下载地址",
+            "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
+            "description": "返回下载链接，pptx源文件可编辑",
+            "mainColor": "#CA61FF",
+            "subtitle": "iSlide:download_presentation"
+          },
           "outputs": [
             {
               "name": "code",
@@ -969,10 +970,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 1134.6451355759932,
-            "y": -579.6714198525478,
-            "width": 180,
-            "height": 80
+            "x": 1044.6451355759932,
+            "y": -539.6714198525478,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://p6-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/24b7346143414f0cb22cd1c7290c69fb~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1755157173&x-signature=ncFFmOAR2rKHqP8%2Ft7W1s7v2Tm0%3D",
@@ -999,6 +1000,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"topic 大纲主题\",\"type\":\"text\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "",
@@ -1006,22 +1011,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"topic 大纲主题\",\"type\":\"text\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 240,
-            "height": 150
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -724.4530624158298,
-            "y": -385.7825382731441,
-            "width": 180,
-            "height": 80
+            "x": -814.4530624158298,
+            "y": -345.7825382731441,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "",

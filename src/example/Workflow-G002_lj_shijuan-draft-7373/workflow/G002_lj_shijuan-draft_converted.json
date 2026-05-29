@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -56,17 +59,14 @@
                 "type": 7
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": -705,
-            "y": -252.06150903086757,
-            "width": 180,
-            "height": 80
+            "x": -795,
+            "y": -212.06150903086757,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -86,13 +86,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -122,14 +115,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 2058.5121573388733,
-            "y": -199.14123483116958,
-            "width": 180,
-            "height": 80
+            "x": 1968.5121573388733,
+            "y": -159.14123483116958,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -149,13 +150,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "选择器",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
-            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd00 条件"
-          },
           "inputs": {
             "branches": [
               {
@@ -204,14 +198,21 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "选择器",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
+            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd00 条件"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -238.10219103813353,
-            "y": -297.81150903086757,
-            "width": 180,
-            "height": 80
+            "x": -328.1021910381335,
+            "y": -257.81150903086757,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
@@ -231,13 +232,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "read",
-            "icon": "https://p26-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/b7145cb1c10d4ed49c883b49c2248437~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749862289&x-signature=CSrWwCiXvJJvLRxp8rn3rKYrhXc%3D",
-            "description": "帮助用户阅读文档内容，输入文档链接，返回文档内容，目前支持html、xml、doc、docx、txt、pdf、csv、xlsx格式。",
-            "mainColor": "#CA61FF",
-            "subtitle": "文件读取:read"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -357,6 +351,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "read",
+            "icon": "https://p26-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/b7145cb1c10d4ed49c883b49c2248437~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749862289&x-signature=CSrWwCiXvJJvLRxp8rn3rKYrhXc%3D",
+            "description": "帮助用户阅读文档内容，输入文档链接，返回文档内容，目前支持html、xml、doc、docx、txt、pdf、csv、xlsx格式。",
+            "mainColor": "#CA61FF",
+            "subtitle": "文件读取:read"
+          },
           "outputs": [
             {
               "name": "code",
@@ -398,10 +399,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 245.6477448777954,
-            "y": -440.8400136643842,
-            "width": 180,
-            "height": 80
+            "x": 155.6477448777954,
+            "y": -400.8400136643842,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://p26-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/b7145cb1c10d4ed49c883b49c2248437~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749862289&x-signature=CSrWwCiXvJJvLRxp8rn3rKYrhXc%3D",
@@ -428,13 +429,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "大模型-错题理解与衍生出题",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -648,6 +642,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "大模型-错题理解与衍生出题",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output_image",
@@ -658,15 +659,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 245.6477448777954,
-            "y": -278.3602801178579,
-            "width": 180,
-            "height": 80
+            "x": 155.6477448777954,
+            "y": -238.36028011785788,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -686,13 +686,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "大模型-根据输入知识点出题",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -885,6 +878,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "大模型-根据输入知识点出题",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output_content",
@@ -895,15 +895,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 245.6477448777954,
-            "y": -100.51973946468617,
-            "width": 180,
-            "height": 80
+            "x": 155.6477448777954,
+            "y": -60.51973946468617,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -923,13 +922,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "大模型_2",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1122,6 +1114,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "大模型_2",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output_file",
@@ -1132,15 +1131,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 699.5972861458023,
-            "y": -454.8400136643842,
-            "width": 180,
-            "height": 80
+            "x": 609.5972861458023,
+            "y": -414.8400136643842,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1160,13 +1158,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "变量聚合",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
-            "description": "对多个分支的输出进行聚合处理",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd17 变量聚合"
-          },
           "inputs": {
             "inputParameters": [],
             "mergeGroups": [
@@ -1219,6 +1210,13 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "变量聚合",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd17 变量聚合"
+          },
           "outputs": [
             {
               "name": "Group1",
@@ -1233,10 +1231,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 1188.7734266460704,
-            "y": -200.14123483116958,
-            "width": 180,
-            "height": 80
+            "x": 1098.7734266460704,
+            "y": -160.14123483116958,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
@@ -1256,13 +1254,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "生成文档",
-            "icon": "https://p3-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/6b59285f59514ab8ae0b0b7506045abe~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749863351&x-signature=XVDJlBGsNd17H%2F0smNqlgZ%2FfN0k%3D",
-            "description": "生成 pdf, docx, html, markdown, latex 格式的文档。",
-            "mainColor": "#CA61FF",
-            "subtitle": "Doc Maker:create_document"
-          },
           "inputs": {
             "apiParam": [
               {
@@ -1408,6 +1399,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "生成文档",
+            "icon": "https://p3-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/6b59285f59514ab8ae0b0b7506045abe~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749863351&x-signature=XVDJlBGsNd17H%2F0smNqlgZ%2FfN0k%3D",
+            "description": "生成 pdf, docx, html, markdown, latex 格式的文档。",
+            "mainColor": "#CA61FF",
+            "subtitle": "Doc Maker:create_document"
+          },
           "outputs": [
             {
               "name": "code",
@@ -1467,10 +1465,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 1623.6427919924718,
-            "y": -199.14123483116958,
-            "width": 180,
-            "height": 80
+            "x": 1533.6427919924718,
+            "y": -159.14123483116958,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://p3-flow-product-sign.byteimg.com/tos-cn-i-13w3uml6bg/6b59285f59514ab8ae0b0b7506045abe~tplv-13w3uml6bg-resize:128:128.image?rk3s=2e2596fd&x-expires=1749863351&x-signature=XVDJlBGsNd17H%2F0smNqlgZ%2FfN0k%3D",
@@ -1497,6 +1495,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"上传文件，系统为您智能生成试卷。\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"上传错题图片，系统精准识别错题知识点，为您定制专属试卷。\"}]},{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"输入您需要的知识点，系统即刻为您生成对应试卷。\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "",
@@ -1504,22 +1506,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"上传文件，系统为您智能生成试卷。\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"上传错题图片，系统精准识别错题知识点，为您定制专属试卷。\"}]},{\"type\":\"paragraph\",\"children\":[{\"type\":\"text\",\"text\":\"输入您需要的知识点，系统即刻为您生成对应试卷。\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 240,
-            "height": 150
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -765,
-            "y": -120.51150903086756,
-            "width": 180,
-            "height": 80
+            "x": -855,
+            "y": -80.51150903086756,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "",

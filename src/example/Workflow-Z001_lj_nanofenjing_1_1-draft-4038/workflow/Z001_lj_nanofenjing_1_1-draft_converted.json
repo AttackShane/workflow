@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -65,17 +68,14 @@
                 "type": 1
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": -907.5767859644798,
-            "y": -519.2420730567007,
-            "width": 180,
-            "height": 80
+            "x": -997.5767859644798,
+            "y": -479.24207305670075,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -95,13 +95,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -131,14 +124,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1623.9912124002021,
-            "y": -554.3765913932277,
-            "width": 180,
-            "height": 80
+            "x": 1533.9912124002021,
+            "y": -514.3765913932277,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -158,13 +159,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "25分镜",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -397,6 +391,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "25分镜",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -410,15 +411,14 @@
                 "type": "object"
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 132.95582340266088,
-            "y": -917.5985745927926,
-            "width": 180,
-            "height": 80
+            "x": 42.95582340266088,
+            "y": -877.5985745927926,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -438,13 +438,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "文本处理",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-StrConcat-v2.jpg",
-            "description": "用于处理多个字符串类型变量的格式",
-            "mainColor": "#F59E0B",
-            "subTitle": "\udcdd 文本"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -564,6 +557,13 @@
             ],
             "method": "concat"
           },
+          "nodeMeta": {
+            "title": "文本处理",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-StrConcat-v2.jpg",
+            "description": "用于处理多个字符串类型变量的格式",
+            "mainColor": "#F59E0B",
+            "subTitle": "\udcdd 文本"
+          },
           "outputs": [
             {
               "name": "output",
@@ -578,10 +578,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 619.5836008091825,
-            "y": -412.14634737204506,
-            "width": 180,
-            "height": 80
+            "x": 529.5836008091825,
+            "y": -372.14634737204506,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-StrConcat-v2.jpg",
@@ -601,13 +601,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "16分镜",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -840,6 +833,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "16分镜",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -853,15 +853,14 @@
                 "type": "object"
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 132.95582340266088,
-            "y": -677.8724609824188,
-            "width": 180,
-            "height": 80
+            "x": 42.95582340266088,
+            "y": -637.8724609824188,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -881,13 +880,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "9分镜",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1120,6 +1112,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "9分镜",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1133,15 +1132,14 @@
                 "type": "object"
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 132.95582340266088,
-            "y": -438.14634737204506,
-            "width": 180,
-            "height": 80
+            "x": 42.95582340266088,
+            "y": -398.14634737204506,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1161,13 +1159,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "4分镜",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -1400,6 +1391,13 @@
               "timeoutMs": 180000
             }
           },
+          "nodeMeta": {
+            "title": "4分镜",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -1413,15 +1411,14 @@
                 "type": "object"
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 132.95582340266088,
-            "y": -182.95698703512264,
-            "width": 180,
-            "height": 80
+            "x": 42.95582340266088,
+            "y": -142.95698703512264,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -1441,6 +1438,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"## 🎨 常见绘画风格\",\"bold\":true,\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 传统风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **水墨** - Ink wash painting\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **水彩** - Watercolor\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **油画** - Oil painting\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **素描** - Sketch\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **版画** - Woodblock print\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 现代风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **二次元** - Anime/Manga\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **写实** - Realistic\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **卡通** - Cartoon\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **插画** - Illustration\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **涂鸦** - Graffiti\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 3D/数字风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **国风3D** - Chinese 3D\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **3D渲染** - 3D render\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **低多边形** - Low poly\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **像素风** - Pixel art\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **Niji风格** - Niji style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 特殊风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **赛博朋克** - Cyberpunk\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **蒸汽朋克** - Steampunk\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **复古** - Retro/Vintage\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **极简** - Minimalist\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **超现实** - Surrealism\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 游戏风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **RPG游戏风** - RPG game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **独立游戏风** - Indie game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **卡牌游戏风** - Card game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **手游立绘风** - Mobile game character art\",\"type\":\"text\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "comment_icon",
@@ -1448,22 +1449,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"## 🎨 常见绘画风格\",\"bold\":true,\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 传统风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **水墨** - Ink wash painting\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **水彩** - Watercolor\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **油画** - Oil painting\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **素描** - Sketch\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **版画** - Woodblock print\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 现代风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **二次元** - Anime/Manga\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **写实** - Realistic\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **卡通** - Cartoon\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **插画** - Illustration\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **涂鸦** - Graffiti\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 3D/数字风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **国风3D** - Chinese 3D\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **3D渲染** - 3D render\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **低多边形** - Low poly\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **像素风** - Pixel art\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **Niji风格** - Niji style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 特殊风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **赛博朋克** - Cyberpunk\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **蒸汽朋克** - Steampunk\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **复古** - Retro/Vintage\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **极简** - Minimalist\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **超现实** - Surrealism\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"### 游戏风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **RPG游戏风** - RPG game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **独立游戏风** - Indie game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **卡牌游戏风** - Card game style\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"- **手游立绘风** - Mobile game character art\",\"type\":\"text\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 320.075127830209,
-            "height": 657.820421957767
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -763.594794386295,
-            "y": -282.94085010919383,
-            "width": 180,
-            "height": 80
+            "x": -853.594794386295,
+            "y": -242.94085010919383,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "comment_icon",
@@ -1483,13 +1476,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "分镜集合",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
-            "description": "对多个分支的输出进行聚合处理",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd17 变量聚合"
-          },
           "inputs": {
             "inputParameters": [],
             "mergeGroups": [
@@ -1616,6 +1602,13 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "分镜集合",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd17 变量聚合"
+          },
           "outputs": [
             {
               "name": "Group1",
@@ -1633,10 +1626,10 @@
         },
         "_temp": {
           "bounds": {
-            "x": 619.5836008091825,
-            "y": -652.8724609824188,
-            "width": 180,
-            "height": 80
+            "x": 529.5836008091825,
+            "y": -612.8724609824188,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
@@ -1656,6 +1649,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"input:一句话描述 情节\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"apikey 棱镜key\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"shot_number: 分镜数\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"visual_style: 绘画风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "comment_icon",
@@ -1663,22 +1660,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"paragraph\",\"children\":[{\"text\":\"input:一句话描述 情节\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"apikey 棱镜key\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"shot_number: 分镜数\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"visual_style: 绘画风格\",\"type\":\"text\"}]},{\"type\":\"paragraph\",\"children\":[{\"text\":\"\",\"type\":\"text\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 240,
-            "height": 150
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -1043.644794386295,
-            "y": -275.0463473720451,
-            "width": 180,
-            "height": 80
+            "x": -1133.644794386295,
+            "y": -235.0463473720451,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "comment_icon",
@@ -1698,13 +1687,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "图像生成",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
-            "description": "通过文字描述/添加参考图生成图片",
-            "mainColor": "#FF4DC3",
-            "subTitle": "\udfa8 图像生成"
-          },
           "inputs": {
             "apiParam": null,
             "inputParameters": [
@@ -1752,6 +1734,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "图像生成",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
+            "description": "通过文字描述/添加参考图生成图片",
+            "mainColor": "#FF4DC3",
+            "subTitle": "\udfa8 图像生成"
+          },
           "outputs": [
             {
               "name": "data",
@@ -1772,15 +1761,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": ""
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 1113.4430256657738,
-            "y": -580.3765913932277,
-            "width": 180,
-            "height": 80
+            "x": 1023.4430256657738,
+            "y": -540.3765913932277,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
@@ -1800,13 +1788,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "选择器_1",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
-            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
-            "mainColor": "#00B2B2",
-            "subTitle": "\udd00 条件"
-          },
           "inputs": {
             "branches": [
               {
@@ -1947,14 +1928,21 @@
               }
             ]
           },
+          "nodeMeta": {
+            "title": "选择器_1",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",
+            "description": "连接多个下游分支，若设定的条件成立则仅运行对应的分支，若均不成立则只运行“否则”分支",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd00 条件"
+          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": -446.61260553139834,
-            "y": -604.7920730567007,
-            "width": 180,
-            "height": 80
+            "x": -536.6126055313983,
+            "y": -564.7920730567007,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Condition-v2.jpg",

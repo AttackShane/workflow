@@ -19,6 +19,9 @@
           }
         },
         "data": {
+          "inputs": {
+            "inputParameters": []
+          },
           "nodeMeta": {
             "title": "开始",
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -55,17 +58,14 @@
                 "type": 1
               }
             }
-          ],
-          "inputs": {
-            "inputParameters": []
-          }
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 370.3882494434775,
-            "y": -1.0000000000000213,
-            "width": 180,
-            "height": 80
+            "x": 280.3882494434775,
+            "y": 38.99999999999998,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
@@ -85,13 +85,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "结束",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
-            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udfc1 结束"
-          },
           "inputs": {
             "terminatePlan": "returnVariables",
             "streamingOutput": false,
@@ -121,14 +114,22 @@
                 "content": ""
               }
             }
-          }
+          },
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 1976.628671698706,
-            "y": -14.050000000000011,
-            "width": 180,
-            "height": 80
+            "x": 1886.628671698706,
+            "y": 25.94999999999999,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
@@ -148,6 +149,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"cankao：参考图片\",\"type\":\"text\"}]},{\"type\":\"heading-one\",\"children\":[{\"type\":\"text\",\"text\":\"fengge：自己可以设定图片风格，如果不设定就按图片来\"}]},{\"type\":\"heading-one\",\"children\":[{\"type\":\"text\",\"text\":\"wenan：自定义文案，表情包中的字1-16个自己随机填写\"}]},{\"type\":\"heading-one\",\"children\":[{\"text\":\"\",\"type\":\"text\",\"bold\":true}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "comment_icon",
@@ -155,22 +160,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"cankao：参考图片\",\"type\":\"text\"}]},{\"type\":\"heading-one\",\"children\":[{\"type\":\"text\",\"text\":\"fengge：自己可以设定图片风格，如果不设定就按图片来\"}]},{\"type\":\"heading-one\",\"children\":[{\"type\":\"text\",\"text\":\"wenan：自定义文案，表情包中的字1-16个自己随机填写\"}]},{\"type\":\"heading-one\",\"children\":[{\"text\":\"\",\"type\":\"text\",\"bold\":true}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 426.55419598475135,
-            "height": 242.39208947757749
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 370.3882494434775,
-            "y": 148.61456741209543,
-            "width": 180,
-            "height": 80
+            "x": 280.3882494434775,
+            "y": 188.61456741209543,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "comment_icon",
@@ -190,13 +187,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "大模型_2",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
-            "description": "调用大语言模型,使用变量和提示词生成回复",
-            "mainColor": "#5C62FF",
-            "subTitle": "\udd16 大模型"
-          },
           "inputs": {
             "inputParameters": [
               {
@@ -482,6 +472,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "大模型_2",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
           "outputs": [
             {
               "name": "output",
@@ -492,15 +489,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": "3"
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 944.4595041434104,
-            "y": -40.05000000000001,
-            "width": 180,
-            "height": 80
+            "x": 854.4595041434104,
+            "y": -0.05000000000001137,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
@@ -520,13 +516,6 @@
           }
         },
         "data": {
-          "nodeMeta": {
-            "title": "图像生成",
-            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
-            "description": "通过文字描述/添加参考图生成图片",
-            "mainColor": "#FF4DC3",
-            "subTitle": "\udfa8 图像生成"
-          },
           "inputs": {
             "apiParam": null,
             "inputParameters": [
@@ -597,6 +586,13 @@
               "timeoutMs": 600000
             }
           },
+          "nodeMeta": {
+            "title": "图像生成",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
+            "description": "通过文字描述/添加参考图生成图片",
+            "mainColor": "#FF4DC3",
+            "subTitle": "\udfa8 图像生成"
+          },
           "outputs": [
             {
               "name": "data",
@@ -617,15 +613,14 @@
                 "type": 1
               }
             }
-          ],
-          "version": ""
+          ]
         },
         "_temp": {
           "bounds": {
-            "x": 1424.4595041434104,
-            "y": -40.05000000000001,
-            "width": 180,
-            "height": 80
+            "x": 1334.4595041434104,
+            "y": -0.05000000000001137,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
@@ -645,6 +640,10 @@
           }
         },
         "data": {
+          "inputs": {
+            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"输出类型选的Array<String>，感觉出图好看些。可以自己改Array<String>类型。\",\"type\":\"text\"}]}]",
+            "schemaType": "slate"
+          },
           "nodeMeta": {
             "title": "节点",
             "icon": "comment_icon",
@@ -652,22 +651,14 @@
             "mainColor": "#6B7280",
             "subTitle": "\udcdd 注释"
           },
-          "inputs": {
-            "note": "[{\"type\":\"heading-one\",\"children\":[{\"text\":\"输出类型选的Array<String>，感觉出图好看些。可以自己改Array<String>类型。\",\"type\":\"text\"}]}]",
-            "schemaType": "slate"
-          },
-          "size": {
-            "width": 333.83393402906415,
-            "height": 113.29313233103515
-          },
           "outputs": []
         },
         "_temp": {
           "bounds": {
-            "x": 944.4595041434102,
-            "y": -168.90999826506936,
-            "width": 180,
-            "height": 80
+            "x": 854.4595041434102,
+            "y": -128.90999826506936,
+            "width": 360,
+            "height": 112
           },
           "externalData": {
             "icon": "comment_icon",
