@@ -13,6 +13,10 @@
             <span>🛠️</span>
             <span>工作流编辑器</span>
         </h1>
+        <div class="workflow-info">
+            <span class="workflow-name" id="workflowName">未命名工作流</span>
+            <span class="workflow-id" id="workflowId"></span>
+        </div>
         <div class="status">
             <span class="dot"></span>
             <span>就绪</span>
@@ -142,6 +146,10 @@
         
         // 优先从 sessionStorage 加载（从工作流管理器跳转过来）
         const editingWorkflow = sessionStorage.getItem('editingWorkflow');
+        const editingWorkflowId = sessionStorage.getItem('editingWorkflowId');
+        
+        // 检测是否是从缓存返回（有 editingWorkflowId 但没有 editingWorkflow）
+        const isFromCache = !editingWorkflow && editingWorkflowId;
         
         if (editingWorkflow) {
             const workflow = JSON.parse(editingWorkflow);
@@ -156,15 +164,31 @@
                 core.edges = JSON.parse(JSON.stringify(workflow.edges || []));
                 core.selectedNode = workflow.selectedNode || null;
                 core.selectedEdge = workflow.selectedEdge || null;
-                core.history = [];
-                core.historyIndex = -1;
-                core.saveHistory('从工作流管理器加载');
+                core.resetHistory('从工作流管理器加载');
+                
+                // 更新工作流信息显示
+                if (workflow.name) {
+                    document.getElementById('workflowName').textContent = workflow.name;
+                }
+                if (workflow.id) {
+                    document.getElementById('workflowId').textContent = `ID: ${workflow.id}`;
+                }
+            }
+        } else if (isFromCache && core.hasSavedWorkflow()) {
+            // 从缓存返回，强制重新加载最新数据
+            core.loadFromLocalStorage();
+            
+            // 更新工作流信息显示
+            if (editingWorkflowId) {
+                document.getElementById('workflowId').textContent = `ID: ${editingWorkflowId}`;
             }
         } else if (core.hasSavedWorkflow()) {
             // 页面刷新后从 localStorage 恢复
             core.loadFromLocalStorage();
+        } else {
+            // 首次访问，初始化空工作流
+            core.resetHistory('初始化');
         }
-        // 否则使用空工作流（首次访问）
         
         window.workflowUI = new WorkflowUI(core);
         window.workflowUI.init();

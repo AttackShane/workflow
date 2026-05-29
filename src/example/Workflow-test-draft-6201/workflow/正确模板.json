@@ -1,0 +1,241 @@
+{
+  "type": "coze-workflow-clipboard-data",
+  "source": {
+    "workflowId": "7641805558609182720",
+    "flowMode": 0,
+    "spaceId": "7638450388769374260",
+    "isDouyin": false,
+    "host": "www.coze.cn"
+  },
+  "json": {
+    "nodes": [
+      {
+        "id": "119476",
+        "type": "21",
+        "meta": {
+          "position": { "x": 740, "y": 0 },
+          "canvasPosition": { "x": 560, "y": 342 }
+        },
+        "data": {
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "array",
+                "input": {
+                  "type": "list",
+                  "schema": { "type": "integer" },
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "100001",
+                      "name": "input"
+                    },
+                    "rawMeta": { "type": 100 }
+                  }
+                }
+              }
+            ],
+            "loopCount": {
+              "type": "integer",
+              "value": {
+                "type": "literal",
+                "content": 0,
+                "rawMeta": { "type": 2 }
+              }
+            },
+            "loopType": "array",
+            "variableParameters": []
+          },
+          "nodeMeta": {
+            "description": "遍历数字列表，对每个元素平方",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Loop-v2.jpg",
+            "mainColor": "#00B2B2",
+            "subTitle": "循环",
+            "title": "循环（平方运算）"
+          },
+          "outputs": [
+            {
+              "name": "out",
+              "input": {
+                "type": "list",
+                "schema": { "type": "integer" },
+                "value": {
+                  "type": "ref",
+                  "content": {
+                    "source": "block-output",
+                    "blockID": "code_square",
+                    "name": "squared"
+                  },
+                  "rawMeta": { "type": 2 }
+                }
+              }
+            }
+          ]
+        },
+        "blocks": [
+          {
+            "id": "code_square",
+            "type": "5",
+            "meta": { "position": { "x": 180, "y": 0 } },
+            "data": {
+              "nodeMeta": {
+                "description": "对当前元素进行平方运算",
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+                "mainColor": "#00B2B2",
+                "subTitle": "代码",
+                "title": "循环平方计算"
+              },
+              "inputs": {
+                "inputParameters": [
+                  {
+                    "name": "num",
+                    "input": {
+                      "type": "integer",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "119476",
+                          "name": "array"
+                        },
+                        "rawMeta": { "type": 2 }
+                      }
+                    }
+                  }
+                ],
+                "code": "async function main({ params }) {\n    const num = params.num;\n    const squared = num * num;\n    return { squared: squared };\n}",
+                "language": 5,
+                "settingOnError": {
+                  "processType": 1,
+                  "timeoutMs": 60000,
+                  "retryTimes": 0
+                }
+              },
+              "outputs": [
+                { "type": "integer", "name": "squared", "required": false }
+              ],
+              "version": "v2"
+            },
+            "_temp": {
+              "bounds": { "x": 560, "y": 342, "width": 360, "height": 136 },
+              "externalData": {
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg",
+                "description": "编写代码，处理输入变量来生成返回值",
+                "title": "代码",
+                "mainColor": "#00B2B2"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "sourceNodeID": "119476",
+            "targetNodeID": "code_square",
+            "sourcePortID": "loop-function-inline-output"
+          },
+          {
+            "sourceNodeID": "code_square",
+            "targetNodeID": "119476",
+            "targetPortID": "loop-function-inline-input"
+          }
+        ],
+        "_temp": {
+          "bounds": { "x": 560, "y": 0, "width": 360, "height": 162 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Loop-v2.jpg",
+            "description": "用于通过设定循环次数和逻辑，重复执行一系列任务",
+            "title": "循环",
+            "mainColor": "#00B2B2"
+          }
+        }
+      },
+      {
+        "id": "100001",
+        "type": "1",
+        "meta": { "position": { "x": 180, "y": 38 } },
+        "data": {
+          "inputs": { "inputParameters": [] },
+          "nodeMeta": {
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "mainColor": "#5C62FF",
+            "subTitle": "",
+            "title": "开始"
+          },
+          "outputs": [
+            {
+              "type": "list",
+              "name": "input",
+              "schema": { "type": "integer" },
+              "required": true
+            }
+          ],
+          "trigger_parameters": []
+        },
+        "_temp": {
+          "bounds": { "x": 0, "y": 38, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "title": "开始",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "900001",
+        "type": "2",
+        "meta": { "position": { "x": 1300, "y": 25 } },
+        "data": {
+          "nodeMeta": {
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "mainColor": "#5C62FF",
+            "subTitle": "",
+            "title": "结束"
+          },
+          "inputs": {
+            "terminatePlan": "returnVariables",
+            "inputParameters": [
+              {
+                "name": "loopout",
+                "input": {
+                  "type": "list",
+                  "schema": { "type": "integer" },
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "119476",
+                      "name": "out"
+                    },
+                    "rawMeta": { "type": 100 }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "_temp": {
+          "bounds": { "x": 1120, "y": 25, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "title": "结束",
+            "mainColor": "#5C62FF"
+          }
+        }
+      }
+    ],
+    "edges": [
+      { "sourceNodeID": "100001", "targetNodeID": "119476" },
+      {
+        "sourceNodeID": "119476",
+        "targetNodeID": "900001",
+        "sourcePortID": "loop-output"
+      }
+    ]
+  },
+  "bounds": { "x": 0, "y": 0, "width": 1480, "height": 162 }
+}

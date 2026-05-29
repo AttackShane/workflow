@@ -57,6 +57,24 @@ body {
     background: var(--success);
 }
 
+.header .workflow-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+.header .workflow-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.header .workflow-id {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
 .header .actions {
     display: flex;
     gap: 0.75rem;

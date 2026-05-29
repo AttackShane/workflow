@@ -25,6 +25,16 @@ function processPluginNode(data, nodeMeta, params, type) {
     }
 }
 
+function buildNodeMeta(node, type) {
+    return {
+        title: node.title || getNodeDefaultTitle(type),
+        icon: cleanIcon(node.icon),
+        description: node.description || "",
+        mainColor: getMainColor(type),
+        subTitle: getSubTitle(type)
+    };
+}
+
 function buildExternalData(node, type, params) {
     const ext = { icon: cleanIcon(node.icon), description: node.description || "", title: node.title || "", mainColor: getMainColor(type) };
     if (type === "plugin" && params.apiParam) {
@@ -60,14 +70,6 @@ export function convertNode(node, outputMap) {
     const meta = { position: pos || { x: 0, y: 0 } };
     if (node.canvas_position) meta.canvasPosition = node.canvas_position;
 
-    const nodeMeta = {
-        title: node.title || getNodeDefaultTitle(type),
-        icon: node.icon || "",
-        description: node.description || "",
-        mainColor: getMainColor(type),
-        subTitle: getSubTitle(type)
-    };
-    
     const params = node.parameters || {};
     const inputParams = convertInputParameters(params.node_inputs, outputMap, type);
     
@@ -79,14 +81,10 @@ export function convertNode(node, outputMap) {
     
     const data = {
         inputs: handlerData.inputs,
-        nodeMeta: {
-            title: node.title || getNodeDefaultTitle(type),
-            icon: cleanIcon(node.icon),
-            description: node.description || "",
-            mainColor: getMainColor(type),
-            subTitle: getSubTitle(type)
-        },
-        outputs: handlerData.outputs
+        nodeMeta: buildNodeMeta(node, type),
+        outputs: handlerData.outputs,
+        blocks: handlerData.blocks,
+        edges: handlerData.edges
     };
 
     processPluginNode(data, data.nodeMeta, params, type);

@@ -1,0 +1,131 @@
+schema_version: 1.0.0
+name: test
+id: 7639295534487175210
+description: "非常规导入测试"
+mode: workflow
+icon: plugin_icon/workflow.png
+nodes:
+    - id: "119476"
+      type: loop
+      title: 循环（平方运算）
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Loop-v2.jpg
+      description: "遍历数字列表，对每个元素平方"
+      position:
+        x: 740
+        y: 0
+      canvas_position:
+        x: 560
+        y: 342
+      parameters:
+        loopCount:
+            type: integer
+            value:
+                content: 0
+                rawMeta:
+                    type: 2
+                type: literal
+        loopType: array
+        node_inputs:
+            - name: current_number
+              input:
+                type: list
+                items:
+                    type: integer
+                    value: null
+                value:
+                    path: input
+                    ref_node: "100001"
+        node_outputs:
+            out:
+                value:
+                    type: list
+                    items:
+                        type: integer
+                        value: null
+                    value:
+                        path: squared
+                        ref_node: code_square
+        variableParameters: []
+      nodes:
+        - id: code_square
+          type: code
+          title: 平方计算
+          icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Code-v2.jpg
+          description: "对当前元素进行平方运算"
+          version: v2
+          position:
+            x: 180
+            y: 0
+          parameters:
+            code: |-
+                async function main({ params }) {
+                    const num = params.num;
+                    const squared = num * num;
+                    return { squared: squared };
+                }
+            language: 5
+            node_inputs:
+                - name: num
+                  input:
+                    type: integer
+                    value:
+                        path: current_number
+                        ref_node: "119476"
+            node_outputs:
+                squared:
+                    type: integer
+                    value: null
+            settingOnError:
+                processType: 1
+                retryTimes: 0
+                timeoutMs: 60000
+      edges:
+        - source_node: "119476"
+          target_node: code_square
+          source_port: loop-function-inline-output
+        - source_node: code_square
+          target_node: "119476"
+          target_port: loop-function-inline-input
+    - id: "900001"
+      type: end
+      title: 结束
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg
+      description: "工作流的最终节点，用于返回工作流运行后的结果信息"
+      position:
+        x: 1300
+        y: 25
+      parameters:
+        node_inputs:
+            - name: output
+              input:
+                type: list
+                items:
+                    type: integer
+                    value: null
+                value:
+                    path: out
+                    ref_node: "119476"
+        terminatePlan: returnVariables
+    - id: "100001"
+      type: start
+      title: 开始
+      icon: https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg
+      description: "工作流的起始节点，用于设定启动工作流需要的信息"
+      position:
+        x: 180
+        y: 38
+      parameters:
+        node_outputs:
+            input:
+                type: list
+                items:
+                    type: integer
+                    value: null
+                required: true
+                value: null
+edges:
+    - source_node: "100001"
+      target_node: "119476"
+    - source_node: "119476"
+      target_node: "900001"
+      source_port: loop-output

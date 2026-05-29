@@ -1,3 +1,13 @@
+// 节点尺寸常量（用于布局计算）
+export const NODE_DEFAULT_WIDTH = 360;
+export const NODE_DEFAULT_HEIGHT = 112;
+export const NODE_QUESTION_HEIGHT = 295;
+export const NODE_CENTER_OFFSET = 180;
+
+// 语言类型常量
+export const LANG_PYTHON = 5;
+export const LANG_JAVASCRIPT = 6;
+
 // 节点类型映射
 export const TYPE_MAP = {
     start: "1", end: "2", llm: "3", plugin: "4", code: "5",
@@ -71,10 +81,10 @@ export function mapLang(l) {
     if (typeof l === "number") return l;
     if (typeof l === "string") {
         const ll = l.toLowerCase();
-        if (ll === "python") return 5;
-        if (ll === "javascript") return 6;
+        if (ll === "python") return LANG_PYTHON;
+        if (ll === "javascript") return LANG_JAVASCRIPT;
     }
-    return 5;
+    return LANG_PYTHON;
 }
 
 export function mapOutType(t) {
@@ -94,62 +104,25 @@ export function getSubTitle(t) {
 }
 
 export function getBounds(node) {
-    if (!node) return { x: 0, y: 0, width: 360, height: 112 };
+    if (!node) return { x: 0, y: 0, width: NODE_DEFAULT_WIDTH, height: NODE_DEFAULT_HEIGHT };
     
     const x = node.position?.x ?? 0;
     const y = node.position?.y ?? 0;
     const type = node.type?.toLowerCase() || "";
     
-    let width = 360;
-    let height = 112;
+    let width = NODE_DEFAULT_WIDTH;
+    let height = NODE_DEFAULT_HEIGHT;
     
-    if (type === "question" || type === "18") {
-        height = 295;
+    if (type === "question" || type === TYPE_MAP.question) {
+        height = NODE_QUESTION_HEIGHT;
     }
     
-    return { x: x - 180, y, width, height };
+    return { x: x - NODE_CENTER_OFFSET, y, width, height };
 }
 
-let refCache = new Map();
-let cacheKeyCounter = 0;
-const objectKeyMap = new WeakMap();
+import { findRef, clearRefCache } from './refCache.js';
 
-function getObjectKey(obj) {
-    if (!objectKeyMap.has(obj)) objectKeyMap.set(obj, `obj_${++cacheKeyCounter}`);
-    return objectKeyMap.get(obj);
-}
-
-function findRefCached(obj) {
-    if (!obj || typeof obj !== 'object') return null;
-    
-    const key = getObjectKey(obj);
-    if (refCache.has(key)) return refCache.get(key);
-    
-    if (obj.path && obj.ref_node) {
-        refCache.set(key, obj);
-        return obj;
-    }
-    
-    for (const k in obj) {
-        const r = findRefCached(obj[k]);
-        if (r) {
-            refCache.set(key, r);
-            return r;
-        }
-    }
-    
-    refCache.set(key, null);
-    return null;
-}
-
-export function clearRefCache() {
-    refCache.clear();
-    cacheKeyCounter = 0;
-}
-
-export function findRef(obj) {
-    return findRefCached(obj);
-}
+export { findRef, clearRefCache };
 
 const INFER_RAW_CACHE = {
     integer: { type: RAW_TYPE.integer },
@@ -178,7 +151,7 @@ export function inferRawMetaFromValue(val) {
 export function toValueObject(val) {
     if (val == null) return { type: "literal", content: "" };
     
-    const ref = findRefCached(val);
+    const ref = findRef(val);
     if (ref) {
         return {
             type: "ref",
@@ -190,6 +163,13 @@ export function toValueObject(val) {
     
     const vt = val.type;
     if (vt === "ref" || vt === "literal") return val;
+    
+    if (vt && val.value !== undefined) {
+        return {
+            type: vt,
+            value: toValueObject(val.value)
+        };
+    }
     
     const lit = { type: "literal", content: val };
     const raw = inferRawMetaFromValue(val);

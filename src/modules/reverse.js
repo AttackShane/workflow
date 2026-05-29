@@ -81,19 +81,48 @@ function convertValue(val, options = {}) {
 }
 
 function buildOutputDefinition(o) {
-    const def = { type: o.type, required: o.required, description: o.description || '' };
+    // 处理循环/批处理节点的输出结构（使用 input 字段）
+    if (o.input) {
+        const input = o.input;
+        const def = { type: input.type || 'string', required: o.required || false, description: o.description || '' };
+        
+        if (input.type === 'list' && input.schema) {
+            def.items = { type: input.schema.type || 'string' };
+        }
+        
+        // 处理引用值
+        if (input.value && input.value.type === 'ref' && input.value.content) {
+            def.value = {
+                path: input.value.content.name,
+                ref_node: input.value.content.blockID,
+                source: input.value.content.source
+            };
+        } else {
+            def.value = null;
+        }
+        
+        return def;
+    }
+    
+    // 处理普通输出结构
+    const def = { type: o.type || 'string', required: o.required || false, description: o.description || '' };
     if (o.defaultValue !== undefined) def.default_value = o.defaultValue;
     if (o.schema) {
-        def.items = { type: o.schema.type };
+        def.items = { type: o.schema.type || 'string' };
         if (o.schema.properties) {
             def.items.properties = o.schema.properties;
-            // 为每个 property 添加 value: null
             Object.keys(def.items.properties).forEach(key => {
                 if (def.items.properties[key].value === undefined) {
                     def.items.properties[key].value = null;
                 }
             });
         }
+    }
+    // 添加 value 字段（用于引用）
+    if (o.value === null || o.value) {
+        def.value = o.value;
+    } else {
+        def.value = null;
     }
     return def;
 }
@@ -140,8 +169,6 @@ function revNode(node) {
         params.node_outputs = {};
         data.outputs.forEach(o => {
             params.node_outputs[o.name] = buildOutputDefinition(o);
-            // 添加原始的 value 字段
-            params.node_outputs[o.name].value = null;
         });
     }
     
@@ -161,6 +188,18 @@ function revNode(node) {
             } else if (param === 'llmParam' && typeof rawValue === 'object' && rawValue !== null) {
                 // 处理问答节点的 llmParam（对象形式）
                 params[param] = convertValue(rawValue);
+            } else if ((type === 'loop' && (param === 'loopCount' || param === 'loopItems')) || 
+                   (type === 'batch' && (param === 'batchSize' || param === 'concurrentSize'))) {
+                // 处理循环节点的 loopCount/loopItems 和批处理节点的 batchSize/concurrentSize
+                if (rawValue.type && rawValue.value !== undefined) {
+                    // 结构：{ type: "integer", value: { type: "literal", content: 0, rawMeta: {...} } }
+                    params[param] = {
+                        type: rawValue.type,
+                        value: convertValue(rawValue.value, { keepLiteral: true, keepRawMeta: true })
+                    };
+                } else {
+                    params[param] = convertValue(rawValue, { keepLiteral: true, keepRawMeta: true });
+                }
             } else {
                 params[param] = convertValue(rawValue);
             }

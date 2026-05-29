@@ -12,8 +12,6 @@ export class WorkflowCore {
         this.historyIndex = -1;
         this.maxHistory = 50;
         
-        this.saveHistory('初始化');
-        
         this.nodeTypeInfo = {
             start: { 
                 title: '开始', icon: '🚀', description: '工作流的起始节点，设定启动参数', 
@@ -231,8 +229,12 @@ export class WorkflowCore {
         } else {
             this.historyIndex = this.history.length - 1;
         }
-        
-        
+    }
+    
+    resetHistory(action = '初始化') {
+        this.history = [];
+        this.historyIndex = -1;
+        this.saveHistory(action);
     }
     
     canUndo() {
@@ -428,7 +430,7 @@ export class WorkflowCore {
             this.selectedNode = parsed.selectedNode || null;
             this.selectedEdge = parsed.selectedEdge || null;
             
-            this.saveHistory('从本地存储加载');
+            this.resetHistory('从本地存储加载');
             return true;
         } catch (error) {
             console.error('加载失败:', error);
@@ -507,6 +509,6 @@ export class WorkflowCore {
             });
         }
         
-        this.saveHistory('从剪贴板导入');
+        this.resetHistory('从剪贴板导入');
     }
 }

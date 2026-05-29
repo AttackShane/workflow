@@ -41,6 +41,7 @@ export class WorkflowUI {
         // 启动子模块
         this.canvas.init();
         this.history.init();
+        this.history.updatePanel();
         
         // 设置事件监听器
         this.setupEventListeners();
@@ -150,9 +151,11 @@ export class WorkflowUI {
     handleKeydown(e) {
         const activeEl = document.activeElement;
         const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA';
+        const isContentEditable = activeEl.isContentEditable;
+        const isModalOpen = document.querySelector('.node-editor-modal') !== null;
         
-        // 如果有模态框打开或在输入框中，不处理快捷键
-        if (document.querySelector('.node-editor-modal') || isInput) {
+        // 如果有模态框打开或在可编辑元素中，不处理快捷键
+        if (isModalOpen || isInput || isContentEditable) {
             return;
         }
         
@@ -590,8 +593,18 @@ export class WorkflowUI {
             updatedAt: Date.now()
         };
         
+        // 获取当前编辑的工作流ID
+        const editingId = sessionStorage.getItem('editingWorkflowId');
+        if (editingId) {
+            workflow.id = editingId;
+        }
+        
         // 保存到 sessionStorage，供工作流管理页面读取
         sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+        
+        // 清除编辑状态，防止后退时重新加载旧数据
+        sessionStorage.removeItem('editingWorkflow');
+        sessionStorage.removeItem('editingWorkflowId');
         
         this.showMessage('工作流已保存', 'success');
         
@@ -620,17 +633,25 @@ export class WorkflowUI {
      * 快速保存（不返回）
      */
     quickSave() {
-        const workflow = {
-            nodes: this.core.nodes,
-            edges: this.core.edges,
-            selectedNode: this.core.selectedNode,
-            selectedEdge: this.core.selectedEdge,
-            updatedAt: Date.now()
-        };
-        
-        // 保存到 sessionStorage，供工作流管理页面读取
-        sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
-        
-        this.showMessage('工作流已保存', 'success');
+        try {
+            const workflow = {
+                nodes: JSON.parse(JSON.stringify(this.core.nodes)),
+                edges: JSON.parse(JSON.stringify(this.core.edges)),
+                selectedNode: this.core.selectedNode,
+                selectedEdge: this.core.selectedEdge,
+                updatedAt: Date.now()
+            };
+            
+            // 保存到 sessionStorage，供工作流管理页面读取
+            sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+            
+            // 同时保存到 localStorage，防止页面刷新丢失
+            this.core.saveToLocalStorage();
+            
+            this.showMessage('工作流已保存', 'success');
+        } catch (error) {
+            console.error('保存失败:', error);
+            this.showMessage('保存失败，请重试', 'error');
+        }
     }
 }

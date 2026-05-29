@@ -540,7 +540,242 @@
             "title": "批处理",
             "mainColor": "#00B2B2"
           }
-        }
+        },
+        "blocks": [
+          {
+            "id": "117169",
+            "type": "5",
+            "meta": {
+              "position": {
+                "x": 551.4000355951443,
+                "y": 86.70708923567777
+              }
+            },
+            "data": {
+              "inputs": {
+                "inputParameters": [
+                  {
+                    "name": "subject",
+                    "input": {
+                      "type": "string",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "100001",
+                          "name": "topic"
+                        },
+                        "rawMeta": {
+                          "type": 1
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "name": "description",
+                    "input": {
+                      "type": "string",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "131943",
+                          "name": "output.description"
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "name": "image",
+                    "input": {
+                      "type": "image",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "197268",
+                          "name": "data"
+                        },
+                        "rawMeta": {
+                          "type": 7
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "name": "name",
+                    "input": {
+                      "type": "string",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "131943",
+                          "name": "output.name"
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "nodeMeta": {
+                "title": "画板",
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon_DrawingBoard_v2.jpg",
+                "description": "自定义画板排版，支持引用添加文本和图片",
+                "mainColor": "#00B2B2",
+                "subTitle": ""
+              },
+              "outputs": [
+                {
+                  "name": "data",
+                  "type": "string",
+                  "required": false,
+                  "description": "",
+                  "assistType": 2,
+                  "rawMeta": {
+                    "type": 7
+                  }
+                },
+                {
+                  "name": "msg",
+                  "type": "string",
+                  "required": false,
+                  "description": "",
+                  "rawMeta": {
+                    "type": 1
+                  }
+                }
+              ]
+            },
+            "_temp": {
+              "bounds": {
+                "x": 371.40003559514435,
+                "y": 86.70708923567777,
+                "width": 360,
+                "height": 112
+              },
+              "externalData": {
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon_DrawingBoard_v2.jpg",
+                "description": "自定义画板排版，支持引用添加文本和图片",
+                "title": "画板",
+                "mainColor": "#00B2B2"
+              }
+            }
+          },
+          {
+            "id": "197268",
+            "type": "16",
+            "meta": {
+              "position": {
+                "x": 109.66382205430654,
+                "y": 60.70708923567778
+              }
+            },
+            "data": {
+              "inputs": {
+                "apiParam": null,
+                "inputParameters": [
+                  {
+                    "name": "name",
+                    "input": {
+                      "type": "string",
+                      "value": {
+                        "type": "ref",
+                        "content": {
+                          "source": "block-output",
+                          "blockID": "131943",
+                          "name": "output.prompt"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "modelSetting": {
+                  "custom_ratio": {
+                    "height": 1024,
+                    "ratio_type": "fixed",
+                    "resolution": "1K",
+                    "width": 1024
+                  },
+                  "ddim_steps": 25,
+                  "guidance_scale": 2.5,
+                  "max_images": 1,
+                  "model": 9,
+                  "watermark": false
+                },
+                "prompt": {
+                  "negative_prompt": "",
+                  "prompt": "{{name}}"
+                },
+                "references": [],
+                "settingOnError": {
+                  "switch": false,
+                  "processType": 1,
+                  "timeoutMs": 600000,
+                  "retryTimes": 0
+                }
+              },
+              "nodeMeta": {
+                "title": "图像生成",
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
+                "description": "通过文字描述/添加参考图生成图片",
+                "mainColor": "#FF4DC3",
+                "subTitle": "\udfa8 图像生成"
+              },
+              "outputs": [
+                {
+                  "name": "data",
+                  "type": "string",
+                  "required": false,
+                  "description": "",
+                  "assistType": 2,
+                  "rawMeta": {
+                    "type": 7
+                  }
+                },
+                {
+                  "name": "msg",
+                  "type": "string",
+                  "required": false,
+                  "description": "",
+                  "rawMeta": {
+                    "type": 1
+                  }
+                }
+              ]
+            },
+            "_temp": {
+              "bounds": {
+                "x": -70.33617794569346,
+                "y": 60.70708923567778,
+                "width": 360,
+                "height": 112
+              },
+              "externalData": {
+                "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-ImageGeneration-v2.jpg",
+                "description": "通过文字描述/添加参考图生成图片",
+                "title": "图像生成",
+                "mainColor": "#FF4DC3"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "sourceNodeID": "197268",
+            "targetNodeID": "117169"
+          },
+          {
+            "sourceNodeID": "117169",
+            "targetNodeID": "131943",
+            "targetPortID": "batch-function-inline-input"
+          },
+          {
+            "sourceNodeID": "131943",
+            "targetNodeID": "197268",
+            "sourcePortID": "batch-function-inline-output"
+          }
+        ]
       },
       {
         "id": "151290",

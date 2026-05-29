@@ -161,6 +161,30 @@ export class WorkflowManager {
         this.elements.btnImportCancel.addEventListener('click', () => this.closeImportModal());
         this.elements.btnImportConfirm.addEventListener('click', () => this.importWorkflow());
         this.elements.importFile.addEventListener('change', (e) => this.handleFileSelect(e));
+        
+        // 添加页面可见性监听，当页面重新获得焦点时自动刷新
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.handlePageVisible();
+            }
+        });
+        
+        // 添加焦点监听
+        window.addEventListener('focus', () => {
+            this.handlePageVisible();
+        });
+    }
+    
+    handlePageVisible() {
+        // 检查是否有新保存的工作流需要加载
+        const savedWorkflow = sessionStorage.getItem('savedWorkflow');
+        if (savedWorkflow) {
+            this.loadSavedWorkflow();
+        } else {
+            // 重新加载工作流列表，确保显示最新数据
+            this.loadWorkflows();
+            this.renderWorkflowList();
+        }
     }
 
     openNewWorkflowModal() {

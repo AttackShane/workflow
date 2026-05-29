@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node src/scripts/server.js",
     "build": "node src/scripts/build.js",
-    "test": "node src/scripts/batch-convert.mjs"
+    "convert": "node src/scripts/batch-convert.mjs"
   },
   "dependencies": {
     "js-yaml": "^4.1.1"
