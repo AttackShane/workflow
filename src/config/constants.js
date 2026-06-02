@@ -33,7 +33,31 @@ export const APP_CONFIG = {
         KEY: 'workflow-converter-theme',
         DEFAULT: 'light',
         FONT_SIZE_KEY: 'workflow-converter-fontsize',
-        DEFAULT_FONT_SIZE: 14
+        DEFAULT_FONT_SIZE: 14,
+        FONT_SIZE_MIN: 12,
+        FONT_SIZE_MAX: 20,
+        FONT_SIZE_STEP: 1
+    },
+    
+    // 虚拟滚动配置
+    VIRTUAL_SCROLL: {
+        THRESHOLD: 1000,  // 超过此行数启用虚拟滚动
+        CACHE_COUNT: 5,   // 可见区域前后缓存行数
+        MIN_HEIGHT: 24    // 最小行高（px）
+    },
+    
+    // 行号配置
+    LINE_NUMBERS: {
+        WIDTH_MIN: 55,           // 最小宽度（px）- 12px字体时
+        WIDTH_CALC: (fontSize) => Math.max(65, 20 + fontSize * 3),  // 13px+字体时的宽度计算公式
+        MIN_WIDTH_CHARS: 4       // 最小字符宽度（用于四位行号）
+    },
+    
+    // 缓存配置
+    CACHE: {
+        MAX_SIZE: 50,           // 最大缓存条目数
+        CONVERSION_KEY: 'conversion',
+        HIGHLIGHT_KEY: 'highlight'
     },
     
     // 消息配置

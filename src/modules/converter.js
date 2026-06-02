@@ -2,17 +2,12 @@ import { TYPE_MAP, getMainColor, getSubTitle, getBounds, clearRefCache } from ".
 import { buildOutputMap } from "../components/outputMapper.js";
 import { convertInputParameters } from "../components/inputMapper.js";
 import { nodeHandlers } from "../components/nodeHandlers.js";
-import { validateYamlInput, convertEdges } from "../utils/utils.js";
+import { validateYamlInput, convertEdges, cleanIcon } from "../utils/utils.js";
 
 const DEFAULT_TITLES = { start: "开始", end: "结束" };
 
 function getNodeDefaultTitle(type) {
     return DEFAULT_TITLES[type] || "节点";
-}
-
-function cleanIcon(icon) {
-    if (!icon) return "";
-    return String(icon).replace(/[`'"\\]/g, '').trim();
 }
 
 function processPluginNode(data, nodeMeta, params, type) {

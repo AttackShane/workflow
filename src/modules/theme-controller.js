@@ -61,6 +61,11 @@ function updateFontSize() {
     document.documentElement.style.setProperty('--code-font-size', `${currentFontSize}px`);
     document.documentElement.style.setProperty('--code-line-height', `${lineHeight}px`);
     
+    // 根据字体大小动态调整行号区域宽度（使用集中配置）
+    const lineNumbersWidth = APP_CONFIG.LINE_NUMBERS.WIDTH_CALC(currentFontSize);
+    DOM.setStyle(elements.lineNumbers, 'width', `${lineNumbersWidth}px`);
+    DOM.setStyle(elements.lineNumbers, 'minWidth', `${lineNumbersWidth}px`);
+    
     // 触发自定义事件通知其他模块字体大小变化
     const event = new CustomEvent('fontsizechange', { 
         detail: { fontSize: currentFontSize, lineHeight: lineHeight } 
@@ -75,8 +80,8 @@ function updateFontSize() {
  * 减小字体大小
  */
 function decreaseFontSize() {
-    if (currentFontSize > 10) {
-        currentFontSize--;
+    if (currentFontSize > APP_CONFIG.THEME.FONT_SIZE_MIN) {
+        currentFontSize -= APP_CONFIG.THEME.FONT_SIZE_STEP;
         updateFontSize();
     }
 }
@@ -85,8 +90,8 @@ function decreaseFontSize() {
  * 增大字体大小
  */
 function increaseFontSize() {
-    if (currentFontSize < 24) {
-        currentFontSize++;
+    if (currentFontSize < APP_CONFIG.THEME.FONT_SIZE_MAX) {
+        currentFontSize += APP_CONFIG.THEME.FONT_SIZE_STEP;
         updateFontSize();
     }
 }

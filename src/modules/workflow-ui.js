@@ -4,6 +4,7 @@ import { WorkflowEdge } from './workflow-edge.js';
 import { WorkflowHistory } from './workflow-history.js';
 import { WorkflowClipboard } from './workflow-clipboard.js';
 import { Dialog } from './dialog.js';
+import { goToConverter, goToManager, initNavigator } from './navigator.js';
 import { SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
 
@@ -69,7 +70,7 @@ export class WorkflowUI {
     }
 
     /**
-     * 创建消息容器
+     * 创建消息容器 
      */
     createMessageContainer() {
         this.messageContainer = DOM.create('div', {
@@ -142,6 +143,10 @@ export class WorkflowUI {
      */
     setupEventListeners() {
         DOM.on(document, 'keydown', (e) => this.handleKeydown(e));
+        
+        // 导航按钮
+        DOM.on(DOM.get('navConverterBtn'), 'click', goToConverter);
+        DOM.on(DOM.get('navManagerBtn'), 'click', goToManager);
     }
 
     /**
@@ -602,15 +607,14 @@ export class WorkflowUI {
         // 保存到 sessionStorage，供工作流管理页面读取
         sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
         
-        // 清除编辑状态，防止后退时重新加载旧数据
+        // 只清除 editingWorkflow，保留 editingWorkflowId 供管理页面更新使用
         sessionStorage.removeItem('editingWorkflow');
-        sessionStorage.removeItem('editingWorkflowId');
         
         this.showMessage('工作流已保存', 'success');
         
         // 延迟跳转，让用户看到保存成功的提示
         setTimeout(() => {
-            window.location.href = '/';
+            goToManager();
         }, 500);
     }
     
@@ -625,7 +629,7 @@ export class WorkflowUI {
             this.saveAndReturn();
         } else {
             // 用户选择不保存，直接返回
-            window.location.href = '/';
+            goToManager();
         }
     }
     

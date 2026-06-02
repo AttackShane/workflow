@@ -1,4 +1,5 @@
 import { TYPE_MAP, getMainColor, getSubTitle } from "../utils/types.js";
+import { ClipboardUtils } from "../utils/helpers.js";
 
 export class WorkflowClipboard {
     constructor(ui) {
@@ -219,9 +220,7 @@ export class WorkflowClipboard {
             }
         };
         
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(copyData, null, 2));
-        } catch (err) {
+        if (!await ClipboardUtils.copy(JSON.stringify(copyData, null, 2))) {
             this.copiedNode = copyData;
         }
     }

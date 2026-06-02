@@ -1,3 +1,5 @@
+import { APP_CONFIG } from '../config/constants.js';
+
 export class VirtualScroll {
     constructor(options) {
         this.container = options.container;
@@ -7,9 +9,9 @@ export class VirtualScroll {
         this.buffer = options.buffer;
         
         this.lines = [];
-        this.lineHeight = 24;
+        this.lineHeight = APP_CONFIG.VIRTUAL_SCROLL.MIN_HEIGHT;
         this.visibleCount = 30;
-        this.cacheCount = 5;
+        this.cacheCount = APP_CONFIG.VIRTUAL_SCROLL.CACHE_COUNT;
         
         this.init();
     }
@@ -22,6 +24,10 @@ export class VirtualScroll {
         this.container.addEventListener('resize', () => {
             this.visibleCount = Math.ceil(this.container.clientHeight / this.lineHeight) + 5;
         });
+        
+        // 禁止行号区域滚动
+        this.lineNumbers.style.overflow = 'hidden';
+        this.lineNumbers.style.pointerEvents = 'none';
     }
     
     updateLineHeight() {
@@ -29,14 +35,17 @@ export class VirtualScroll {
         this.lineHeight = parseFloat(style.lineHeight) || 24;
     }
     
-    setContent(text) {
+    setContent(text, originalLineCount = null) {
         this.lines = text.split('\n');
-        const totalHeight = this.lines.length * this.lineHeight;
+        // 使用原始行数（如果提供）或高亮后的行数
+        const lineCount = originalLineCount !== null ? originalLineCount : this.lines.length;
+        const totalHeight = lineCount * this.lineHeight;
         
         this.buffer.innerHTML = `<div style="height:${totalHeight}px;"></div>`;
         
         this.updateVisibleLines(0);
-        this.renderLineNumbers();
+        // 使用原始行数渲染行号
+        this.renderLineNumbers(lineCount);
     }
     
     updateVisibleLines(scrollTop = null) {
@@ -50,8 +59,9 @@ export class VirtualScroll {
         this.content.style.transform = `translateY(${startIndex * this.lineHeight}px)`;
     }
     
-    renderLineNumbers() {
-        const totalLines = this.lines.length;
+    renderLineNumbers(lineCount = null) {
+        // 使用提供的行数或默认使用高亮后的行数
+        const totalLines = lineCount !== null ? lineCount : this.lines.length;
         const totalHeight = totalLines * this.lineHeight;
         
         const fragment = document.createDocumentFragment();
@@ -70,6 +80,7 @@ export class VirtualScroll {
         const maxScroll = this.buffer.scrollHeight - this.container.clientHeight;
         if (maxScroll <= 0) return;
         
+        // 同步行号滚动（单向：内容 → 行号）
         const scrollPercent = this.container.scrollTop / maxScroll;
         const lineNumbersMaxScroll = this.lineNumbers.scrollHeight - this.lineNumbers.clientHeight;
         
@@ -101,5 +112,22 @@ export class VirtualScroll {
     
     destroy() {
         this.container.removeEventListener('scroll', this.handleScroll.bind(this));
+        
+        // 恢复行号区域的样式
+        this.lineNumbers.style.overflow = '';
+        this.lineNumbers.style.pointerEvents = '';
+        
+        // 清理 buffer
+        this.buffer.innerHTML = '';
+        
+        // 恢复内容区域的 transform
+        this.content.style.transform = '';
+        
+        // 清理行号内容（重置为初始状态）
+        this.lineNumbersContent.innerHTML = '';
+        this.lineNumbersContent.style.height = '';
+        
+        // 清空行数组
+        this.lines = [];
     }
 }

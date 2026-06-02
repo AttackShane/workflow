@@ -22,7 +22,8 @@
             <span>就绪</span>
         </div>
         <div class="actions">
-            <button class="btn btn-primary" onclick="window.location.href='/converter'">🏠 转换器</button>
+            <button id="navConverterBtn" class="btn btn-primary">🏠 转换器</button>
+            <button id="navManagerBtn" class="btn btn-secondary">📋 工作流管理</button>
             <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 保存并返回</button>
             <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ 验证工作流</button>
             <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 导出工作流</button>

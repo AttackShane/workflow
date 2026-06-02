@@ -1,23 +1,8 @@
-import { getNodeTypeName, getNodeColor } from '../utils/utils.js';
+import { getNodeTypeName, getNodeColor, cleanIcon, convertLargeNumbersToStrings } from '../utils/utils.js';
+import { StringUtils, ClipboardUtils } from '../utils/helpers.js';
 
 let workflowGraph = null;
 let graphRenderCount = 0;
-
-/**
- * 在 YAML 字符串中，将大数字（超过安全整数范围）转换为字符串
- * @param {string} input - YAML 字符串
- * @returns {string} 处理后的 YAML 字符串
- */
-function convertLargeNumbersToStrings(input) {
-    // JavaScript 最大安全整数：2^53 - 1 = 9007199254740991
-    // 我们处理 16 位以上的数字，确保安全
-    const idPattern = /(\b(id|ref_node|source_node|target_node)\s*:\s*)(\d{16,})/g;
-    
-    return input.replace(idPattern, (match, prefix, key, numStr) => {
-        // 将大数字转换为字符串（添加引号）
-        return `${prefix}"${numStr}"`;
-    });
-}
 
 function showNodeDetail(node) {
     const nodeDetailModal = document.createElement('div');
@@ -137,11 +122,6 @@ function showNodeDetail(node) {
             nodeHeight = 295;
         }
         
-        function cleanIcon(icon) {
-            if (!icon) return "";
-            return String(icon).replace(/[`'"\\]/g, '').trim();
-        }
-        
         const cleanIconUrl = cleanIcon(nodeMeta.icon);
         
         const clipboardData = {
@@ -214,20 +194,8 @@ function showNodeDetail(node) {
         font-size: 0.875rem;
     `;
     copyJsonBtn.addEventListener('click', async () => {
-        try {
-            const clipboardData = convertToClipboardFormat(node);
-            await navigator.clipboard.writeText(JSON.stringify(clipboardData, null, 2));
-            copyJsonBtn.textContent = '✓ 已复制';
-            copyJsonBtn.style.background = '#10B981';
-            copyJsonBtn.style.borderColor = '#10B981';
-            setTimeout(() => {
-                copyJsonBtn.textContent = '📋 复制 JSON';
-                copyJsonBtn.style.background = 'transparent';
-                copyJsonBtn.style.borderColor = 'var(--border, #334155)';
-            }, 2000);
-        } catch (err) {
-            console.error('复制失败:', err);
-        }
+        const clipboardData = convertToClipboardFormat(node);
+        await ClipboardUtils.copyWithFeedback(JSON.stringify(clipboardData, null, 2), copyJsonBtn);
     });
     
     const copyYamlBtn = document.createElement('button');
@@ -243,19 +211,9 @@ function showNodeDetail(node) {
         font-size: 0.875rem;
     `;
     copyYamlBtn.addEventListener('click', async () => {
-        try {
-            const clipboardData = convertToClipboardFormat(node);
-            const yamlStr = window.jsyaml.dump(clipboardData, { indent: 2, lineWidth: 120 });
-            await navigator.clipboard.writeText(yamlStr);
-            copyYamlBtn.textContent = '✓ 已复制';
-            copyYamlBtn.style.background = '#10B981';
-            setTimeout(() => {
-                copyYamlBtn.textContent = '📋 复制 YAML';
-                copyYamlBtn.style.background = '#5C62FF';
-            }, 2000);
-        } catch (err) {
-            console.error('复制失败:', err);
-        }
+        const clipboardData = convertToClipboardFormat(node);
+        const yamlStr = window.jsyaml.dump(clipboardData, { indent: 2, lineWidth: 120 });
+        await ClipboardUtils.copyWithFeedback(yamlStr, copyYamlBtn);
     });
     
     const copyRawBtn = document.createElement('button');
@@ -271,21 +229,7 @@ function showNodeDetail(node) {
         font-size: 0.875rem;
     `;
     copyRawBtn.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(node, null, 2));
-            copyRawBtn.textContent = '✓ 已复制';
-            copyRawBtn.style.background = '#10B981';
-            copyRawBtn.style.borderColor = '#10B981';
-            copyRawBtn.style.color = 'white';
-            setTimeout(() => {
-                copyRawBtn.textContent = '📋 复制原始节点';
-                copyRawBtn.style.background = 'rgba(92, 98, 255, 0.1)';
-                copyRawBtn.style.borderColor = '#5C62FF';
-                copyRawBtn.style.color = '#5C62FF';
-            }, 2000);
-        } catch (err) {
-            console.error('复制失败:', err);
-        }
+        await ClipboardUtils.copyWithFeedback(JSON.stringify(node, null, 2), copyRawBtn);
     });
     
     const openEditorBtn = document.createElement('button');
@@ -353,10 +297,6 @@ function findField(obj, ...keys) {
     return undefined;
 }
 
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 export function renderWorkflowGraph(data, isJson) {
     try {
         const parsedData = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
@@ -392,7 +332,7 @@ export function renderWorkflowGraph(data, isJson) {
                     </div>
                     <div style="font-size: 0.7rem; margin-top: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.1); border-radius: 0.5rem; text-align: left; max-height: 200px; overflow: auto;">
                         <div style="margin-bottom: 0.25rem; font-weight: 500;">数据结构预览:</div>
-                        <pre style="margin: 0; font-family: monospace; font-size: 0.65rem;">${escapeHtml(dataPreview)}${data.length > 500 ? '...' : ''}</pre>
+                        <pre style="margin: 0; font-family: monospace; font-size: 0.65rem;">${StringUtils.escapeHtml(dataPreview)}${data.length > 500 ? '...' : ''}</pre>
                     </div>
                 </div>
             `;
@@ -480,9 +420,9 @@ export function renderWorkflowGraph(data, isJson) {
             }
             
             return `
-                <g class="workflow-graph-node" data-node-id="${escapeHtml(String(nodeId))}" 
+                <g class="workflow-graph-node" data-node-id="${StringUtils.escapeHtml(String(nodeId))}" 
                    transform="translate(${x}, ${y})"
-                   style="cursor: pointer; transition: transform 0.2s;" title="${escapeHtml(String(nodeName))}">
+                   style="cursor: pointer; transition: transform 0.2s;" title="${StringUtils.escapeHtml(String(nodeName))}">
                     <rect x="0" y="0" width="${nodeWidth}" height="${nodeHeight}" 
                           rx="12" ry="12" fill="${color}" stroke="white" stroke-width="2"
                           style="filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.35));"/>
@@ -490,10 +430,10 @@ export function renderWorkflowGraph(data, isJson) {
                           rx="10" ry="10" fill="rgba(255,255,255,0.12)"/>
                     ${connectionPoints}
                     <text x="${nodeWidth/2}" y="${nodeHeight/2 - 5}" text-anchor="middle" fill="white" font-size="${fontSize}px" font-weight="600">
-                        ${escapeHtml(displayName)}
+                        ${StringUtils.escapeHtml(displayName)}
                     </text>
                     <text x="${nodeWidth/2}" y="${nodeHeight/2 + 15}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${typeFontSize}px">
-                        ${escapeHtml(String(nodeType))}
+                        ${StringUtils.escapeHtml(String(nodeType))}
                     </text>
                 </g>
             `;

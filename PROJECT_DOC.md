@@ -182,14 +182,28 @@ workflow/
 - **功能**: 通用工具函数
 - **核心内容**:
   - YAML 输入验证（`validateYamlInput`）
-  - 连线转换（`convertEdges`）
+  - 连线转换（正向：`convertEdges`、逆向：`convertEdgesReverse`）
   - 节点类型名称获取（`getNodeTypeName`）
+  - 节点颜色获取（`getNodeColor`）
+  - 图标清理（`cleanIcon`）
+  - 大数字转换（`convertLargeNumbersToStrings`）
 
-#### 3. 输入/输出映射器（`components/inputMapper.js`、`components/outputMapper.js`）
+#### 3. 辅助工具（`utils/helpers.js`）
+- **功能**: 通用辅助工具函数集合
+- **核心模块**:
+  - **DOM**: DOM 操作工具（`get`、`setText`、`setHtml`、`setAttr`、`setStyle`、`on`、`off`、`create` 等）
+  - **Storage**: 本地存储操作工具（`get`、`set`、`remove`、`clear`）
+  - **StringUtils**: 字符串操作工具（`escapeHtml`、`truncate`、`formatTime`、`generateId`）
+  - **ArrayUtils**: 数组操作工具（`find`、`filter`、`unique`、`limit`）
+  - **AsyncUtils**: 异步操作工具（`delay`、`withLoading`）
+  - **ClipboardUtils**: 剪贴板操作工具（`copy`、`copyWithFeedback`）
+  - **Validator**: 验证工具（`isJson`、`isYaml`、`checkFileExtension`）
+
+#### 4. 输入/输出映射器（`components/inputMapper.js`、`components/outputMapper.js`）
 - **功能**: 处理节点输入输出参数的映射转换
 - **特性**: 支持复杂类型的参数映射
 
-### 六、服务器配置（`scripts/server.js`）
+### 七、服务器配置（`scripts/server.js`）
 - **功能**: 开发服务器
 - **特性**:
   - 端口：8080
@@ -197,6 +211,15 @@ workflow/
   - favicon.ico 404 处理（映射到 SVG）
   - 严格缓存控制（禁用缓存便于开发）
   - 请求日志记录
+  - 支持局域网访问（自动获取本地 IP）
+
+### 八、导航模块（`modules/navigator.js`）
+- **功能**: 统一页面导航管理
+- **特性**:
+  - 平滑页面切换动画（淡入淡出）
+  - 自动处理浏览器缓存恢复（防止后退时页面空白）
+  - 提供 `goToManager()`、`goToConverter()`、`goToEditor()` 方法
+  - 模块加载时自动初始化事件监听器
 
 ## 核心功能流程图
 
@@ -782,6 +805,47 @@ npm run dev
    - 记录错误日志
 
 ## 版本历史
+
+### v1.2 (2026-05-29)
+
+**代码优化**:
+- 消除重复代码：将 `cleanIcon`、`convertLargeNumbersToStrings`、`escapeHtml` 函数统一到工具模块
+- 创建 `ClipboardUtils` 剪贴板操作工具模块，统一管理所有复制功能
+- 简化 `graph-view.js` 中的复制按钮逻辑（从 ~15 行/个简化为 2 行/个）
+- 优化 `escapeHtml` 实现（从 DOM 操作改为正则替换，性能提升）
+- 更新 `workflow-manager.js` 使用统一的导航模块
+- 删除多个文件中的重复函数定义
+
+**核心修复**:
+- 修复虚拟滚动行号不匹配问题（切换到1k行以下内容时行号同步）
+- 修复滚动位置重置（切换历史记录时从第一行开始显示）
+- 修复 YAML 字符串转义（代码块中的实际换行符不再被错误转义）
+- 修复循环/批处理节点参数结构错误
+- 修复字体大小范围（调整为12-20px）
+- 修复行号区域宽度（动态计算确保四位行号显示完整）
+- 修复行号右对齐（添加 `text-align: right` 和 `min-width: 4ch`）
+- 修复删除历史记录时输出区域未清除的问题
+- 修复浏览器后退时页面空白（处理缓存恢复）
+- 修复 ES Module 中使用 `require()` 的错误
+
+**功能增强**:
+- 创建统一导航模块（`navigator.js`），支持平滑页面切换动画
+- 添加局域网访问支持（服务器自动获取本地IP）
+- 添加页面间导航按钮（编辑器和管理页面）
+- 集中管理页面缓存恢复逻辑
+
+### v1.1 (2026-05-29)
+
+**核心修复**:
+- 修复虚拟滚动行号不匹配问题
+- 修复滚动位置重置问题
+- 修复 YAML 字符串转义问题
+- 修复循环/批处理节点参数结构错误
+- 修复字体大小范围和行号显示问题
+
+**功能增强**:
+- 创建统一导航模块
+- 添加局域网访问支持
 
 ### v1.0 (2026-05-28)
 

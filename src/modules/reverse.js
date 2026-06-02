@@ -32,6 +32,11 @@ function convertValue(val, options = {}) {
     // 处理字符串类型 - 添加特殊字符转义
     if (typeof val === 'string') {
         if (val === '') return '';
+        // 如果包含换行符，不使用双引号，让 js-yaml 自动使用块字面量语法
+        // 因为 escapeYamlString 会把实际换行符转义为 \n，导致行数不匹配
+        if (val.includes('\n')) {
+            return val;
+        }
         if (needsDoubleQuotes(val)) {
             return `"${escapeYamlString(val)}"`;
         }
@@ -247,24 +252,56 @@ function revNode(node) {
     return yNode;
 }
 
-// YAML 特殊字符转义
+// YAML 特殊字符转义（不包含外层双引号，由调用者添加）
 function escapeYamlString(str) {
+    // 处理逻辑：
+    // 1. 先转义反斜杠，确保字面的 \n 变成 \\n
+    // 2. 然后处理实际的特殊字符（实际的换行、回车、制表符）
+    // 
+    // 在 JavaScript 中：
+    // - '\n' 是实际换行符（1个字符）
+    // - '\\n' 是字面的反斜杠+n（2个字符）
+    // 
+    // 在 YAML 双引号字符串中：
+    // - '\n' 会被解析为换行符
+    // - '\\n' 会被解析为字面的反斜杠+n
+    // - '\\\\n' 会被解析为字面的 \\n
+    // 
+    // 所以需要：
+    // - 实际换行符 '\n' -> 转义为 '\\n'（在 YAML 中表示换行）
+    // - 字面的 '\\n' -> 转义为 '\\\\n'（在 YAML 中表示字面的 \n）
+    
+    // 1. 先转义所有反斜杠
+    let result = str.replace(/\\/g, '\\\\');
+    
+    // 2. 然后处理实际的特殊字符
     const escapeMap = {
         '\n': '\\n',
         '\r': '\\r',
         '\t': '\\t',
-        '"': '\\"',
-        '\\': '\\\\'
+        '"': '\\"'
     };
-    return str.replace(/[\n\r\t"\\]/g, match => escapeMap[match]);
+    return result.replace(/[\n\r\t"]/g, match => escapeMap[match]);
 }
 
 // 判断是否需要双引号
 function needsDoubleQuotes(str) {
-    // 只匹配 YAML 中真正需要双引号的字符
-    // 包括：冒号（在值中）、井号、双引号、反斜杠、换行符、制表符
-    const specialChars = /[:#"\\\n\r\t]/;
+    // 只匹配 YAML 中真正需要双引号的字符（不包括换行符，换行符使用块字面量）
+    // 包括：冒号（在值中）、井号、双引号、反斜杠、制表符
+    const specialChars = /[:#"\\\t]/;
     return specialChars.test(str);
+}
+
+// 判断是否应该使用块字面量（包含换行符的长字符串）
+function needsBlockLiteral(str) {
+    return str.includes('\n');
+}
+
+// 判断是否包含字面转义序列（如 \n, \t 等）
+function hasEscapeSequence(str) {
+    // 匹配字面的转义序列（反斜杠后跟字符）
+    const escapeSequence = /\\[nrt\\"]/;
+    return escapeSequence.test(str);
 }
 
 export function convertClipboardToYaml(clip) {

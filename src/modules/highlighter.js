@@ -1,7 +1,4 @@
-const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-function escapeHtml(text) {
-    return text.replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
-}
+import { StringUtils } from '../utils/helpers.js';
 
 const JSON_REGEX = /"([^"]+)":|"([^"]*)"|^(true|false|null)\b|-?\d+\.?\d*/g;
 const YAML_REGEX = /(\s*)-\s|(\s*)(["'][^"'\n]*["']):|(\s*)([\w-]+):|(["'][^"'\n]*["'])|\b(true|false|null)\b|-?\d+\.?\d*/g;
@@ -16,7 +13,7 @@ function highlightLineFast(line, isJson) {
     
     while ((match = regex.exec(line)) !== null) {
         if (match.index > lastIndex) {
-            result.push(escapeHtml(line.slice(lastIndex, match.index)));
+            result.push(StringUtils.escapeHtml(line.slice(lastIndex, match.index)));
         }
         
         if (isJson) {
@@ -34,7 +31,7 @@ function highlightLineFast(line, isJson) {
                 result.push(`<span class="hl-list">${match[0]}</span>`);
             } else if (match[2] || match[4]) {
                 const key = match[3] || match[5];
-                result.push(escapeHtml(match[2] || match[4] || ''));
+                result.push(StringUtils.escapeHtml(match[2] || match[4] || ''));
                 result.push(`<span class="hl-key">${key}:</span>`);
             } else if (match[6]) {
                 result.push(`<span class="hl-string">${match[6]}</span>`);
@@ -49,7 +46,7 @@ function highlightLineFast(line, isJson) {
     }
     
     if (lastIndex < line.length) {
-        result.push(escapeHtml(line.slice(lastIndex)));
+        result.push(StringUtils.escapeHtml(line.slice(lastIndex)));
     }
     
     return result.join('');
@@ -61,48 +58,11 @@ export function highlightJson(text) {
         const lines = text.split('\n');
         return lines.map(line => highlightLineFast(line, true)).join('\n');
     } catch {
-        return escapeHtml(text);
+        return StringUtils.escapeHtml(text);
     }
 }
 
 export function highlightYaml(text) {
     const lines = text.split('\n');
     return lines.map(line => highlightLineFast(line, false)).join('\n');
-}
-
-export async function highlightJsonAsync(text, callback) {
-    try {
-        JSON.parse(text);
-        const lines = text.split('\n');
-        const total = lines.length;
-        const batchSize = 50;
-        
-        for (let i = 0; i < total; i += batchSize) {
-            const end = Math.min(i + batchSize, total);
-            const batch = lines.slice(i, end);
-            const html = batch.map(line => highlightLineFast(line, true)).join('\n');
-            callback(html, i, end, total);
-            if (i + batchSize < total) {
-                await new Promise(r => setTimeout(r, 0));
-            }
-        }
-    } catch {
-        callback(escapeHtml(text), 0, 1, 1);
-    }
-}
-
-export async function highlightYamlAsync(text, callback) {
-    const lines = text.split('\n');
-    const total = lines.length;
-    const batchSize = 50;
-    
-    for (let i = 0; i < total; i += batchSize) {
-        const end = Math.min(i + batchSize, total);
-        const batch = lines.slice(i, end);
-        const html = batch.map(line => highlightLineFast(line, false)).join('\n');
-        callback(html, i, end, total);
-        if (i + batchSize < total) {
-            await new Promise(r => setTimeout(r, 0));
-        }
-    }
 }

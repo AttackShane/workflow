@@ -1,4 +1,6 @@
 import { Dialog } from './dialog.js';
+import { goToConverter, goToEditor, initNavigator } from './navigator.js';
+import { StringUtils, Storage } from '../utils/helpers.js';
 
 export class WorkflowManager {
     constructor() {
@@ -92,16 +94,10 @@ export class WorkflowManager {
     }
 
     loadWorkflows() {
-        const stored = localStorage.getItem('workflows');
+        const stored = Storage.get('workflows');
         
-        if (stored) {
-            try {
-                this.workflows = JSON.parse(stored);
-            } catch (error) {
-                console.error('loadWorkflows - 解析失败:', error);
-                this.workflows = this.getDefaultWorkflows();
-                this.saveWorkflows();
-            }
+        if (stored && Array.isArray(stored)) {
+            this.workflows = stored;
         } else {
             this.workflows = this.getDefaultWorkflows();
             this.saveWorkflows();
@@ -148,7 +144,7 @@ export class WorkflowManager {
     }
 
     saveWorkflows() {
-        localStorage.setItem('workflows', JSON.stringify(this.workflows));
+        Storage.set('workflows', this.workflows);
     }
 
     bindEvents() {
@@ -161,6 +157,12 @@ export class WorkflowManager {
         this.elements.btnImportCancel.addEventListener('click', () => this.closeImportModal());
         this.elements.btnImportConfirm.addEventListener('click', () => this.importWorkflow());
         this.elements.importFile.addEventListener('change', (e) => this.handleFileSelect(e));
+        
+        // 导航按钮
+        const navConverterBtn = document.getElementById('navConverterBtn');
+        const navEditorBtn = document.getElementById('navEditorBtn');
+        if (navConverterBtn) navConverterBtn.addEventListener('click', goToConverter);
+        if (navEditorBtn) navEditorBtn.addEventListener('click', goToEditor);
         
         // 添加页面可见性监听，当页面重新获得焦点时自动刷新
         document.addEventListener('visibilitychange', () => {
@@ -335,7 +337,7 @@ export class WorkflowManager {
 
     openWorkflowEditor(workflow) {
         sessionStorage.setItem('editingWorkflow', JSON.stringify(workflow));
-        window.location.href = '/editor';
+        goToEditor();
     }
 
     renderWorkflowList() {
@@ -364,14 +366,14 @@ export class WorkflowManager {
 
         card.innerHTML = `
             <div class="workflow-card-header">
-                <h3 class="workflow-card-title">${this.escapeHtml(workflow.name)}</h3>
+                <h3 class="workflow-card-title">${StringUtils.escapeHtml(workflow.name)}</h3>
                 <div class="workflow-card-actions">
                     <button class="action-btn edit-btn" title="编辑">✏️</button>
                     <button class="action-btn export-btn" title="导出">📥</button>
                     <button class="action-btn delete-btn" title="删除">🗑️</button>
                 </div>
             </div>
-            <p class="workflow-card-description">${this.escapeHtml(workflow.description) || '暂无描述'}</p>
+            <p class="workflow-card-description">${StringUtils.escapeHtml(workflow.description) || '暂无描述'}</p>
             <div class="workflow-card-meta">
                 <span class="node-count">${nodeCount} 个节点</span>
                 <span>${updatedTime}</span>
@@ -415,12 +417,6 @@ export class WorkflowManager {
         } else {
             return `${date.getMonth() + 1}/${date.getDate()}`;
         }
-    }
-
-    escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
     }
 }
 

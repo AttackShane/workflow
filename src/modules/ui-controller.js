@@ -2,8 +2,10 @@ import { convertYamlToClipboard } from './converter.js';
 import { convertClipboardToYaml } from './reverse.js';
 import { highlightJson, highlightYaml } from './highlighter.js';
 import { showStats, saveToHistory } from './stats-view.js';
+import { goToEditor, goToManager, initNavigator } from './navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM, StringUtils } from '../utils/helpers.js';
+import { DOM, StringUtils, ClipboardUtils } from '../utils/helpers.js';
+import { convertLargeNumbersToStrings } from '../utils/utils.js';
 
 // 动态导入虚拟滚动模块
 let VirtualScroll = null;
@@ -22,7 +24,6 @@ let virtualScroll = null;
 // 缓存系统
 const conversionCache = new Map();
 const highlightCache = new Map();
-const MAX_CACHE_SIZE = 10;
 
 // 性能监控
 const performanceStats = {
@@ -41,22 +42,6 @@ function loadYamlWithStringIds(input) {
     const processedInput = convertLargeNumbersToStrings(input);
     const yamlData = window.jsyaml.load(processedInput);
     return yamlData;
-}
-
-/**
- * 在 YAML 字符串中，将大数字（超过安全整数范围）转换为字符串
- * @param {string} input - YAML 字符串
- * @returns {string} 处理后的 YAML 字符串
- */
-function convertLargeNumbersToStrings(input) {
-    // JavaScript 最大安全整数：2^53 - 1 = 9007199254740991
-    // 我们处理 16 位以上的数字，确保安全
-    const idPattern = /(\b(id|ref_node|source_node|target_node)\s*:\s*)(\d{16,})/g;
-    
-    return input.replace(idPattern, (match, prefix, key, numStr) => {
-        // 将大数字转换为字符串（添加引号）
-        return `${prefix}"${numStr}"`;
-    });
 }
 
 // 导出状态获取函数
@@ -167,7 +152,7 @@ function generateHash(content) {
  * @param {any} value - 缓存值
  */
 function addToCache(cache, key, value) {
-    if (cache.size >= MAX_CACHE_SIZE) {
+    if (cache.size >= APP_CONFIG.CACHE.MAX_SIZE) {
         const firstKey = cache.keys().next().value;
         cache.delete(firstKey);
     }
@@ -259,15 +244,31 @@ export function displayOutput(data, type, saveToHistoryFlag = true) {
     
     const lines = data.split('\n').length;
     
+    // 重置滚动位置到顶部（任何时候显示新内容都从第一行开始）
+    const outputWrapper = DOM.get('outputWrapper');
+    const lineNumbers = DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS);
+    if (outputWrapper) outputWrapper.scrollTop = 0;
+    if (lineNumbers) lineNumbers.scrollTop = 0;
+    
     // 大量行使用虚拟滚动
-    if (lines > 1000 && VirtualScroll) {
+    if (lines > APP_CONFIG.VIRTUAL_SCROLL.THRESHOLD && VirtualScroll) {
         renderWithVirtualScroll(data, type, contentKey);
-    } else if (lines > 500) {
-        renderAsync(data, type, contentKey);
-        updateLineNumbers(data);
     } else {
-        renderSync(data, type, contentKey);
-        updateLineNumbers(data);
+        // 如果之前使用了虚拟滚动，需要清理状态
+        if (virtualScroll) {
+            virtualScroll.destroy();
+            virtualScroll = null;
+        }
+        // 重新初始化行号同步（确保样式正确）
+        initLineNumberScrollSync();
+        
+        if (lines > 500) {
+            renderAsync(data, type, contentKey);
+            updateLineNumbers(data);
+        } else {
+            renderSync(data, type, contentKey);
+            updateLineNumbers(data);
+        }
     }
     
     DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), false);
@@ -291,21 +292,8 @@ function renderWithVirtualScroll(data, type, contentKey) {
         return;
     }
     
-    // 检查高亮缓存
-    if (highlightCache.has(contentKey)) {
-        if (!virtualScroll) {
-            virtualScroll = new VirtualScroll({
-                container: outputWrapper,
-                content: outputArea,
-                lineNumbers: lineNumbers,
-                lineNumbersContent: lineNumbersContent,
-                buffer: outputBuffer
-            });
-        }
-        virtualScroll.setContent(highlightCache.get(contentKey));
-        virtualScroll.scrollToTop();
-        return;
-    }
+    // 获取原始行数（用于行号生成）
+    const originalLineCount = data.split('\n').length;
     
     if (!virtualScroll) {
         virtualScroll = new VirtualScroll({
@@ -315,6 +303,27 @@ function renderWithVirtualScroll(data, type, contentKey) {
             lineNumbersContent: lineNumbersContent,
             buffer: outputBuffer
         });
+    }
+    
+    // 先渲染行号（基于原始数据的行数）
+    const lineHeight = parseFloat(document.documentElement.style.getPropertyValue('--code-line-height') || '21');
+    const totalHeight = originalLineCount * lineHeight;
+    lineNumbersContent.style.height = totalHeight + 'px';
+    
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < originalLineCount; i++) {
+        const div = document.createElement('div');
+        div.className = 'line-numbers-line';
+        fragment.appendChild(div);
+    }
+    lineNumbersContent.innerHTML = '';
+    lineNumbersContent.appendChild(fragment);
+    
+    // 检查高亮缓存
+    if (highlightCache.has(contentKey)) {
+        virtualScroll.setContent(highlightCache.get(contentKey), originalLineCount);
+        virtualScroll.scrollToTop();
+        return;
     }
     
     const currentTaskId = ++workerTaskId;
@@ -333,7 +342,7 @@ function renderWithVirtualScroll(data, type, contentKey) {
             worker.removeEventListener('message', handler);
             isHighlighting = false;
             addToCache(highlightCache, contentKey, e.data.result);
-            virtualScroll.setContent(e.data.result);
+            virtualScroll.setContent(e.data.result, originalLineCount);
             virtualScroll.scrollToTop();
         }
     });
@@ -406,12 +415,10 @@ async function renderAsync(data, type, contentKey) {
 export async function copyOutput() {
     if (!curData) return;
     
-    try {
-        await navigator.clipboard.writeText(curData);
+    if (await ClipboardUtils.copy(curData)) {
         msg(APP_CONFIG.MESSAGES.SUCCESS.COPY);
-    } catch (error) {
+    } else {
         msg(APP_CONFIG.MESSAGES.ERROR.COPY, true);
-        console.error('Copy error:', error);
     }
 }
 
@@ -434,13 +441,6 @@ export function downloadOutput() {
     URL.revokeObjectURL(url);
     
     msg(APP_CONFIG.MESSAGES.SUCCESS.DOWNLOAD);
-}
-
-/**
- * 打开工作流编辑器
- */
-export function openWorkflowEditor() {
-    window.location.href = '/editor';
 }
 
 /**
@@ -500,23 +500,18 @@ function handleFontSizeChange() {
  * 初始化行号同步滚动
  */
 function initLineNumberScrollSync() {
-    const { outputArea, lineNumbers } = elements;
-    if (!outputArea || !lineNumbers) return;
+    const { lineNumbers } = elements;
+    const outputWrapper = DOM.get('outputWrapper');
+    if (!outputWrapper || !lineNumbers) return;
     
-    let isSyncing = false;
+    // 禁止行号区域滚动
+    lineNumbers.style.overflow = 'hidden';
+    lineNumbers.style.pointerEvents = 'none';
+    lineNumbers.style.userSelect = 'none';
     
-    outputArea.addEventListener('scroll', () => {
-        if (isSyncing) return;
-        isSyncing = true;
-        lineNumbers.scrollTop = outputArea.scrollTop;
-        isSyncing = false;
-    });
-    
-    lineNumbers.addEventListener('scroll', () => {
-        if (isSyncing) return;
-        isSyncing = true;
-        outputArea.scrollTop = lineNumbers.scrollTop;
-        isSyncing = false;
+    // 只绑定内容到行号的单向同步（监听正确的滚动容器 outputWrapper）
+    outputWrapper.addEventListener('scroll', () => {
+        lineNumbers.scrollTop = outputWrapper.scrollTop;
     });
 }
 
@@ -565,6 +560,10 @@ function bindEvents() {
     DOM.on(copyOutputBtn, 'click', copyOutput);
     DOM.on(downloadBtn, 'click', downloadOutput);
     DOM.on(resetBtn, 'click', resetUI);
+    
+    // 导航按钮
+    DOM.on(DOM.get('editorBtn'), 'click', goToEditor);
+    DOM.on(DOM.get('managerBtn'), 'click', goToManager);
     
     // 上传区域点击
     DOM.on(uploadArea, 'click', () => {

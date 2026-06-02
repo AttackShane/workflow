@@ -251,9 +251,8 @@ export const StringUtils = {
      */
     escapeHtml(str) {
         if (!str) return '';
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+        return str.replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
     },
     
     /**
@@ -350,79 +349,71 @@ export const ArrayUtils = {
 /**
  * 异步操作工具函数
  */
-export const AsyncUtils = {
-    /**
-     * 延迟执行
-     * @param {number} ms - 毫秒数
-     * @returns {Promise}
-     */
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    },
-    
-    /**
-     * 带加载状态的异步执行
-     * @param {HTMLElement} btn - 按钮元素
-     * @param {Function} fn - 异步函数
-     * @param {string} loadingText - 加载文本
-     * @returns {Promise}
-     */
-    async withLoading(btn, fn, loadingText = '处理中...') {
-        const originalText = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = loadingText;
-        btn.style.opacity = '0.7';
-        
-        try {
-            return await fn();
-        } finally {
-            btn.disabled = false;
-            btn.textContent = originalText;
-            btn.style.opacity = '1';
-        }
-    }
-};
-
 /**
- * 验证工具函数
+ * 剪贴板操作工具函数
  */
-export const Validator = {
+export const ClipboardUtils = {
     /**
-     * 检查是否为 JSON 格式
-     * @param {string} str - 字符串
-     * @returns {boolean}
+     * 复制文本到剪贴板
+     * @param {string} text - 要复制的文本
+     * @returns {Promise<boolean>} 是否复制成功
      */
-    isJson(str) {
-        if (!str || typeof str !== 'string') return false;
+    async copy(text) {
         try {
-            JSON.parse(str);
+            await navigator.clipboard.writeText(text);
             return true;
-        } catch {
+        } catch (error) {
+            console.error('Clipboard copy error:', error);
             return false;
         }
     },
     
     /**
-     * 检查是否为 YAML 格式
-     * @param {string} str - 字符串
-     * @returns {boolean}
+     * 复制文本到剪贴板并显示反馈
+     * @param {string} text - 要复制的文本
+     * @param {HTMLElement} btn - 按钮元素（用于显示状态）
+     * @param {string} successText - 成功时显示的文本
+     * @param {string} errorText - 失败时显示的文本
      */
-    isYaml(str) {
-        if (!str || typeof str !== 'string') return false;
-        // 简单检测：不是 JSON 且包含 YAML 特征
-        if (this.isJson(str)) return false;
-        return str.includes(':') || str.includes('- ') || str.includes('yaml');
-    },
-    
-    /**
-     * 检查文件扩展名
-     * @param {File} file - 文件对象
-     * @param {Array} extensions - 允许的扩展名数组
-     * @returns {boolean}
-     */
-    checkFileExtension(file, extensions) {
-        if (!file) return false;
-        const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-        return extensions.includes(ext);
+    async copyWithFeedback(text, btn, successText = '✓ 已复制', errorText = '复制失败') {
+        const originalText = btn?.textContent;
+        const originalStyle = btn ? {
+            background: btn.style.background,
+            borderColor: btn.style.borderColor
+        } : null;
+        
+        try {
+            await navigator.clipboard.writeText(text);
+            if (btn) {
+                btn.textContent = successText;
+                btn.style.background = '#10B981';
+                btn.style.borderColor = '#10B981';
+            }
+            setTimeout(() => {
+                if (btn && originalText) {
+                    btn.textContent = originalText;
+                    if (originalStyle) {
+                        btn.style.background = originalStyle.background;
+                        btn.style.borderColor = originalStyle.borderColor;
+                    }
+                }
+            }, 2000);
+            return true;
+        } catch (error) {
+            console.error('Clipboard copy error:', error);
+            if (btn) {
+                btn.textContent = errorText;
+            }
+            setTimeout(() => {
+                if (btn && originalText) {
+                    btn.textContent = originalText;
+                    if (originalStyle) {
+                        btn.style.background = originalStyle.background;
+                        btn.style.borderColor = originalStyle.borderColor;
+                    }
+                }
+            }, 2000);
+            return false;
+        }
     }
 };

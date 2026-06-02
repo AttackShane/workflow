@@ -1,5 +1,6 @@
 const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 function escapeHtml(text) {
+    if (!text) return '';
     return text.replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
 }
 

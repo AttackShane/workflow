@@ -1,4 +1,5 @@
 import { TYPE_MAP, REV_TYPE_MAP } from '../utils/types.js';
+import { Storage } from '../utils/helpers.js';
 
 export class WorkflowCore {
     constructor() {
@@ -406,44 +407,32 @@ export class WorkflowCore {
             selectedEdge: this.selectedEdge,
             savedAt: Date.now()
         };
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-            return true;
-        } catch (error) {
-            console.error('保存失败:', error);
-            return false;
-        }
+        Storage.set(key, data);
+        return true;
     }
     
     loadFromLocalStorage(key = 'workflow_current') {
-        try {
-            const data = localStorage.getItem(key);
-            if (!data) {
-                return false;
-            }
-            
-            const parsed = JSON.parse(data);
-            
-            this.nodes = parsed.nodes || [];
-            this.edges = parsed.edges || [];
-            this.nodeIdCounter = parsed.nodeIdCounter || 100000;
-            this.selectedNode = parsed.selectedNode || null;
-            this.selectedEdge = parsed.selectedEdge || null;
-            
-            this.resetHistory('从本地存储加载');
-            return true;
-        } catch (error) {
-            console.error('加载失败:', error);
+        const data = Storage.get(key);
+        if (!data) {
             return false;
         }
+        
+        this.nodes = data.nodes || [];
+        this.edges = data.edges || [];
+        this.nodeIdCounter = data.nodeIdCounter || 100000;
+        this.selectedNode = data.selectedNode || null;
+        this.selectedEdge = data.selectedEdge || null;
+        
+        this.resetHistory('从本地存储加载');
+        return true;
     }
     
     hasSavedWorkflow(key = 'workflow_current') {
-        return localStorage.getItem(key) !== null;
+        return Storage.get(key) !== null;
     }
     
     clearSavedWorkflow(key = 'workflow_current') {
-        localStorage.removeItem(key);
+        Storage.remove(key);
     }
     
     loadFromClipboard(data) {

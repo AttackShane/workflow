@@ -29,6 +29,32 @@ export function convertEdgesReverse(edges) {
     }));
 }
 
+/**
+ * 清理图标 URL 中的特殊字符
+ * @param {string} icon - 图标 URL 字符串
+ * @returns {string} 清理后的字符串
+ */
+export function cleanIcon(icon) {
+    if (!icon) return "";
+    return String(icon).replace(/[`'"\\]/g, '').trim();
+}
+
+/**
+ * 在 YAML 字符串中，将大数字（超过安全整数范围）转换为字符串
+ * @param {string} input - YAML 字符串
+ * @returns {string} 处理后的 YAML 字符串
+ */
+export function convertLargeNumbersToStrings(input) {
+    // JavaScript 最大安全整数：2^53 - 1 = 9007199254740991
+    // 我们处理 16 位以上的数字，确保安全
+    const idPattern = /(\b(id|ref_node|source_node|target_node)\s*:\s*)(\d{16,})/g;
+    
+    return input.replace(idPattern, (match, prefix, key, numStr) => {
+        // 将大数字转换为字符串（添加引号）
+        return `${prefix}"${numStr}"`;
+    });
+}
+
 export function validateYamlInput(yaml) {
     if (!yaml) throw new ConversionError('输入为空', 'EMPTY_INPUT');
     if (!yaml.nodes || !Array.isArray(yaml.nodes)) throw new ConversionError('无效YAML:缺少nodes数组', 'INVALID_STRUCTURE');

@@ -1,100 +1,31 @@
 import { msg } from './ui-controller.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM, Storage, StringUtils, ArrayUtils } from '../utils/helpers.js';
-import { getNodeTypeName } from '../utils/utils.js';
+import { DOM, Storage, StringUtils } from '../utils/helpers.js';
+import { 
+    getHistory as getData, 
+    saveToHistory as saveData, 
+    deleteHistoryItem as deleteData, 
+    updateHistoryItem as updateData, 
+    exportHistory as exportData, 
+    importHistory as importData, 
+    clearHistory as clearData 
+} from './history-manager.js';
+import { renderStats, renderStatsDetail } from './stats-renderer.js';
 
 let statsInfo = null;
 
-/**
- * 在 YAML 字符串中，将大数字（超过安全整数范围）转换为字符串
- * @param {string} input - YAML 字符串
- * @returns {string} 处理后的 YAML 字符串
- */
-function convertLargeNumbersToStrings(input) {
-    // JavaScript 最大安全整数：2^53 - 1 = 9007199254740991
-    // 我们处理 16 位以上的数字，确保安全
-    const idPattern = /(\b(id|ref_node|source_node|target_node)\s*:\s*)(\d{16,})/g;
-    
-    return input.replace(idPattern, (match, prefix, key, numStr) => {
-        // 将大数字转换为字符串（添加引号）
-        return `${prefix}"${numStr}"`;
-    });
+function getHistory() {
+    return getData();
 }
 
-/**
- * 获取历史记录
- * @returns {Array}
- */
-export function getHistory() {
-    return Storage.get(APP_CONFIG.HISTORY.KEY, []);
-}
-
-/**
- * 保存到历史记录
- * @param {string} data - 数据内容
- * @param {boolean} isJson - 是否为 JSON 格式
- * @param {string} name - 名称（可选）
- */
-export function saveToHistory(data, isJson, name = '') {
-    const history = getHistory();
-    
-    let workflowName = name || extractWorkflowName(data, isJson);
-    if (!workflowName) {
-        workflowName = `未命名 ${history.length + 1}`;
-    }
-    
-    const entry = {
-        id: Date.now(),
-        name: workflowName,
-        data: data,
-        isJson: isJson,
-        timestamp: new Date().toISOString()
-    };
-    
-    history.unshift(entry);
-    if (history.length > APP_CONFIG.HISTORY.MAX_ITEMS) {
-        history.pop();
-    }
-    
-    Storage.set(APP_CONFIG.HISTORY.KEY, history);
-    
-    // 设置新保存的记录为选中状态
-    Storage.set(APP_CONFIG.HISTORY.SELECTED_KEY, entry.id.toString());
-    
-    updateHistoryPanel();
-}
-
-/**
- * 提取工作流名称
- * @param {string} data - 数据内容
- * @param {boolean} isJson - 是否为 JSON 格式
- * @returns {string}
- */
-function extractWorkflowName(data, isJson) {
-    try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
-        if (parsed && typeof parsed === 'object') {
-            return parsed.name || parsed.workflow_name || parsed.title || parsed.json?.name || '';
-        }
-    } catch {
-        // 解析失败时返回空字符串
-    }
-    return '';
-}
-
-/**
- * 更新历史记录面板
- * @param {string} searchQuery - 搜索关键词
- */
 export function updateHistoryPanel(searchQuery = '') {
     const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
     const history = getHistory();
     
-    // 过滤历史记录
     let filteredHistory = history;
     if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        filteredHistory = ArrayUtils.filter(history, entry => {
+        filteredHistory = history.filter(entry => {
             const name = (entry.name || '').toLowerCase();
             const type = (entry.isJson ? 'json' : 'yaml').toLowerCase();
             const data = (entry.data || '').toLowerCase();
@@ -128,16 +59,12 @@ export function updateHistoryPanel(searchQuery = '') {
         </div>
     `).join(''));
     
-    // 绑定事件
     bindHistoryItemEvents();
     
-    // 设置选中状态
     const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
     if (selectedId !== null && selectedId !== undefined) {
-        // 清除之前的选中状态
         historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(el, 'active'));
         
-        // 查找并设置新的选中状态
         const selectedItem = historyList.querySelector(`[data-id="${selectedId}"]`);
         if (selectedItem) {
             DOM.addClass(selectedItem, 'active');
@@ -145,9 +72,6 @@ export function updateHistoryPanel(searchQuery = '') {
     }
 }
 
-/**
- * 绑定历史记录项事件
- */
 function bindHistoryItemEvents() {
     const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
     if (!historyList) return;
@@ -172,47 +96,41 @@ function bindHistoryItemEvents() {
     });
 }
 
-/**
- * 删除历史记录项
- * @param {number} id - 记录 ID
- */
+export function saveToHistory(data, isJson, name = '') {
+    saveData(data, isJson, name);
+    updateHistoryPanel();
+}
+
 export function deleteHistoryItem(id) {
-    const history = getHistory();
-    const filtered = ArrayUtils.filter(history, h => h.id !== id);
-    Storage.set(APP_CONFIG.HISTORY.KEY, filtered);
+    deleteData(id);
     
     const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
-    // 处理类型不匹配问题：存储的是字符串，比较时转换为相同类型
     if (selectedId !== null && selectedId !== undefined) {
         if (String(selectedId) === String(id)) {
-            Storage.remove(APP_CONFIG.HISTORY.SELECTED_KEY);
+            const outputArea = DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA);
+            const lineNumbersContent = DOM.get('lineNumbersContent');
+            if (outputArea) {
+                outputArea.innerHTML = APP_CONFIG.UI.DEFAULT_OUTPUT;
+            }
+            if (lineNumbersContent) {
+                lineNumbersContent.innerHTML = '';
+                lineNumbersContent.style.height = '';
+            }
+            DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), true);
+            DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), true);
         }
     }
     
     updateHistoryPanel();
 }
 
-/**
- * 更新历史记录项名称
- * @param {number} id - 记录 ID
- * @param {string} name - 新名称
- */
 export function updateHistoryItem(id, name) {
-    const history = getHistory();
-    const entry = ArrayUtils.find(history, h => h.id === id);
-    if (entry) {
-        entry.name = name;
-        Storage.set(APP_CONFIG.HISTORY.KEY, history);
-        updateHistoryPanel();
-    }
+    updateData(id, name);
+    updateHistoryPanel();
 }
 
-/**
- * 导出历史记录
- */
 export function exportHistory() {
-    const history = getHistory();
-    const dataStr = JSON.stringify(history, null, 2);
+    const dataStr = exportData();
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = DOM.create('a', {
@@ -226,10 +144,6 @@ export function exportHistory() {
     URL.revokeObjectURL(url);
 }
 
-/**
- * 导入历史记录
- * @param {Event} event - 文件选择事件
- */
 export function importHistory(event) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -239,19 +153,9 @@ export function importHistory(event) {
         try {
             const imported = JSON.parse(e.target?.result || '[]');
             if (Array.isArray(imported)) {
-                const history = getHistory();
-                const existingIds = new Set(history.map(h => h.id));
-                imported.forEach(item => {
-                    if (!existingIds.has(item.id) && item.data && item.isJson !== undefined) {
-                        history.unshift(item);
-                    }
-                });
-                if (history.length > APP_CONFIG.HISTORY.MAX_ITEMS) {
-                    history.splice(APP_CONFIG.HISTORY.MAX_ITEMS);
-                }
-                Storage.set(APP_CONFIG.HISTORY.KEY, history);
+                const importedCount = importData(imported);
                 updateHistoryPanel();
-                msg(APP_CONFIG.MESSAGES.SUCCESS.IMPORT(imported.length), false);
+                msg(APP_CONFIG.MESSAGES.SUCCESS.IMPORT(importedCount), false);
             } else {
                 msg('导入的数据格式不正确', true);
             }
@@ -262,164 +166,38 @@ export function importHistory(event) {
     reader.readAsText(file);
 }
 
-/**
- * 清空历史记录
- */
 export function clearHistory() {
-    Storage.remove(APP_CONFIG.HISTORY.KEY);
-    Storage.remove(APP_CONFIG.HISTORY.SELECTED_KEY);
+    clearData();
     updateHistoryPanel();
     msg('历史记录已清空', false);
+    
+    const outputArea = DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA);
+    const lineNumbersContent = DOM.get('lineNumbersContent');
+    if (outputArea) {
+        outputArea.innerHTML = APP_CONFIG.UI.DEFAULT_OUTPUT;
+    }
+    if (lineNumbersContent) {
+        lineNumbersContent.innerHTML = '';
+        lineNumbersContent.style.height = '';
+    }
+    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), true);
+    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), true);
 }
 
-/**
- * 显示统计信息
- * @param {string} data - 数据内容
- * @param {boolean} isJson - 是否为 JSON 格式
- */
 export function showStats(data, isJson) {
     if (!statsInfo) return;
-    
-    let stats = {};
-    
-    try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
-        
-        if (parsed && typeof parsed === 'object') {
-            if (Array.isArray(parsed)) {
-                stats = {
-                    type: 'array',
-                    length: parsed.length
-                };
-            } else {
-                stats = {
-                    type: 'object',
-                    keys: Object.keys(parsed).length
-                };
-            }
-        }
-    } catch {
-        // 解析失败时显示默认统计
-    }
-    
-    const lines = data.split('\n').length;
-    const chars = data.length;
-    const words = data.trim().split(/\s+/).length;
-    
-    statsInfo.innerHTML = `
-        <div class="stat-item">
-            <span class="stat-label">行数</span>
-            <span class="stat-value">${lines}</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">字符</span>
-            <span class="stat-value">${chars}</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">单词</span>
-            <span class="stat-value">${words}</span>
-        </div>
-        ${stats.type ? `
-        <div class="stat-item">
-            <span class="stat-label">${stats.type === 'array' ? '元素数' : '键数'}</span>
-            <span class="stat-value">${stats.length || stats.keys}</span>
-        </div>
-        ` : ''}
-    `;
+    renderStats(statsInfo, data, isJson);
 }
 
 export function showStatsDetail(data, isJson) {
     const statsContent = document.getElementById('statsContent');
-    if (!statsContent) return;
-    
-    let detailStats = {};
-    
-    try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
-        
-        if (parsed && typeof parsed === 'object') {
-            const workflowData = isJson ? parsed.json : parsed;
-            
-            detailStats = {
-                name: parsed.name || workflowData?.name || '未命名',
-                type: isJson ? 'Coze JSON' : 'YAML',
-                nodeCount: workflowData?.nodes?.length || 0,
-                edgeCount: workflowData?.edges?.length || 0,
-                keys: Object.keys(parsed).length
-            };
-            
-            if (workflowData?.nodes) {
-                const nodeTypes = {};
-                workflowData.nodes.forEach(node => {
-                    const rawType = node.type !== undefined && node.type !== null ? String(node.type) : '未知';
-                    const displayType = getNodeTypeName(rawType);
-                    nodeTypes[displayType] = (nodeTypes[displayType] || 0) + 1;
-                });
-                detailStats.nodeTypes = nodeTypes;
-            }
-        }
-    } catch (error) {
-        console.error('解析统计数据失败:', error);
-    }
-    
-    const nodeTypesHtml = detailStats.nodeTypes ? `
-        <div class="stats-section">
-            <h4>节点类型分布</h4>
-            <div class="node-types">
-                ${Object.entries(detailStats.nodeTypes).map(([type, count]) => `
-                    <div class="node-type-item">
-                        <span class="node-type-name">${StringUtils.escapeHtml(type)}</span>
-                        <span class="node-type-count">${count}</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    ` : '';
-    
-    statsContent.innerHTML = `
-        <div class="stats-detail">
-            <div class="stats-section">
-                <h4>基本信息</h4>
-                <div class="stat-row">
-                    <span class="stat-label">工作流名称</span>
-                    <span class="stat-value">${StringUtils.escapeHtml(detailStats.name)}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">数据格式</span>
-                    <span class="stat-value">${detailStats.type}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">顶层键数</span>
-                    <span class="stat-value">${detailStats.keys}</span>
-                </div>
-            </div>
-            
-            <div class="stats-section">
-                <h4>工作流统计</h4>
-                <div class="stat-row">
-                    <span class="stat-label">节点数量</span>
-                    <span class="stat-value highlight">${detailStats.nodeCount}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">边数量</span>
-                    <span class="stat-value highlight">${detailStats.edgeCount}</span>
-                </div>
-            </div>
-            
-            ${nodeTypesHtml}
-        </div>
-    `;
+    renderStatsDetail(statsContent, data, isJson);
 }
 
-/**
- * 处理历史记录项点击
- * @param {number} id - 记录 ID
- */
 function handleHistoryItemClick(id) {
     const history = getHistory();
-    const entry = ArrayUtils.find(history, h => h.id === id);
+    const entry = history.find(h => h.id === id);
     if (entry) {
-        // 动态导入以避免循环依赖
         import('./ui-controller.js').then(({ displayOutput }) => {
             displayOutput(entry.data, entry.isJson, false);
             
@@ -435,23 +213,14 @@ function handleHistoryItemClick(id) {
     }
 }
 
-/**
- * 处理历史记录项编辑
- * @param {number} id - 记录 ID
- */
 function handleHistoryItemEdit(id) {
     const history = getHistory();
-    const entry = ArrayUtils.find(history, h => h.id === id);
+    const entry = history.find(h => h.id === id);
     if (entry) {
         showEditModal(id, entry.name);
     }
 }
 
-/**
- * 显示编辑模态框
- * @param {number} id - 记录 ID
- * @param {string} currentName - 当前名称
- */
 function showEditModal(id, currentName) {
     const editModal = DOM.create('div');
     editModal.style.cssText = `
@@ -540,7 +309,9 @@ function showEditModal(id, currentName) {
             transition: 'all 0.2s'
         }
     });
-    DOM.on(cancelBtn, 'click', () => document.body.removeChild(editModal));
+    DOM.on(cancelBtn, 'click', () => {
+        document.body.removeChild(editModal);
+    });
     DOM.on(cancelBtn, 'mouseenter', () => cancelBtn.style.background = 'rgba(255, 255, 255, 0.05)');
     DOM.on(cancelBtn, 'mouseleave', () => cancelBtn.style.background = 'transparent');
     
@@ -573,6 +344,12 @@ function showEditModal(id, currentName) {
                 updateHistoryItem(id, newName);
                 document.body.removeChild(editModal);
             }
+        } else if (e.key === 'Escape') {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                updateHistoryItem(id, newName);
+            }
+            document.body.removeChild(editModal);
         }
     });
     
@@ -587,13 +364,19 @@ function showEditModal(id, currentName) {
     
     document.body.appendChild(editModal);
     
-    const closeModal = () => document.body.removeChild(editModal);
+    const closeModalWithSave = () => {
+        const newName = input.value.trim();
+        if (newName && newName !== currentName) {
+            updateHistoryItem(id, newName);
+        }
+        document.body.removeChild(editModal);
+    };
     
     DOM.on(editModal, 'click', (e) => {
-        if (e.target === editModal) closeModal();
+        if (e.target === editModal) closeModalWithSave();
     });
     
-    DOM.on(DOM.get('closeEditModal'), 'click', closeModal);
+    DOM.on(DOM.get('closeEditModal'), 'click', closeModalWithSave);
     
     setTimeout(() => {
         input.focus();
@@ -601,18 +384,10 @@ function showEditModal(id, currentName) {
     }, 100);
 }
 
-/**
- * 处理历史记录项删除
- * @param {number} id - 记录 ID
- */
 function handleHistoryItemDelete(id) {
     showDeleteConfirm(id);
 }
 
-/**
- * 显示删除确认模态框
- * @param {number} id - 记录 ID
- */
 function showDeleteConfirm(id) {
     const confirmModal = DOM.create('div');
     confirmModal.style.cssText = `
@@ -709,9 +484,6 @@ function showDeleteConfirm(id) {
     });
 }
 
-/**
- * 显示清空确认模态框
- */
 function showClearConfirm() {
     const confirmModal = DOM.create('div');
     confirmModal.style.cssText = `
@@ -808,9 +580,6 @@ function showClearConfirm() {
     });
 }
 
-/**
- * 初始化历史记录面板
- */
 export function initHistoryPanel() {
     statsInfo = DOM.get('statsInfo');
     const clearHistoryBtn = DOM.get(SELECTORS.CONVERTER.CLEAR_HISTORY_BTN);
@@ -830,25 +599,20 @@ export function initHistoryPanel() {
     DOM.on(importHistoryBtn, 'click', () => importFileInput.click());
     DOM.on(exportHistoryBtn, 'click', exportHistory);
     
-    // 添加搜索功能
     DOM.on(historySearchInput, 'input', (e) => {
         updateHistoryPanel(e.target.value);
     });
     
     updateHistoryPanel();
     
-    // 如果有选中的历史记录，加载并显示它
     loadSelectedHistory();
 }
 
-/**
- * 加载选中的历史记录并显示
- */
 function loadSelectedHistory() {
     const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
     if (selectedId !== null && selectedId !== undefined) {
         const history = getHistory();
-        const entry = ArrayUtils.find(history, h => String(h.id) === String(selectedId));
+        const entry = history.find(h => String(h.id) === String(selectedId));
         if (entry) {
             import('./ui-controller.js').then(({ displayOutput }) => {
                 displayOutput(entry.data, entry.isJson, false);
@@ -856,3 +620,5 @@ function loadSelectedHistory() {
         }
     }
 }
+
+export { getHistory };

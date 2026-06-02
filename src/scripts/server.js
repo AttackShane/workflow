@@ -2,6 +2,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import os from 'os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = 8080;
@@ -90,11 +91,26 @@ server.on('error', (err) => {
     process.exit(1);
 });
 
-server.listen(PORT, () => {
+// 获取本地 IP 地址
+function getLocalIP() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return '127.0.0.1';
+}
+
+server.listen(PORT, '0.0.0.0', () => {
+    const localIP = getLocalIP();
     console.log('');
     console.log('🚀 工作流工具开发服务器');
     console.log('─────────────────────────────');
-    console.log(`运行地址: http://localhost:${PORT}`);
+    console.log(`本地访问: http://localhost:${PORT}`);
+    console.log(`局域网访问: http://${localIP}:${PORT}`);
     console.log('');
     console.log('路由映射:');
     console.log('  /           → 工作流管理页面');
