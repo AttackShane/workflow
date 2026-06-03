@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 import os from 'os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PORT = 8080;
+const args = process.argv.slice(2);
+const portArg = args.find(arg => arg.startsWith('--port='));
+const PORT = portArg ? parseInt(portArg.split('=')[1]) : 8080;
 const rootDir = path.join(__dirname, '..');
 
 const mimeTypes = {
@@ -65,6 +67,10 @@ const routeMap = {
     '/favicon.ico': '/assets/favicon.svg'
 };
 
+const wellKnownPaths = [
+    '/.well-known/appspecific/com.chrome.devtools.json'
+];
+
 const server = http.createServer((req, res) => {
     logRequest(req);
     
@@ -72,6 +78,12 @@ const server = http.createServer((req, res) => {
     
     if (routeMap[filePath]) {
         filePath = routeMap[filePath];
+    }
+    
+    if (wellKnownPaths.includes(filePath)) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end('{}');
+        return;
     }
     
     const fullPath = path.join(rootDir, filePath);

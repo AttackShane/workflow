@@ -84,16 +84,14 @@ function restoreOpacity() {
 }
 
 /**
- * 初始化导航模块
+ * 初始化导航模块（只调用一次）
  */
 export function initNavigator() {
     // 页面加载完成后恢复透明度
     document.addEventListener('DOMContentLoaded', restoreOpacity);
     
     // 处理浏览器后退/前进时页面从缓存恢复的情况
-    // pageshow 事件在页面显示时触发，包括从缓存恢复
     window.addEventListener('pageshow', (event) => {
-        // persisted 表示页面是从缓存中恢复的
         if (event.persisted || isNavigating) {
             restoreOpacity();
         }
@@ -103,12 +101,5 @@ export function initNavigator() {
     window.addEventListener('popstate', restoreOpacity);
 }
 
-// 自初始化 - 确保无论哪个页面加载都会正确处理透明度
-// 监听 DOMContentLoaded 和 pageshow 事件
-document.addEventListener('DOMContentLoaded', restoreOpacity);
-window.addEventListener('pageshow', (event) => {
-    if (event.persisted || isNavigating) {
-        restoreOpacity();
-    }
-});
-window.addEventListener('popstate', restoreOpacity);
+// 自初始化
+initNavigator();

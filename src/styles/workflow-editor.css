@@ -874,13 +874,14 @@ body {
     background: var(--bg-tertiary);
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: none;
     border-left: 3px solid transparent;
 }
 
 .history-item:hover {
     background: rgba(92, 98, 255, 0.2);
     color: var(--text-primary);
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .history-item.current {

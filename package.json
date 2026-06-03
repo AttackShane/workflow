@@ -2,12 +2,18 @@
   "description": "",
   "type": "module",
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "babel-jest": "^30.4.1",
+    "http-server": "^14.1.1",
+    "jest": "^30.4.2"
   },
   "scripts": {
     "dev": "node src/scripts/server.js",
     "build": "node src/scripts/build.js",
-    "convert": "node src/scripts/batch-convert.mjs"
+    "convert": "node src/scripts/batch-convert.mjs",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "js-yaml": "^4.1.1"

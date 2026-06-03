@@ -2,6 +2,12 @@
     box-sizing: border-box;
 }
 
+/* 快速切换时禁用过渡动画 */
+.transition-disabled * {
+    transition: none !important;
+    animation: none !important;
+}
+
 .hidden {
     display: none !important;
 }
@@ -22,6 +28,11 @@
     --border-light: #f1f5f9;
     --code-font-size: 14px;
     --code-line-height: 21px;
+    --hl-key: #d946ef;
+    --hl-string: #22c55e;
+    --hl-bool: #3b82f6;
+    --hl-number: #f97316;
+    --hl-list: #8b5cf6;
 }
 
 [data-theme="dark"] {
@@ -39,6 +50,11 @@
     --border: #374151;
     --border-light: #1f2937;
     --history-bg: #1a2332;
+    --hl-key: #c084fc;
+    --hl-string: #4ade80;
+    --hl-bool: #60a5fa;
+    --hl-number: #fb923c;
+    --hl-list: #a78bfa;
     --history-hover: #243044;
     --history-active: #2d4a6f;
 }
@@ -54,7 +70,7 @@ body {
     font-family: system-ui, 'Segoe UI', sans-serif;
     background: var(--bg-primary);
     padding: 1rem;
-    transition: background 0.3s, opacity 0.3s;
+    transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 1;
 }
 
@@ -66,7 +82,7 @@ body {
     border-radius: 1.5rem;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     overflow: hidden;
-    transition: background 0.3s;
+    transition: background-color 0.35s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
 }
@@ -82,7 +98,7 @@ body {
     color: var(--text-primary);
     padding: 1.5rem 2rem;
     border-bottom: 4px solid var(--accent);
-    transition: background 0.3s;
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .header h1 {
     margin: 0;
@@ -191,7 +207,7 @@ textarea {
     box-sizing: border-box;
     background: var(--bg-primary);
     color: var(--text-primary);
-    transition: background 0.3s, color 0.3s, border-color 0.3s;
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .btn-row {
     display: flex;
@@ -208,7 +224,14 @@ textarea {
     font-weight: 500;
     cursor: pointer;
     color: var(--text-primary);
-    transition: background 0.3s, border-color 0.3s, color 0.3s;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active {
+    transform: scale(0.98);
+    background: var(--bg-tertiary, rgba(0,0,0,0.1));
 }
 .btn-primary {
     background: var(--accent);
@@ -218,6 +241,10 @@ textarea {
 .btn-primary:hover {
     background: #2563eb;
 }
+.btn-primary:active {
+    transform: scale(0.98);
+    background: #1d4ed8;
+}
 .btn-outline {
     border-color: var(--accent);
     color: var(--accent);
@@ -225,23 +252,29 @@ textarea {
 .btn-outline:hover {
     background: rgba(96, 165, 250, 0.1);
 }
+.btn-outline:active {
+    transform: scale(0.98);
+    background: rgba(96, 165, 250, 0.2);
+}
 .code-container {
     display: flex;
-    background: var(--code-bg);
+    background: #1e293b;
     border-radius: 1rem;
     overflow: hidden;
     flex: 1;
     min-height: 200px;
     position: relative;
+    transition: none;
 }
 
 .graph-container {
-    background: var(--code-bg);
+    background: #1e293b;
     border-radius: 1rem;
     overflow: hidden;
     flex: 1;
     min-height: 200px;
     padding: 1rem;
+    transition: none;
 }
 
 #workflowGraph {
@@ -269,7 +302,7 @@ textarea {
     min-width: 160px;
     max-width: 220px;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -424,7 +457,7 @@ textarea {
     cursor: pointer;
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
-    transition: all 0.2s;
+    transition: background-color 0.2s ease, color 0.2s ease;
     line-height: 1;
 }
 
@@ -457,7 +490,7 @@ textarea {
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 0.85rem;
-    transition: all 0.2s;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     font-weight: 500;
 }
 
@@ -487,7 +520,7 @@ textarea {
     padding: 1.25rem;
     padding-right: 0.75rem;
     background: rgba(0, 0, 0, 0.08);
-    color: var(--text-muted);
+    color: #6b7280;
     font-family: monospace;
     font-size: var(--code-font-size);
     line-height: var(--code-line-height);
@@ -496,7 +529,7 @@ textarea {
     min-width: 50px;
     width: 60px;  /* 增加宽度以显示四位行号 */
     flex-shrink: 0;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid #e5e7eb;
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
@@ -504,6 +537,7 @@ textarea {
     -ms-overflow-style: none;
     box-sizing: border-box;
     counter-reset: line;
+    transition: none;
 }
 
 .line-numbers::-webkit-scrollbar {
@@ -555,7 +589,8 @@ textarea {
     line-height: var(--code-line-height);
     white-space: pre-wrap;
     word-wrap: break-word;
-    color: var(--code-text);
+    color: #e5e7eb;
+    transition: none;
 }
 
 #outputBuffer {
@@ -604,27 +639,32 @@ pre {
     accent-color: var(--accent);
 }
 
-/* 语法高亮样式 */
+/* 语法高亮样式 - 使用固定颜色，不随主题切换 */
 .hl-key {
     color: #d946ef;
     font-weight: 500;
+    transition: none;
 }
 
 .hl-string {
     color: #22c55e;
+    transition: none;
 }
 
 .hl-bool {
     color: #3b82f6;
     font-weight: 500;
+    transition: none;
 }
 
 .hl-number {
     color: #f97316;
+    transition: none;
 }
 
 .hl-list {
     color: #6b7280;
+    transition: none;
 }
 
 /* 字体大小控制 */
@@ -790,14 +830,15 @@ pre {
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     cursor: pointer;
-    transition: all 0.2s ease;
     font-size: 0.85rem;
     gap: 0.5rem;
+    transition: none;
 }
 
 .history-item:hover {
     background: var(--history-hover, rgba(59, 130, 246, 0.1));
     border-color: rgba(96, 165, 250, 0.3);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .history-item.active {
@@ -862,7 +903,7 @@ pre {
     border: none;
     border-radius: 0.375rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background-color 0.2s ease, color 0.2s ease;
     background: rgba(255, 255, 255, 0.05);
     color: var(--text-secondary);
 }

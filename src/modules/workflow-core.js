@@ -1,18 +1,39 @@
+/**
+ * 工作流核心模块
+ * 
+ * 负责管理工作流的节点、边、历史记录和验证逻辑
+ * 支持13种节点类型：start、end、llm、condition、image_generate、text、code、comment、delay、http、loop、input、output、question
+ */
 import { TYPE_MAP, REV_TYPE_MAP } from '../utils/types.js';
 import { Storage } from '../utils/helpers.js';
 
 export class WorkflowCore {
+    /**
+     * 构造函数
+     */
     constructor() {
+        /** @type {Array} 节点数组 */
         this.nodes = [];
+        /** @type {Array} 边数组 */
         this.edges = [];
+        /** @type {number} 节点ID计数器 */
         this.nodeIdCounter = 100000;
+        /** @type {string|null} 当前选中的节点ID */
         this.selectedNode = null;
+        /** @type {string|null} 当前选中的边ID */
         this.selectedEdge = null;
         
+        /** @type {Array} 历史记录数组 */
         this.history = [];
+        /** @type {number} 当前历史记录索引 */
         this.historyIndex = -1;
+        /** @type {number} 最大历史记录数量 */
         this.maxHistory = 50;
         
+        /** 
+         * @type {Object} 节点类型配置信息
+         * 包含每种节点的标题、图标、描述、输入输出属性和参数定义
+         */
         this.nodeTypeInfo = {
             start: { 
                 title: '开始', icon: '🚀', description: '工作流的起始节点，设定启动参数', 
@@ -70,7 +91,7 @@ export class WorkflowCore {
                 title: '代码执行', icon: '💻', description: '执行自定义JavaScript代码', 
                 hasInput: true, hasOutput: true,
                 parameters: [
-                    { name: 'code', label: 'JavaScript代码', type: 'code', defaultValue: '// 输入: $input\\n// 输出: 返回值\\nreturn $input;', required: true }
+                    { name: 'code', label: 'JavaScript代码', type: 'code', defaultValue: '// 输入: $input\n// 输出: 返回值\nreturn $input;', required: true }
                 ]
             },
             comment: { 
@@ -133,6 +154,14 @@ export class WorkflowCore {
         };
     }
     
+    /**
+     * 创建新节点
+     * @param {string} type - 节点类型
+     * @param {number} x - 节点X坐标
+     * @param {number} y - 节点Y坐标
+     * @param {object|null} [data] - 节点初始数据
+     * @returns {object} 创建的节点对象
+     */
     createNode(type, x, y, data = null) {
         const info = this.nodeTypeInfo[type] || { title: '未知节点', icon: '📦', description: '', hasInput: true, hasOutput: true };
         const nodeId = `node_${++this.nodeIdCounter}`;
@@ -151,11 +180,20 @@ export class WorkflowCore {
         return nodeData;
     }
     
+    /**
+     * 添加节点到工作流
+     * @param {object} nodeData - 节点数据对象
+     * @returns {object} 添加的节点对象
+     */
     addNode(nodeData) {
         this.nodes.push(nodeData);
         return nodeData;
     }
     
+    /**
+     * 删除节点及相关边
+     * @param {string} nodeId - 节点ID
+     */
     deleteNode(nodeId) {
         this.edges = this.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
         this.nodes = this.nodes.filter(n => n.id !== nodeId);
@@ -165,6 +203,12 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 更新节点位置
+     * @param {string} nodeId - 节点ID
+     * @param {number} x - 新的X坐标
+     * @param {number} y - 新的Y坐标
+     */
     updateNodePosition(nodeId, x, y) {
         const node = this.nodes.find(n => n.id === nodeId);
         if (node) {
@@ -173,6 +217,12 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 更新节点属性
+     * @param {string} nodeId - 节点ID
+     * @param {string} key - 属性名称
+     * @param {*} value - 属性值
+     */
     updateNodeProperty(nodeId, key, value) {
         const node = this.nodes.find(n => n.id === nodeId);
         if (node) {
@@ -180,6 +230,12 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 创建新边
+     * @param {string} sourceId - 源节点ID
+     * @param {string} targetId - 目标节点ID
+     * @returns {object|null} 创建的边对象，如果已存在则返回null
+     */
     createEdge(sourceId, targetId) {
         const existingEdge = this.edges.find(e => e.source === sourceId && e.target === targetId);
         if (existingEdge) return null;
@@ -194,6 +250,11 @@ export class WorkflowCore {
         return edge;
     }
     
+    /**
+     * 添加边到工作流
+     * @param {object} edgeData - 边数据对象
+     * @returns {object|null} 添加的边对象，如果已存在则返回null
+     */
     addEdge(edgeData) {
         const existingEdge = this.edges.find(e => e.source === edgeData.source && e.target === edgeData.target);
         if (existingEdge) {
@@ -204,6 +265,10 @@ export class WorkflowCore {
         return edgeData;
     }
     
+    /**
+     * 删除边
+     * @param {string} edgeId - 边ID
+     */
     deleteEdge(edgeId) {
         this.edges = this.edges.filter(e => e.id !== edgeId);
         if (this.selectedEdge === edgeId) {
@@ -211,6 +276,10 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 保存当前状态到历史记录
+     * @param {string} [action='操作'] - 操作描述
+     */
     saveHistory(action = '操作') {
         const state = {
             nodes: JSON.parse(JSON.stringify(this.nodes)),
@@ -232,27 +301,42 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 重置历史记录
+     * @param {string} [action='初始化'] - 操作描述
+     */
     resetHistory(action = '初始化') {
         this.history = [];
         this.historyIndex = -1;
         this.saveHistory(action);
     }
     
+    /**
+     * 检查是否可以撤销
+     * @returns {boolean} 是否可以撤销
+     */
     canUndo() {
         return this.historyIndex > 0;
     }
     
+    /**
+     * 检查是否可以重做
+     * @returns {boolean} 是否可以重做
+     */
     canRedo() {
         return this.historyIndex < this.history.length - 1;
     }
     
+    /**
+     * 撤销操作
+     * @returns {boolean} 是否撤销成功
+     */
     undo() {
         if (!this.canUndo()) return false;
         
         this.historyIndex--;
         const state = this.history[this.historyIndex];
         
-        // 使用深拷贝避免污染历史记录
         this.nodes = JSON.parse(JSON.stringify(state.nodes));
         this.edges = JSON.parse(JSON.stringify(state.edges));
         this.selectedNode = state.selectedNode;
@@ -261,13 +345,16 @@ export class WorkflowCore {
         return true;
     }
     
+    /**
+     * 重做操作
+     * @returns {boolean} 是否重做成功
+     */
     redo() {
         if (!this.canRedo()) return false;
         
         this.historyIndex++;
         const state = this.history[this.historyIndex];
         
-        // 使用深拷贝避免污染历史记录
         this.nodes = JSON.parse(JSON.stringify(state.nodes));
         this.edges = JSON.parse(JSON.stringify(state.edges));
         this.selectedNode = state.selectedNode;
@@ -276,16 +363,27 @@ export class WorkflowCore {
         return true;
     }
     
+    /**
+     * 选择节点
+     * @param {string|null} nodeId - 节点ID，null表示取消选择
+     */
     selectNode(nodeId) {
         this.selectedNode = nodeId;
         this.selectedEdge = null;
     }
     
+    /**
+     * 选择边
+     * @param {string|null} edgeId - 边ID，null表示取消选择
+     */
     selectEdge(edgeId) {
         this.selectedEdge = edgeId;
         this.selectedNode = null;
     }
     
+    /**
+     * 清空所有节点和边
+     */
     clearAll() {
         this.nodes = [];
         this.edges = [];
@@ -293,14 +391,28 @@ export class WorkflowCore {
         this.selectedEdge = null;
     }
     
+    /**
+     * 获取节点类型对应的数字标识
+     * @param {string} type - 节点类型名称
+     * @returns {string} 数字标识
+     */
     getTypeNumber(type) {
         return TYPE_MAP[type] || '4';
     }
     
+    /**
+     * 从数字标识获取节点类型名称
+     * @param {string|number} typeNum - 数字标识
+     * @returns {string} 节点类型名称
+     */
     getTypeFromNumber(typeNum) {
         return REV_TYPE_MAP[String(typeNum)] || 'plugin';
     }
     
+    /**
+     * 验证工作流的有效性
+     * @returns {object} 验证结果 { valid, message, errors }
+     */
     validate() {
         const errors = [];
         const startNodes = this.nodes.filter(n => n.type === 'start');
@@ -339,6 +451,10 @@ export class WorkflowCore {
         };
     }
     
+    /**
+     * 导入工作流数据
+     * @param {object} workflow - 工作流数据对象
+     */
     importWorkflow(workflow) {
         if (!workflow || !workflow.nodes) return;
         
@@ -375,6 +491,10 @@ export class WorkflowCore {
         }
     }
     
+    /**
+     * 导出工作流数据
+     * @returns {object} 工作流数据对象
+     */
     exportWorkflow() {
         return {
             schema_version: "1.0.0",
@@ -398,6 +518,11 @@ export class WorkflowCore {
         };
     }
     
+    /**
+     * 保存到本地存储
+     * @param {string} [key='workflow_current'] - 存储键名
+     * @returns {boolean} 是否保存成功
+     */
     saveToLocalStorage(key = 'workflow_current') {
         const data = {
             nodes: this.nodes,
@@ -411,6 +536,11 @@ export class WorkflowCore {
         return true;
     }
     
+    /**
+     * 从本地存储加载
+     * @param {string} [key='workflow_current'] - 存储键名
+     * @returns {boolean} 是否加载成功
+     */
     loadFromLocalStorage(key = 'workflow_current') {
         const data = Storage.get(key);
         if (!data) {
@@ -427,14 +557,27 @@ export class WorkflowCore {
         return true;
     }
     
+    /**
+     * 检查是否有已保存的工作流
+     * @param {string} [key='workflow_current'] - 存储键名
+     * @returns {boolean} 是否存在已保存的工作流
+     */
     hasSavedWorkflow(key = 'workflow_current') {
         return Storage.get(key) !== null;
     }
     
+    /**
+     * 清除已保存的工作流
+     * @param {string} [key='workflow_current'] - 存储键名
+     */
     clearSavedWorkflow(key = 'workflow_current') {
         Storage.remove(key);
     }
     
+    /**
+     * 从剪贴板数据加载工作流
+     * @param {object} data - 剪贴板数据对象
+     */
     loadFromClipboard(data) {
         if (!data || !data.json?.nodes?.length) {
             console.warn('无效的剪贴板数据');

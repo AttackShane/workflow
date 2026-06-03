@@ -12,45 +12,46 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>🔧 工作流转换器</h1>
+        <h1 data-i18n="converter.title">🔧 工作流转换器</h1>
         <p>YAML ↔ JSON | 自动识别 | 严格模式 | 布局稳定</p>
     </div>
     <div class="main-layout">
         <div class="content">
             <div class="mode-bar">
-                <button id="modeFileBtn" class="mode-btn active">📁 文件</button>
-                <button id="modeTextBtn" class="mode-btn">✏️ 文本</button>
+                <button id="modeFileBtn" class="mode-btn active" data-i18n="common.file">📁 文件</button>
+                <button id="modeTextBtn" class="mode-btn" data-i18n="common.text">✏️ 文本</button>
             </div>
             <div id="filePanel" class="panel-container">
                 <div class="input-container">
                     <div id="uploadArea" class="upload-area">
-                        <div class="placeholder">📂 点击或拖拽 .yaml/.yml/.json</div>
+                        <div class="placeholder" data-i18n="converter.dropFile">📂 点击或拖拽 .yaml/.yml/.json</div>
                         <input type="file" id="fileInput" accept=".yaml,.yml,.json" style="display:none">
                         <div id="fileNameDisplay" style="margin-top:12px"></div>
                     </div>
                 </div>
                 <div class="btn-row">
-                    <button id="convertFileBtn" class="btn btn-primary">转换</button>
-                    <button id="clearFileBtn" class="btn btn-outline">清空</button>
+                    <button id="convertFileBtn" class="btn btn-primary" data-i18n="converter.convert">转换</button>
+                    <button id="clearFileBtn" class="btn btn-outline" data-i18n="common.clear">清空</button>
                 </div>
             </div>
             <div id="textPanel" class="panel-container hidden">
                 <div class="input-container">
-                    <textarea id="inputText" placeholder="粘贴 YAML 或 JSON..."></textarea>
+                    <textarea id="inputText" data-i18n-placeholder="converter.tipPaste" placeholder="粘贴 YAML 或 JSON..."></textarea>
                 </div>
                 <div class="btn-row">
-                    <button id="convertTextBtn" class="btn btn-primary">转换</button>
-                    <button id="clearTextBtn" class="btn btn-outline">清空</button>
+                    <button id="convertTextBtn" class="btn btn-primary" data-i18n="converter.convert">转换</button>
+                    <button id="clearTextBtn" class="btn btn-outline" data-i18n="common.clear">清空</button>
                 </div>
             </div>
 
             <div class="btn-row">
-                <button id="copyOutputBtn" class="btn btn-outline" disabled>📋 复制结果</button>
-                <button id="downloadBtn" class="btn btn-outline" disabled>💾 导出文件</button>
-                <button id="resetBtn" class="btn">重置</button>
+                <button id="copyOutputBtn" class="btn btn-outline" disabled data-i18n="converter.copyResult">📋 复制结果</button>
+                <button id="downloadBtn" class="btn btn-outline" disabled data-i18n="converter.downloadResult">💾 导出文件</button>
+                <button id="resetBtn" class="btn" data-i18n="common.reset">重置</button>
                 <button id="themeBtn" class="btn">🌙 深色模式</button>
-                <button id="editorBtn" class="btn btn-primary">🛠️ 工作流编辑器</button>
-                <button id="managerBtn" class="btn btn-secondary">📋 工作流管理</button>
+                <button id="languageBtn" class="btn">US English</button>
+                <button id="editorBtn" class="btn btn-primary" data-i18n="common.workflowEditor">🛠️ 工作流编辑器</button>
+                <button id="managerBtn" class="btn btn-secondary" data-i18n="common.workflowManager">📋 工作流管理</button>
                 <div class="font-size-controls">
                     <button id="fontSmallBtn" class="btn btn-sm">A-</button>
                     <span id="fontSizeDisplay">14px</span>
@@ -59,11 +60,11 @@
             </div>
             <div class="result-section">
                 <div class="result-header">
-                    <strong>结果</strong>
+                    <strong data-i18n="converter.output">结果</strong>
                     <span id="copyStatus"></span>
                     <label class="toggle-label">
                         <input type="checkbox" id="lineNumbersToggle" checked>
-                        <span>显示行号</span>
+                        <span data-i18n="converter.showLineNumbers">显示行号</span>
                     </label>
                 </div>
                 <div id="codeContainer" class="code-container">
@@ -81,33 +82,33 @@
         <aside class="sidebar">
             <div id="historyPanel" class="history-panel">
                 <div class="history-header">
-                    <strong>📜 转换历史</strong>
+                    <strong data-i18n="converter.history">📜 转换历史</strong>
                     <div class="history-actions">
-                        <button id="importHistoryBtn" class="btn btn-sm btn-outline">导入</button>
-                        <button id="exportHistoryBtn" class="btn btn-sm btn-outline">导出</button>
-                        <button id="clearHistoryBtn" class="btn btn-sm btn-outline">清空</button>
+                        <button id="importHistoryBtn" class="btn btn-sm btn-outline" data-i18n="common.import">导入</button>
+                        <button id="exportHistoryBtn" class="btn btn-sm btn-outline" data-i18n="common.export">导出</button>
+                        <button id="clearHistoryBtn" class="btn btn-sm btn-outline" data-i18n="common.clear">清空</button>
                     </div>
                 </div>
                 <div class="history-search">
-                    <input type="text" id="historySearchInput" placeholder="🔍 搜索历史...">
+                    <input type="text" id="historySearchInput" data-i18n-placeholder="common.search" placeholder="🔍 搜索历史...">
                 </div>
                 <div id="historyList" class="history-list"></div>
             </div>
         </aside>
     </div>
-    <footer>工作流转换器</footer>
+    <footer data-i18n="converter.title">工作流转换器</footer>
     
     <!-- 统计与可视化弹窗 -->
     <div id="statsModal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <strong>📊 工作流统计与可视化</strong>
+                <strong data-i18n="converter.stats">📊 工作流统计与可视化</strong>
                 <button id="closeModalBtn" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="modal-tabs">
-                    <button id="statsTabBtn" class="modal-tab-btn active">📈 统计信息</button>
-                    <button id="graphTabBtn" class="modal-tab-btn">🗺️ 图形视图</button>
+                    <button id="statsTabBtn" class="modal-tab-btn active" data-i18n="converter.statsInfo">📈 统计信息</button>
+                    <button id="graphTabBtn" class="modal-tab-btn" data-i18n="converter.graphView">🗺️ 图形视图</button>
                 </div>
                 <div id="statsContent" class="modal-tab-content">
                     <div id="statsDisplay"></div>

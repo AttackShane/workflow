@@ -1,15 +1,37 @@
+// @ts-nocheck
+/**
+ * 工作流转换器模块
+ * 负责将YAML格式的工作流定义转换为Coze剪贴板格式
+ * 支持22种节点类型的转换，包括start、end、llm、plugin、code等
+ */
 import { TYPE_MAP, getMainColor, getSubTitle, getBounds, clearRefCache } from "../utils/types.js";
 import { buildOutputMap } from "../components/outputMapper.js";
 import { convertInputParameters } from "../components/inputMapper.js";
 import { nodeHandlers } from "../components/nodeHandlers.js";
 import { validateYamlInput, convertEdges, cleanIcon } from "../utils/utils.js";
 
+/**
+ * 默认节点标题映射
+ * @type {Object.<string, string>}
+ */
 const DEFAULT_TITLES = { start: "开始", end: "结束" };
 
+/**
+ * 获取节点默认标题
+ * @param {string} type - 节点类型
+ * @returns {string} 默认标题
+ */
 function getNodeDefaultTitle(type) {
     return DEFAULT_TITLES[type] || "节点";
 }
 
+/**
+ * 处理插件节点的特殊逻辑
+ * @param {object} data - 节点数据对象
+ * @param {object} nodeMeta - 节点元数据
+ * @param {object} params - 节点参数
+ * @param {string} type - 节点类型
+ */
 function processPluginNode(data, nodeMeta, params, type) {
     const apiParam = params.apiParam;
     if (type === "plugin" && apiParam) {
@@ -20,6 +42,12 @@ function processPluginNode(data, nodeMeta, params, type) {
     }
 }
 
+/**
+ * 构建节点元数据
+ * @param {object} node - 原始节点对象
+ * @param {string} type - 节点类型
+ * @returns {object} 节点元数据对象
+ */
 function buildNodeMeta(node, type) {
     return {
         title: node.title || getNodeDefaultTitle(type),
@@ -30,6 +58,13 @@ function buildNodeMeta(node, type) {
     };
 }
 
+/**
+ * 构建外部数据对象
+ * @param {object} node - 原始节点对象
+ * @param {string} type - 节点类型
+ * @param {object} params - 节点参数
+ * @returns {object} 外部数据对象
+ */
 function buildExternalData(node, type, params) {
     const ext = { icon: cleanIcon(node.icon), description: node.description || "", title: node.title || "", mainColor: getMainColor(type) };
     if (type === "plugin" && params.apiParam) {
@@ -39,6 +74,11 @@ function buildExternalData(node, type, params) {
     return ext;
 }
 
+/**
+ * 计算工作流边界
+ * @param {Array} nodes - 节点数组
+ * @returns {object} 边界对象 { x, y, width, height }
+ */
 function calculateBounds(nodes) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const len = nodes.length;
@@ -56,6 +96,12 @@ function calculateBounds(nodes) {
     return { x: minX - 180, y: minY - 20, width: maxX - minX + 720, height: maxY - minY + 140 };
 }
 
+/**
+ * 转换单个节点
+ * @param {object} node - 原始YAML节点对象
+ * @param {Map} outputMap - 输出映射表
+ * @returns {object} Coze格式的节点对象
+ */
 export function convertNode(node, outputMap) {
     const id = String(node.id);
     const type = node.type.toLowerCase();
@@ -112,6 +158,17 @@ export function convertNode(node, outputMap) {
     return result;
 }
 
+/**
+ * 将YAML格式转换为Coze剪贴板格式
+ * 
+ * @param {object} yaml - YAML解析后的工作流对象
+ * @param {object} yaml.id - 工作流ID
+ * @param {string} [yaml.name] - 工作流名称
+ * @param {Array} yaml.nodes - 节点数组
+ * @param {Array} [yaml.edges] - 连线数组
+ * @returns {object} Coze剪贴板格式数据
+ * @throws {ConversionError} 当输入数据无效时抛出异常
+ */
 export function convertYamlToClipboard(yaml) {
     validateYamlInput(yaml);
     const outputMap = buildOutputMap(yaml.nodes);

@@ -1,5 +1,6 @@
 import { getNodeTypeName, getNodeColor, cleanIcon, convertLargeNumbersToStrings } from '../utils/utils.js';
 import { StringUtils, ClipboardUtils } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 
 let workflowGraph = null;
 let graphRenderCount = 0;
@@ -182,7 +183,7 @@ function showNodeDetail(node) {
     };
     
     const copyJsonBtn = document.createElement('button');
-    copyJsonBtn.textContent = '📋 复制 JSON';
+    copyJsonBtn.textContent = t('converter.copyJson');
     copyJsonBtn.style.cssText = `
         padding: 0.5rem 1.25rem;
         border: 1px solid var(--border, #334155);
@@ -199,7 +200,7 @@ function showNodeDetail(node) {
     });
     
     const copyYamlBtn = document.createElement('button');
-    copyYamlBtn.textContent = '📋 复制 YAML';
+    copyYamlBtn.textContent = t('converter.copyYaml');
     copyYamlBtn.style.cssText = `
         padding: 0.5rem 1.25rem;
         border: none;
@@ -217,7 +218,7 @@ function showNodeDetail(node) {
     });
     
     const copyRawBtn = document.createElement('button');
-    copyRawBtn.textContent = '📋 复制原始节点';
+    copyRawBtn.textContent = t('converter.copyRawNode');
     copyRawBtn.style.cssText = `
         padding: 0.5rem 1.25rem;
         border: 1px solid #5C62FF;
@@ -233,7 +234,7 @@ function showNodeDetail(node) {
     });
     
     const openEditorBtn = document.createElement('button');
-    openEditorBtn.textContent = '🛠️ 打开工作流编辑器';
+    openEditorBtn.textContent = t('converter.openEditor');
     openEditorBtn.style.cssText = `
         padding: 0.5rem 1.25rem;
         border: 1px solid #5C62FF;

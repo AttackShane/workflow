@@ -6,6 +6,7 @@
     <title>工作流编辑器</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-editor.css">
+    <script type="module" src="/modules/app.js"></script>
 </head>
 <body>
     <div class="header">
@@ -24,6 +25,7 @@
         <div class="actions">
             <button id="navConverterBtn" class="btn btn-primary">🏠 转换器</button>
             <button id="navManagerBtn" class="btn btn-secondary">📋 工作流管理</button>
+            <button id="languageBtn" class="btn">US English</button>
             <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 保存并返回</button>
             <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ 验证工作流</button>
             <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 导出工作流</button>

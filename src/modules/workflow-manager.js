@@ -1,6 +1,7 @@
 import { Dialog } from './dialog.js';
 import { goToConverter, goToEditor, initNavigator } from './navigator.js';
 import { StringUtils, Storage } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 
 export class WorkflowManager {
     constructor() {
@@ -191,7 +192,7 @@ export class WorkflowManager {
 
     openNewWorkflowModal() {
         this.currentEditingId = null;
-        this.elements.modalTitle.textContent = '新建工作流';
+        this.elements.modalTitle.textContent = t('manager.createNew');
         this.elements.workflowName.value = '';
         this.elements.workflowDescription.value = '';
         this.elements.modalOverlay.style.display = 'flex';
@@ -200,7 +201,7 @@ export class WorkflowManager {
 
     openEditModal(workflow) {
         this.currentEditingId = workflow.id;
-        this.elements.modalTitle.textContent = '编辑工作流';
+        this.elements.modalTitle.textContent = t('manager.editWorkflow');
         this.elements.workflowName.value = workflow.name;
         this.elements.workflowDescription.value = workflow.description;
         this.elements.modalOverlay.style.display = 'flex';

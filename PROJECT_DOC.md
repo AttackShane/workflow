@@ -18,27 +18,42 @@ workflow/
 │   │   └── containerHandler.js  # 容器节点处理（循环、批处理）
 │   ├── config/              # 配置文件
 │   │   └── constants.js     # 常量定义
+│   ├── i18n/                # 国际化支持
+│   │   ├── i18n.js          # 国际化核心模块
+│   │   ├── zh-CN.js         # 中文语言包
+│   │   └── en-US.js         # 英文语言包
 │   ├── modules/             # 核心模块
+│   │   ├── app.js           # 应用入口
 │   │   ├── converter.js     # YAML转剪贴板格式转换器（核心）
-│   │   ├── workflow-clipboard.js  # 编辑器剪贴板功能
+│   │   ├── reverse.js       # 反向转换器（Coze → YAML）
 │   │   ├── workflow-core.js # 工作流核心逻辑（节点/连线管理、历史记录）
+│   │   ├── workflow-ui.js   # UI交互控制
 │   │   ├── workflow-node.js # 节点UI组件
 │   │   ├── workflow-edge.js # 连线UI组件
-│   │   ├── workflow-ui.js   # UI交互控制
 │   │   ├── workflow-canvas.js # 画布管理
+│   │   ├── workflow-canvas-optimized.js # 优化画布
+│   │   ├── workflow-clipboard.js  # 编辑器剪贴板功能
 │   │   ├── workflow-manager.js # 管理页面逻辑
 │   │   ├── workflow-history.js # 历史记录管理
 │   │   ├── graph-view.js    # 图形视图（节点详情面板、复制功能）
 │   │   ├── stats-view.js    # 统计视图
+│   │   ├── stats-renderer.js # 统计渲染器
 │   │   ├── ui-controller.js # UI控制器
-│   │   ├── app.js           # 应用入口
 │   │   ├── dialog.js        # 对话框组件
 │   │   ├── keyboard-shortcuts.js # 键盘快捷键
-│   │   └── theme-controller.js # 主题控制器
+│   │   ├── theme-controller.js # 主题控制器
+│   │   ├── i18n-controller.js # 国际化控制器
+│   │   ├── navigator.js     # 页面导航管理
+│   │   ├── virtual-scroll.js # 虚拟滚动优化
+│   │   ├── highlighter.js   # 语法高亮
+│   │   ├── highlighter-worker.js # 语法高亮Worker
+│   │   └── history-manager.js # 历史记录管理器
 │   ├── utils/               # 工具函数
 │   │   ├── types.js         # 类型定义和工具函数
 │   │   ├── utils.js         # 通用工具函数
-│   │   └── logger.js        # 日志工具
+│   │   ├── helpers.js       # 辅助工具函数
+│   │   ├── logger.js        # 日志工具
+│   │   └── refCache.js      # 引用缓存管理
 │   ├── views/               # 页面视图
 │   │   ├── workflow-manager.html   # 工作流管理页面
 │   │   ├── workflow-converter.html # 转换器页面
@@ -49,10 +64,14 @@ workflow/
 │   │   └── workflow-editor.css   # 编辑器样式
 │   ├── scripts/             # 脚本
 │   │   ├── server.js        # 开发服务器
-│   │   └── build.js         # 构建脚本
-│   └── example/             # 示例数据
+│   │   ├── build.js         # 构建脚本
+│   │   ├── batch-convert.js # 批量转换脚本（CommonJS）
+│   │   └── batch-convert.mjs # 批量转换脚本（ESM）
+│   └── example/             # 示例数据（13个测试用例）
 │       └── Workflow-*/      # 各工作流示例目录
-└── package.json
+├── package.json
+├── PROJECT_DOC.md           # 详细项目文档
+└── README.md
 ```
 
 ## 已实现功能清单
@@ -69,19 +88,40 @@ workflow/
   4. 计算边界（`calculateBounds`）
 - **支持节点类型**: start、end、llm、code、image_generate、video_generation、condition、variable_merge、plugin、loop、batch、intent、async_task、http、comment、text、output、input、question（共19种）
 
-#### 2. 编辑器剪贴板（`modules/workflow-clipboard.js`）
+#### 2. 反向转换器（`modules/reverse.js`）
+- **入口**: `convertClipboardToYaml(clipboardData)`
+- **功能**: 将 Coze 剪贴板格式 JSON 转换回 YAML 格式
+- **关键步骤**:
+  1. 解析 Coze 剪贴板格式
+  2. 遍历节点调用 `convertNodeFromCoze()` 反向转换
+  3. 转换连线格式
+  4. 生成 YAML 字符串
+- **特性**: 保持节点类型、参数、连线关系的完整转换
+
+#### 3. 编辑器剪贴板（`modules/workflow-clipboard.js`）
 - **功能**: 支持多选节点复制，保留连线关系
 - **核心方法**: `copy()` - 将选中节点转换为 Coze 剪贴板格式
 - **粘贴支持**: 支持 `coze-workflow-clipboard-data` 格式和简单节点格式
 - **容错处理**: 剪贴板读取失败时使用内部缓存
 
-#### 3. 节点详情复制（`modules/graph-view.js`）
+#### 4. 国际化支持（`i18n/`）
+- **核心模块**: `i18n.js` - 国际化核心模块
+- **语言包**:
+  - `zh-CN.js` - 中文语言包
+  - `en-US.js` - 英文语言包
+- **特性**:
+  - 自动检测浏览器语言
+  - 支持运行时语言切换
+  - 所有界面文本可配置
+  - 不影响数据处理逻辑
+
+#### 5. 节点详情复制（`modules/graph-view.js`）
 - **位置**: `convertToClipboardFormat()` 函数
 - **功能**: 点击节点后复制单个节点的 JSON 到剪贴板
 - **支持格式**: JSON、YAML、原始节点三种格式
 - **打开编辑器**: 支持一键打开工作流编辑器
 
-#### 4. 工作流核心（`modules/workflow-core.js`）
+#### 6. 工作流核心（`modules/workflow-core.js`）
 - **功能**: 工作流数据管理核心
 - **主要能力**:
   - 节点管理（创建、删除、更新位置/属性）
@@ -806,6 +846,21 @@ npm run dev
 
 ## 版本历史
 
+### v1.3 (2026-06-03)
+
+**功能增强**:
+- 添加反向转换器（`reverse.js`），支持 Coze 格式转换回 YAML 格式
+- 添加国际化支持（`i18n/`），支持中英文语言切换
+- 添加批量转换脚本（`batch-convert.mjs`），支持批量处理多个工作流文件
+- 添加统计渲染器（`stats-renderer.js`），优化统计视图性能
+- 添加历史记录管理器（`history-manager.js`），统一历史记录管理
+- 添加引用缓存管理（`refCache.js`），优化转换性能
+
+**代码优化**:
+- 重构工具函数模块，分离 `helpers.js` 和 `utils.js`
+- 优化工作流核心模块结构
+- 统一错误处理和日志记录
+
 ### v1.2 (2026-05-29)
 
 **代码优化**:
@@ -954,103 +1009,6 @@ npm run dev
 - **现象**: 浏览器请求 .ico 文件但项目中只有 .svg
 - **修复**: 在 server.js 中添加路由映射
 - **影响文件**: `scripts/server.js`
-
-## 关键数据结构
-
-### Coze 剪贴板格式
-```json
-{
-  "type": "coze-workflow-clipboard-data",
-  "source": {
-    "workflowId": "...",
-    "flowMode": 0,
-    "spaceId": "...",
-    "isDouyin": false,
-    "host": "www.coze.cn"
-  },
-  "json": {
-    "nodes": [...],
-    "edges": [...],
-    "name": "..."
-  },
-  "bounds": { "x": ..., "y": ..., "width": ..., "height": ... }
-}
-```
-
-### 节点数据结构
-```json
-{
-  "id": "...",
-  "type": "...",
-  "meta": { "position": { "x": ..., "y": ... } },
-  "data": {
-    "inputs": { ... },
-    "nodeMeta": {
-      "title": "...",
-      "icon": "...",
-      "description": "...",
-      "mainColor": "...",
-      "subTitle": "..."
-    },
-    "outputs": [...]
-  },
-  "_temp": {
-    "bounds": { "x": ..., "y": ..., "width": ..., "height": ... },
-    "externalData": { ... }
-  }
-}
-```
-
-## 节点类型映射
-
-### 完整节点类型清单
-
-| YAML 类型 | Coze 类型 | 说明 | 处理器 | 编辑器支持 |
-|-----------|-----------|------|--------|------------|
-| `start` | 1 | 开始节点 | ✓ | ✓ |
-| `end` | 2 | 结束节点 | ✓ | ✓ |
-| `llm` | 3 | 大模型节点 | ✓ | ✓ |
-| `plugin` | 4 | 插件节点 | ✓ | ✗ |
-| `code` | 5 | 代码执行节点 | ✓ | ✓ |
-| `condition` | 8 | 条件选择节点 | ✓ | ✓ |
-| `image_generate` | 16 | 图片生成节点 | ✓ | ✓ |
-| `knowledge` | 17 | 知识库节点 | ✗ | ✗ |
-| `question` | 18 | 问答节点 | ✓ | ✓ |
-| `loop` | 21 | 循环节点 | ✓ | ✓ |
-| `intent` | 22 | 意图识别节点 | ✓ | ✗ |
-| `break` | 23 | 跳出节点 | ✗ | ✗ |
-| `variable_assign` | 24 | 变量赋值节点 | ✗ | ✗ |
-| `batch` | 28 | 批处理节点 | ✓ | ✗ |
-| `input` | 30 | 输入节点 | ✓ | ✓ |
-| `comment` | 31 | 注释节点 | ✓ | ✓ |
-| `variable_merge` | 32 | 变量聚合节点 | ✓ | ✗ |
-| `text` | 15 | 文本处理节点 | ✓ | ✓ |
-| `http` | 45 | HTTP 请求节点 | ✓ | ✓ |
-| `video_generation` | 65 | 视频生成节点 | ✓ | ✗ |
-| `async_task` | 72 | 异步任务节点 | ✓ | ✗ |
-| `output` | 13 | 输出节点 | ✓ | ✓ |
-
-### 节点类型统计
-
-| 统计维度 | 数量 | 说明 |
-|----------|------|------|
-| 类型映射 | 22种 | 完整的 Coze 类型映射 |
-| 转换处理器 | 19种 | 支持 YAML 转 Coze 格式 |
-| 编辑器创建 | 13种 | 可在编辑器中创建的节点 |
-
-### 节点颜色映射
-
-| 节点类型 | 颜色 | 类型 | 颜色 |
-|----------|------|------|------|
-| start/end | #5C62FF | llm | #5C62FF |
-| plugin | #CA61FF | code | #00B2B2 |
-| condition | #00B2B2 | http | #F59E0B |
-| text | #F59E0B | image_generate | #FF4DC3 |
-| knowledge | #10B981 | question | #3071F2 |
-| loop/batch | #00B2B2 | intent | #00B2B2 |
-| comment | #6B7280 | variable_merge | #00B2B2 |
-| video_generation | #3071F2 | async_task | #3071F2 |
-| output/input | #5C62FF | | |
 
 ## 开发服务器
 
@@ -1208,16 +1166,3 @@ console.log(JSON.stringify(result, null, 2));
 | P2 | 性能优化 | 处理大文件场景 |
 | P3 | 架构优化 | 长期技术债务 |
 | P3 | 安全优化 | 基础安全保障 |
-
-## 版本历史
-
-### v1.0 (2026-05-28)
-- 修复转换器和编辑器复制功能的多个问题
-- 修复数据结构顺序（inputs -> nodeMeta -> outputs）
-- 修复问答节点 bounds 尺寸（360x295）
-- 添加 `cleanIcon()` 函数清理特殊字符
-- 修复 outputs 顺序（optionId -> optionContent -> QUESTION_DATA）
-- 修复 QUESTION_DATA 的 options schema 结构
-- 支持 llmParam 的对象和数组两种格式
-- 添加 favicon.ico 404 路由映射
-- 添加批量转换测试文件

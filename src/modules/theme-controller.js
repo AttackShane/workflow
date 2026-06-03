@@ -1,14 +1,18 @@
+// @ts-nocheck
 import { APP_CONFIG } from '../config/constants.js';
 import { DOM, Storage } from '../utils/helpers.js';
 
 let elements = {};
 let currentFontSize = Storage.get(APP_CONFIG.THEME.FONT_SIZE_KEY, APP_CONFIG.THEME.DEFAULT_FONT_SIZE);
+let currentTheme = null;
+let storageTimeout = null;
 
-/**
- * 初始化主题控制器
- */
+let themeTextCache = {
+    light: '☀️ 浅色模式',
+    dark: '🌙 深色模式'
+};
+
 export function initThemeController() {
-    // 获取 DOM 元素
     elements = {
         themeBtn: DOM.get('themeBtn'),
         fontSizeDisplay: DOM.get('fontSizeDisplay'),
@@ -19,54 +23,81 @@ export function initThemeController() {
         lineNumbersToggle: DOM.get('lineNumbersToggle'),
     };
 
-    // 加载保存的主题
-    const savedTheme = Storage.get(APP_CONFIG.THEME.KEY, APP_CONFIG.THEME.DEFAULT);
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    DOM.setText(elements.themeBtn, savedTheme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式');
+    currentTheme = Storage.get(APP_CONFIG.THEME.KEY, APP_CONFIG.THEME.DEFAULT);
+    
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    
+    DOM.setText(elements.themeBtn, currentTheme === 'dark' ? themeTextCache.light : themeTextCache.dark);
 
-    // 更新字体大小
     updateFontSize();
 
-    // 恢复行号显示状态
     const showLineNumbers = Storage.get('workflow-converter-linenumbers', 'true') === 'true';
     DOM.setAttr(elements.lineNumbersToggle, 'checked', showLineNumbers);
     DOM.setStyle(elements.lineNumbers, 'display', showLineNumbers ? 'block' : 'none');
 
-    // 绑定事件
     DOM.on(elements.themeBtn, 'click', toggleTheme);
     DOM.on(elements.fontSmallBtn, 'click', decreaseFontSize);
     DOM.on(elements.fontLargeBtn, 'click', increaseFontSize);
     DOM.on(elements.lineNumbersToggle, 'change', toggleLineNumbers);
+    
+    loadTranslations();
 }
 
-/**
- * 切换主题
- */
+async function loadTranslations() {
+    try {
+        const { t } = await import('../i18n/i18n.js');
+        themeTextCache.light = t('converter.themeLight');
+        themeTextCache.dark = t('converter.themeDark');
+        
+        if (elements.themeBtn) {
+            DOM.setText(elements.themeBtn, currentTheme === 'dark' ? themeTextCache.light : themeTextCache.dark);
+        }
+    } catch (e) {
+        console.warn('Failed to load translations:', e);
+    }
+}
+
 function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     
+    currentTheme = newTheme;
+    
     document.documentElement.setAttribute('data-theme', newTheme);
-    Storage.set(APP_CONFIG.THEME.KEY, newTheme);
-    DOM.setText(elements.themeBtn, newTheme === 'dark' ? '☀️ 浅色模式' : '🌙 深色模式');
+    DOM.setText(elements.themeBtn, newTheme === 'dark' ? themeTextCache.light : themeTextCache.dark);
+    
+    saveThemeToStorage(newTheme);
 }
 
-/**
- * 更新字体大小显示
- */
-function updateFontSize() {
-    const lineHeight = currentFontSize * 1.5; // 保持 line-height 为 font-size 的 1.5 倍
+function saveThemeToStorage(theme) {
+    if (storageTimeout) {
+        clearTimeout(storageTimeout);
+    }
     
-    // 使用 CSS 变量更新字体大小和行高
+    storageTimeout = setTimeout(() => {
+        try {
+            Storage.set(APP_CONFIG.THEME.KEY, theme);
+        } catch (e) {
+            console.warn('Failed to save theme:', e);
+        }
+        storageTimeout = null;
+    }, 500);
+}
+
+export function updateThemeButtonText() {
+    if (!elements.themeBtn) return;
+    loadTranslations();
+}
+
+function updateFontSize() {
+    const lineHeight = currentFontSize * 1.5;
+    
     document.documentElement.style.setProperty('--code-font-size', `${currentFontSize}px`);
     document.documentElement.style.setProperty('--code-line-height', `${lineHeight}px`);
     
-    // 根据字体大小动态调整行号区域宽度（使用集中配置）
     const lineNumbersWidth = APP_CONFIG.LINE_NUMBERS.WIDTH_CALC(currentFontSize);
     DOM.setStyle(elements.lineNumbers, 'width', `${lineNumbersWidth}px`);
     DOM.setStyle(elements.lineNumbers, 'minWidth', `${lineNumbersWidth}px`);
     
-    // 触发自定义事件通知其他模块字体大小变化
     const event = new CustomEvent('fontsizechange', { 
         detail: { fontSize: currentFontSize, lineHeight: lineHeight } 
     });
@@ -76,9 +107,6 @@ function updateFontSize() {
     Storage.set(APP_CONFIG.THEME.FONT_SIZE_KEY, currentFontSize);
 }
 
-/**
- * 减小字体大小
- */
 function decreaseFontSize() {
     if (currentFontSize > APP_CONFIG.THEME.FONT_SIZE_MIN) {
         currentFontSize -= APP_CONFIG.THEME.FONT_SIZE_STEP;
@@ -86,9 +114,6 @@ function decreaseFontSize() {
     }
 }
 
-/**
- * 增大字体大小
- */
 function increaseFontSize() {
     if (currentFontSize < APP_CONFIG.THEME.FONT_SIZE_MAX) {
         currentFontSize += APP_CONFIG.THEME.FONT_SIZE_STEP;
@@ -96,9 +121,6 @@ function increaseFontSize() {
     }
 }
 
-/**
- * 切换行号显示
- */
 function toggleLineNumbers() {
     const show = elements.lineNumbersToggle.checked;
     DOM.setStyle(elements.lineNumbers, 'display', show ? 'block' : 'none');

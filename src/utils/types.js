@@ -1,3 +1,5 @@
+import { findRef, clearRefCache } from './refCache.js';
+
 // 节点尺寸常量（用于布局计算）
 export const NODE_DEFAULT_WIDTH = 360;
 export const NODE_DEFAULT_HEIGHT = 112;
@@ -119,8 +121,6 @@ export function getBounds(node) {
     
     return { x: x - NODE_CENTER_OFFSET, y, width, height };
 }
-
-import { findRef, clearRefCache } from './refCache.js';
 
 export { findRef, clearRefCache };
 
