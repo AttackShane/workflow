@@ -233,8 +233,8 @@ body {
     left: 0;
     width: auto;
     height: auto;
-    pointer-events: auto;
-    z-index: 2;
+    pointer-events: none;
+    z-index: 1;
     transform-origin: 0 0;
 }
 
@@ -244,7 +244,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 3;
+    pointer-events: none;
 }
 
 
@@ -287,6 +288,7 @@ body {
     user-select: none;
     transition: all 0.2s;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .canvas-node:hover {
@@ -377,6 +379,7 @@ body {
     cursor: crosshair;
     transition: all 0.2s;
     z-index: 30;
+    pointer-events: auto;
 }
 
 .connection-point:hover {
@@ -422,7 +425,7 @@ body {
     width: auto;
     height: auto;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     transform-origin: 0 0;
 }
 
@@ -447,7 +450,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1;
+    z-index: 3;
+    pointer-events: none;
 }
 
 .workflow-edge {

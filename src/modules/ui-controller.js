@@ -329,7 +329,7 @@ function renderWithVirtualScroll(data, type, contentKey) {
     const currentTaskId = ++workerTaskId;
     
     if (!worker) {
-        worker = new Worker('./modules/highlighter-worker.js');
+        worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
     }
     
     isHighlighting = true;
@@ -383,7 +383,7 @@ async function renderAsync(data, type, contentKey) {
     
     try {
         if (!worker) {
-            worker = new Worker('./modules/highlighter-worker.js');
+            worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
         }
         
         worker.postMessage({ id: currentTaskId, text: data, type });

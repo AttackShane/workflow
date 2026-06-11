@@ -166,23 +166,27 @@ export class WorkflowEdge {
 
     startConnection(nodeId, e) {
         this.ui.connectingFrom = nodeId;
-        const rect = e.target.getBoundingClientRect();
         const canvasRect = this.ui.canvas.canvas.getBoundingClientRect();
-        const startX = rect.left - canvasRect.left + 6;
-        const startY = rect.top - canvasRect.top + 6;
-        
+
+        const pointRect = e.target.getBoundingClientRect();
+        const screenStartX = pointRect.left + pointRect.width / 2 - canvasRect.left;
+        const screenStartY = pointRect.top + pointRect.height / 2 - canvasRect.top;
+
+        const { canvasX: startX, canvasY: startY } = this.ui.canvas.screenToCanvas(screenStartX, screenStartY);
+
         this.ui.svgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         this.ui.svgPath.setAttribute('stroke', '#5C62FF');
         this.ui.svgPath.setAttribute('stroke-width', '2');
         this.ui.svgPath.setAttribute('fill', 'none');
         this.ui.svgPath.setAttribute('stroke-dasharray', '5,5');
         this.svgLayer.appendChild(this.ui.svgPath);
-        
+
         const onMouseMove = (e) => {
             if (!this.ui.svgPath) return;
-            const rect = this.ui.canvas.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const canvasRect = this.ui.canvas.canvas.getBoundingClientRect();
+            const screenX = e.clientX - canvasRect.left;
+            const screenY = e.clientY - canvasRect.top;
+            const { canvasX: x, canvasY: y } = this.ui.canvas.screenToCanvas(screenX, screenY);
             const dx = x - startX;
             const ctrl = Math.max(Math.abs(dx) * 0.4, 50);
             this.ui.svgPath.setAttribute('d', `M ${startX} ${startY} C ${startX + ctrl} ${startY}, ${x - ctrl} ${y}, ${x} ${y}`);
