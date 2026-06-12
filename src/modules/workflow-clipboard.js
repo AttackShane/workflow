@@ -162,30 +162,51 @@ export class WorkflowClipboard {
                             children: [{ text: node.parameters.content, type: 'text' }]
                         }])
                     };
-                // LLM节点：所有参数（除结构字段外）全部放入 llmParam 数组，与Coze格式一致
+                // LLM节点：从原始 llmParam 还原，保留 input.type/value.type/rawMeta，仅更新 content
                 } else if (type === 'llm') {
-                    const llmParams = [];
                     const flatParams = node.parameters;
-                    // 结构字段：不放入 llmParam
-                    const structuralKeys = ['fcParamVar', 'settingOnError', 'node_outputs', 'node_inputs'];
+                    const structuralKeys = ['fcParamVar', 'settingOnError', 'node_outputs', 'node_inputs', '_llmParamRaw'];
 
-                    // modelName/modleName 统一输出为 modleName（Coze LLM拼写）
-                    const modelValue = flatParams.modelName || flatParams.modleName;
-                    const handledKeys = new Set(['modelName', 'modleName']);
-                    if (modelValue) {
-                        llmParams.push({ name: 'modleName', input: { type: 'string', value: { type: 'literal', content: modelValue } } });
-                    }
-
-                    // 其余所有参数原样放入 llmParam
-                    Object.entries(flatParams).forEach(([key, value]) => {
-                        if (!structuralKeys.includes(key) && !handledKeys.has(key) && value !== undefined && value !== '') {
-                            llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value } } });
+                    let llmParams;
+                    // 优先使用原始 llmParam 结构精确还原
+                    if (flatParams._llmParamRaw && Array.isArray(flatParams._llmParamRaw)) {
+                        llmParams = flatParams._llmParamRaw.map(p => {
+                            const entry = JSON.parse(JSON.stringify(p));
+                            const keyName = p.name === 'modleName' ? 'modelName' : p.name;
+                            if (flatParams[keyName] !== undefined) {
+                                entry.input.value.content = flatParams[keyName];
+                            }
+                            // 修正拼写
+                            if (p.name === 'modleName') entry.name = 'modleName';
+                            else if (p.name === 'modelName') entry.name = 'modleName';
+                            return entry;
+                        });
+                        // 追加 _llmParamRaw 中没有但 flatParams 中有新增的参数
+                        const rawNames = new Set(flatParams._llmParamRaw.map(p => p.name));
+                        const rawNamesClean = new Set(flatParams._llmParamRaw.map(p => p.name === 'modleName' ? 'modelName' : p.name));
+                        Object.entries(flatParams).forEach(([key, value]) => {
+                            if (structuralKeys.includes(key) || rawNamesClean.has(key) || value === undefined || value === '') return;
+                            llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value, rawMeta: { type: 1 } } } });
+                        });
+                    } else {
+                        // 无原始数据时，用默认格式
+                        llmParams = [];
+                        const modelValue = flatParams.modelName || flatParams.modleName;
+                        if (modelValue) {
+                            llmParams.push({ name: 'modleName', input: { type: 'string', value: { type: 'literal', content: modelValue, rawMeta: { type: 1 } } } });
                         }
-                    });
+                        const handledKeys = new Set(['modelName', 'modleName']);
+                        Object.entries(flatParams).forEach(([key, value]) => {
+                            if (!structuralKeys.includes(key) && !handledKeys.has(key) && value !== undefined && value !== '') {
+                                llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value, rawMeta: { type: 1 } } } });
+                            }
+                        });
+                    }
 
                     cozeNode.data.inputs.llmParam = llmParams;
                     cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
                     cozeNode.data.inputs.settingOnError = flatParams.settingOnError || { switch: false, processType: 1, timeoutMs: 600000, retryTimes: 0 };
+                    cozeNode.data.version = '3';
                 } else if (type === 'question') {
                     const flatParams = node.parameters;
                     cozeNode.data.inputs.answer_type = flatParams.answer_type || 'text';
@@ -398,15 +419,17 @@ export class WorkflowClipboard {
                                 }
                             // LLM参数：llmParam 数组/对象转为扁平键值对，字段名与Coze一致
                             } else if (key === 'llmParam' && Array.isArray(value)) {
+                                // 保留原始 llmParam 结构（含 input.type、value.type、rawMeta），用于精确还原
+                                parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
                                 value.forEach(p => {
                                     const v = p.input?.value?.content;
                                     if (p.name && v !== undefined) {
-                                        // Coze LLM节点拼写为 modleName，统一为 modelName
                                         const keyName = p.name === 'modleName' ? 'modelName' : p.name;
                                         parameters[keyName] = v;
                                     }
                                 });
                             } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
+                                parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
                                 Object.entries(value).forEach(([k, v]) => {
                                     if (typeof v === 'object' && v !== null && v.name) {
                                         const content = v.input?.value?.content;
