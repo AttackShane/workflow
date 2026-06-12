@@ -48,3 +48,7 @@ coverage/
 
 # nyc test coverage
 .nyc_output
+
+# Test output files
+test_output.txt
+test_results.json
