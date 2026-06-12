@@ -162,46 +162,39 @@ export class WorkflowClipboard {
                             children: [{ text: node.parameters.content, type: 'text' }]
                         }])
                     };
-                // LLM节点：从原始 llmParam 还原，保留 input.type/value.type/rawMeta，仅更新 content
+                // LLM节点：以当前参数为主，从原始数据中查找类型元数据
                 } else if (type === 'llm') {
                     const flatParams = node.parameters;
                     const structuralKeys = ['fcParamVar', 'settingOnError', 'node_outputs', 'node_inputs', '_llmParamRaw'];
+                    const llmParams = [];
 
-                    let llmParams;
-                    // 优先使用原始 llmParam 结构精确还原
+                    // 构建原始元数据查找表（key → { inputType, valueType, rawMeta }）
+                    const metaMap = {};
                     if (flatParams._llmParamRaw && Array.isArray(flatParams._llmParamRaw)) {
-                        llmParams = flatParams._llmParamRaw.map(p => {
-                            const entry = JSON.parse(JSON.stringify(p));
-                            const keyName = p.name === 'modleName' ? 'modelName' : p.name;
-                            if (flatParams[keyName] !== undefined) {
-                                entry.input.value.content = flatParams[keyName];
-                            }
-                            // 修正拼写
-                            if (p.name === 'modleName') entry.name = 'modleName';
-                            else if (p.name === 'modelName') entry.name = 'modleName';
-                            return entry;
-                        });
-                        // 追加 _llmParamRaw 中没有但 flatParams 中有新增的参数
-                        const rawNames = new Set(flatParams._llmParamRaw.map(p => p.name));
-                        const rawNamesClean = new Set(flatParams._llmParamRaw.map(p => p.name === 'modleName' ? 'modelName' : p.name));
-                        Object.entries(flatParams).forEach(([key, value]) => {
-                            if (structuralKeys.includes(key) || rawNamesClean.has(key) || value === undefined || value === '') return;
-                            llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value, rawMeta: { type: 1 } } } });
-                        });
-                    } else {
-                        // 无原始数据时，用默认格式
-                        llmParams = [];
-                        const modelValue = flatParams.modelName || flatParams.modleName;
-                        if (modelValue) {
-                            llmParams.push({ name: 'modleName', input: { type: 'string', value: { type: 'literal', content: modelValue, rawMeta: { type: 1 } } } });
-                        }
-                        const handledKeys = new Set(['modelName', 'modleName']);
-                        Object.entries(flatParams).forEach(([key, value]) => {
-                            if (!structuralKeys.includes(key) && !handledKeys.has(key) && value !== undefined && value !== '') {
-                                llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value, rawMeta: { type: 1 } } } });
-                            }
+                        flatParams._llmParamRaw.forEach(p => {
+                            const key = p.name === 'modleName' ? 'modelName' : p.name;
+                            metaMap[key] = {
+                                inputType: p.input?.type || 'string',
+                                valueType: p.input?.value?.type || 'literal',
+                                rawMeta: p.input?.value?.rawMeta || { type: 1 }
+                            };
                         });
                     }
+
+                    // 以 flatParams 为主遍历，从 metaMap 取类型元数据
+                    // modelName 优先处理，输出为 modleName
+                    const modelValue = flatParams.modelName || flatParams.modleName;
+                    if (modelValue !== undefined) {
+                        const meta = metaMap.modelName || metaMap.modleName || { inputType: 'string', valueType: 'literal', rawMeta: { type: 1 } };
+                        llmParams.push({ name: 'modleName', input: { type: meta.inputType, value: { type: meta.valueType, content: modelValue, rawMeta: meta.rawMeta } } });
+                    }
+                    const handledKeys = new Set(['modelName', 'modleName']);
+
+                    Object.entries(flatParams).forEach(([key, value]) => {
+                        if (structuralKeys.includes(key) || handledKeys.has(key) || value === undefined || value === '') return;
+                        const meta = metaMap[key] || { inputType: 'string', valueType: 'literal', rawMeta: { type: 1 } };
+                        llmParams.push({ name: key, input: { type: meta.inputType, value: { type: meta.valueType, content: value, rawMeta: meta.rawMeta } } });
+                    });
 
                     cozeNode.data.inputs.llmParam = llmParams;
                     cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
