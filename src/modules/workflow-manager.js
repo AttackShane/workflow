@@ -2,6 +2,8 @@ import { Dialog } from './dialog.js';
 import { goToConverter, goToEditor, initNavigator } from './navigator.js';
 import { StringUtils, Storage } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
+import { Logger } from '../utils/logger.js';
+import { WORKFLOW_TEMPLATES } from './templates.js';
 
 export class WorkflowManager {
     constructor() {
@@ -25,7 +27,11 @@ export class WorkflowManager {
             importFile: null,
             importText: null,
             btnImportCancel: null,
-            btnImportConfirm: null
+            btnImportConfirm: null,
+            btnTemplates: null,
+            templateModalOverlay: null,
+            templateModalClose: null,
+            templateGrid: null
         };
     }
 
@@ -69,7 +75,7 @@ export class WorkflowManager {
                     }
                 }
             } catch (error) {
-                console.error('加载保存的工作流失败:', error);
+                Logger.error('加载保存的工作流失败:', error);
             }
         }
     }
@@ -92,6 +98,10 @@ export class WorkflowManager {
         this.elements.importText = document.getElementById('importText');
         this.elements.btnImportCancel = document.getElementById('btnImportCancel');
         this.elements.btnImportConfirm = document.getElementById('btnImportConfirm');
+        this.elements.btnTemplates = document.getElementById('btnTemplates');
+        this.elements.templateModalOverlay = document.getElementById('templateModalOverlay');
+        this.elements.templateModalClose = document.getElementById('templateModalClose');
+        this.elements.templateGrid = document.getElementById('templateGrid');
     }
 
     loadWorkflows() {
@@ -158,6 +168,9 @@ export class WorkflowManager {
         this.elements.btnImportCancel.addEventListener('click', () => this.closeImportModal());
         this.elements.btnImportConfirm.addEventListener('click', () => this.importWorkflow());
         this.elements.importFile.addEventListener('change', (e) => this.handleFileSelect(e));
+        this.elements.btnTemplates.addEventListener('click', () => this.openTemplateModal());
+        this.elements.templateModalClose.addEventListener('click', () => this.closeTemplateModal());
+        this.elements.templateGrid.addEventListener('click', (e) => this.handleTemplateClick(e));
         
         // 导航按钮
         const navConverterBtn = document.getElementById('navConverterBtn');
@@ -418,6 +431,76 @@ export class WorkflowManager {
         } else {
             return `${date.getMonth() + 1}/${date.getDate()}`;
         }
+    }
+
+    openTemplateModal() {
+        this.renderTemplateGrid();
+        this.elements.templateModalOverlay.style.display = 'flex';
+    }
+
+    closeTemplateModal() {
+        this.elements.templateModalOverlay.style.display = 'none';
+    }
+
+    renderTemplateGrid() {
+        this.elements.templateGrid.innerHTML = '';
+
+        const categories = [...new Set(WORKFLOW_TEMPLATES.map(t => t.category))];
+
+        categories.forEach(category => {
+            const section = document.createElement('div');
+            section.className = 'template-category';
+            section.innerHTML = `<h3 class="template-category-title">${category}</h3>`;
+
+            const grid = document.createElement('div');
+            grid.className = 'template-category-grid';
+
+            WORKFLOW_TEMPLATES.filter(t => t.category === category).forEach(tpl => {
+                const card = document.createElement('div');
+                card.className = 'template-card';
+                card.dataset.templateId = tpl.id;
+                card.innerHTML = `
+                    <div class="template-card-icon">${tpl.icon}</div>
+                    <div class="template-card-name">${StringUtils.escapeHtml(tpl.name)}</div>
+                    <div class="template-card-desc">${StringUtils.escapeHtml(tpl.description)}</div>
+                    <div class="template-card-nodes">${tpl.nodes.length} 个节点</div>
+                `;
+                grid.appendChild(card);
+            });
+
+            section.appendChild(grid);
+            this.elements.templateGrid.appendChild(section);
+        });
+    }
+
+    handleTemplateClick(e) {
+        const card = e.target.closest('.template-card');
+        if (!card) return;
+
+        const templateId = card.dataset.templateId;
+        const template = WORKFLOW_TEMPLATES.find(t => t.id === templateId);
+        if (!template) return;
+
+        this.createFromTemplate(template);
+    }
+
+    createFromTemplate(template) {
+        const newWorkflow = {
+            id: 'wf_' + Date.now(),
+            name: template.name,
+            description: template.description,
+            nodes: JSON.parse(JSON.stringify(template.nodes)),
+            edges: JSON.parse(JSON.stringify(template.edges)),
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        this.workflows.push(newWorkflow);
+        this.saveWorkflows();
+        this.renderWorkflowList();
+        this.closeTemplateModal();
+
+        Dialog.success(`已从模板"${template.name}"创建工作流`);
     }
 }
 

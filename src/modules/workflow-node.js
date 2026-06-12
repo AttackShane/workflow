@@ -1,3 +1,5 @@
+import { StringUtils } from '../utils/helpers.js';
+
 export class WorkflowNode {
     constructor(ui) {
         this.ui = ui;
@@ -19,10 +21,10 @@ export class WorkflowNode {
         el.innerHTML = `
             <div class="node-header">
                 <div class="node-icon">${info.icon}</div>
-                <div class="node-title">${nodeData.title}</div>
-                <div class="node-type">${nodeData.type}</div>
+                <div class="node-title">${StringUtils.escapeHtml(nodeData.title)}</div>
+                <div class="node-type">${StringUtils.escapeHtml(nodeData.type)}</div>
             </div>
-            <div class="node-description">${nodeData.description}</div>
+            <div class="node-description">${StringUtils.escapeHtml(nodeData.description)}</div>
             ${inputPoint}
             ${outputPoint}
         `;
@@ -64,10 +66,14 @@ export class WorkflowNode {
     }
 
     addToCanvas(type, screenX, screenY, data = null) {
+        // 校验节点类型，拒绝未知类型（如拖动选中文字误触）
+        if (!type || !this.core.nodeTypeInfo[type]) return null;
+        
         // 将屏幕坐标转换为画布坐标（考虑平移和缩放）
         const { canvasX, canvasY } = this.ui.canvas.screenToCanvas(screenX, screenY);
         
-        const nodeData = this.core.createNode(type, canvasX, canvasY, data);
+        // 节点尺寸约 200x100，偏移半宽半高使节点中心对齐鼠标
+        const nodeData = this.core.createNode(type, canvasX - 100, canvasY - 50, data);
         const el = this.createElement(nodeData);
         this.ui.canvas.canvasContent.appendChild(el);
         this.ui.canvas.setEmptyState(false);
@@ -100,7 +106,7 @@ export class WorkflowNode {
             if (newSelectedNodes.length === 0) {
                 this.ui.isMultiSelectMode = false;
                 this.core.selectNode(null);
-                this.propertyContent.innerHTML = '';
+                this.ui.showSummaryPanel();
             } else {
                 const lastSelected = newSelectedNodes[newSelectedNodes.length - 1];
                 this.core.selectNode(lastSelected.dataset.nodeId);
@@ -110,6 +116,7 @@ export class WorkflowNode {
         } else if (ctrlPressed && !isAlreadySelected) {
             el.classList.add('selected');
             this.ui.isMultiSelectMode = true;
+            this.ui.showSummaryPanel();
         } else if (!this.ui.isMultiSelectMode && !ctrlPressed && !hasMultipleSelected) {
             document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
             document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
@@ -123,6 +130,7 @@ export class WorkflowNode {
                 el.classList.add('selected');
             }
             this.ui.isMultiSelectMode = true;
+            this.ui.showSummaryPanel();
         } else {
             el.classList.add('selected');
         }
@@ -184,6 +192,12 @@ export class WorkflowNode {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             
+            // 只有真正移动了才保存历史
+            if (this.ui.hasDragged) {
+                this.core.saveHistory('移动节点');
+                this.ui.updateHistoryPanel();
+            }
+            
             this.ui.updateEdges();
         };
         
@@ -241,7 +255,7 @@ export class WorkflowNode {
             }
         } else {
             this.core.selectNode(null);
-            this.propertyContent.innerHTML = '';
+            this.ui.showSummaryPanel();
             this.ui.isMultiSelectMode = false;
         }
         
@@ -265,7 +279,7 @@ export class WorkflowNode {
         
         this.ui.updateEdges();
         this.ui.updateSummary();
-        this.propertyContent.innerHTML = '';
+        this.ui.showSummaryPanel();
         
         if (this.core.nodes.length === 0) {
             this.ui.canvas.setEmptyState(true);
@@ -281,41 +295,118 @@ export class WorkflowNode {
     }
 
     renderPropertyPanel(node) {
-        const info = this.core.nodeTypeInfo[node.type] || {};
-        const hasParams = Object.keys(node.parameters || {}).length > 0;
-        const importedNodeInfo = this.ui.importedNodeInfo;
+        const selectedNodes = document.querySelectorAll('.canvas-node.selected');
+        const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
+        const selectedCount = selectedNodes.length + selectedEdges.length;
         
-        this.propertyContent.innerHTML = `
-            ${importedNodeInfo?.style.display === 'block' ? importedNodeInfo.outerHTML : ''}
+        // 多选或无选中 - 显示摘要
+        if (selectedCount !== 1 || !node) {
+            this.ui.showSummaryPanel();
+            return;
+        }
+        
+        // 单选 - 显示详情，按参数表生成可编辑表单
+        const info = this.core.nodeTypeInfo[node.type] || {};
+        const params = info.parameters || [];
+        
+        let paramsHtml = '';
+        params.forEach(param => {
+            const value = node.parameters?.[param.name] ?? param.defaultValue;
+            const required = param.required ? '<span class="required">*</span>' : '';
+            const hint = param.description ? `<div class="hint">${StringUtils.escapeHtml(param.description)}</div>` : '';
+            const safeValue = StringUtils.escapeHtml(String(value ?? ''));
             
-            <div class="workflow-summary">
-                <div class="summary-row"><span class="label">节点数量</span><span class="value" id="nodeCount">${this.core.nodes.length}</span></div>
-                <div class="summary-row"><span class="label">连接数量</span><span class="value" id="edgeCount">${this.core.edges.length}</span></div>
-                <div class="summary-row"><span class="label">开始节点</span><span class="value" id="startCount">${this.core.nodes.filter(n => n.type === 'start').length}</span></div>
-                <div class="summary-row"><span class="label">结束节点</span><span class="value" id="endCount">${this.core.nodes.filter(n => n.type === 'end').length}</span></div>
-            </div>
+            let inputHtml = '';
+            switch (param.type) {
+                case 'string':
+                case 'number':
+                    inputHtml = `<input class="property-input" id="prop_${param.name}" type="${param.type}" value="${safeValue}">`;
+                    break;
+                case 'textarea':
+                    inputHtml = `<textarea class="property-textarea" id="prop_${param.name}">${safeValue}</textarea>`;
+                    break;
+                case 'select':
+                    let selectOptions = (param.options || []).map(opt => {
+                        const optVal = typeof opt === 'object' ? (opt.value ?? opt) : opt;
+                        const optLabel = typeof opt === 'object' ? (opt.label ?? opt.value ?? opt) : opt;
+                        return { val: String(optVal), label: String(optLabel) };
+                    });
+                    const hasMatch = selectOptions.some(o => o.val === String(value ?? ''));
+                    if (!hasMatch && value !== undefined && value !== null && String(value).trim() !== '') {
+                        selectOptions.unshift({ val: String(value), label: String(value) });
+                    }
+                    const optionsHtml = selectOptions.map(o =>
+                        `<option value="${StringUtils.escapeHtml(o.val)}" ${o.val === String(value ?? '') ? 'selected' : ''}>${StringUtils.escapeHtml(o.label)}</option>`
+                    ).join('');
+                    inputHtml = `<select class="property-input property-select" id="prop_${param.name}">${optionsHtml}</select>`;
+                    break;
+                case 'boolean':
+                    inputHtml = `<input class="property-input" id="prop_${param.name}" type="checkbox" ${value ? 'checked' : ''}>
+                    <label for="prop_${param.name}">启用</label>`;
+                    break;
+                case 'json':
+                    const jsonStr = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value || '');
+                    inputHtml = `<textarea class="property-textarea" id="prop_${param.name}">${StringUtils.escapeHtml(jsonStr)}</textarea>`;
+                    break;
+                default:
+                    inputHtml = `<input class="property-input" id="prop_${param.name}" type="text" value="${safeValue}">`;
+            }
             
-            <div class="property-panel-section">
-                <h4>${info.icon} ${node.title}</h4>
+            paramsHtml += `
                 <div class="property-group">
-                    <label class="property-label">类型</label>
-                    <input class="property-input" type="text" value="${node.type}" readonly>
+                    <label class="property-label">${StringUtils.escapeHtml(param.label || param.name)} ${required}</label>
+                    ${inputHtml}
+                    ${hint}
                 </div>
+            `;
+        });
+        
+        this.ui.showDetailPanel();
+        const detailContainer = document.getElementById('nodeDetail');
+        if (!detailContainer) return;
+        
+        detailContainer.innerHTML = `
+            <div class="property-panel-section">
+                <h4>${info.icon || '📦'} ${StringUtils.escapeHtml(node.title)}</h4>
                 <div class="property-group">
-                    <label class="property-label">位置</label>
-                    <input class="property-input" type="text" value="(${Math.round(node.x)}, ${Math.round(node.y)})" readonly>
+                    <label class="property-label">节点名称</label>
+                    <input class="property-input" id="prop_nodeTitle" type="text" value="${StringUtils.escapeHtml(node.title || '')}">
                 </div>
                 <div class="property-group">
                     <label class="property-label">描述</label>
-                    <textarea class="property-textarea" readonly>${node.description}</textarea>
+                    <textarea class="property-textarea" id="prop_nodeDescription" title="${StringUtils.escapeHtml(node.description || '')}">${StringUtils.escapeHtml(node.description || '')}</textarea>
                 </div>
-                ${hasParams ? `
                 <div class="property-group">
-                    <label class="property-label">参数</label>
-                    <pre class="property-pre">${JSON.stringify(node.parameters, null, 2)}</pre>
+                    <label class="property-label">类型</label>
+                    <div class="property-tag">${StringUtils.escapeHtml(node.type)}</div>
                 </div>
-                ` : ''}
-                <button class="btn btn-danger" onclick="workflowUI.deleteNode('${node.id}')">删除节点</button>
+                ${paramsHtml ? `
+                <hr style="margin: 0.75rem 0; border-color: var(--border);">
+                <h4>节点配置</h4>
+                ${paramsHtml}` : ''}
+
+                <hr style="margin: 0.75rem 0; border-color: var(--border);">
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    输入
+                    <button class="btn btn-sm" onclick="workflowUI.node.addInputParam('${StringUtils.escapeHtml(node.id)}')">+ 添加</button>
+                </h4>
+                <div id="inputParamsList">
+                    ${this.renderInputOutputParams(node.inputParams || [], 'input')}
+                </div>
+
+                <hr style="margin: 0.75rem 0; border-color: var(--border);">
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    输出
+                    <button class="btn btn-sm" onclick="workflowUI.node.addOutputParam('${StringUtils.escapeHtml(node.id)}')">+ 添加</button>
+                </h4>
+                <div id="outputParamsList">
+                    ${this.renderInputOutputParams(node.outputParams || [], 'output')}
+                </div>
+
+                <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
+                    <button class="btn btn-primary" onclick="workflowUI.node.saveNodeDetail('${StringUtils.escapeHtml(node.id)}')">保存修改</button>
+                    <button class="btn btn-danger" onclick="workflowUI.deleteNode('${StringUtils.escapeHtml(node.id)}')">删除节点</button>
+                </div>
             </div>
         `;
     }
@@ -347,11 +438,11 @@ export class WorkflowNode {
                         <h4>基本信息</h4>
                         <div class="form-group">
                             <label>节点标题</label>
-                            <input type="text" class="form-input" id="editTitle" value="${node.title}">
+                            <input type="text" class="form-input" id="editTitle" value="${StringUtils.escapeHtml(node.title)}">
                         </div>
                         <div class="form-group">
                             <label>节点描述</label>
-                            <textarea class="form-textarea" id="editDescription">${node.description || ''}</textarea>
+                            <textarea class="form-textarea" id="editDescription">${StringUtils.escapeHtml(node.description || '')}</textarea>
                         </div>
                     </div>
                     ${params.length > 0 ? `
@@ -363,7 +454,7 @@ export class WorkflowNode {
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">取消</button>
-                    <button class="btn btn-primary" onclick="workflowUI.saveNodeEdit('${nodeId}')">保存</button>
+                    <button class="btn btn-primary" onclick="workflowUI.saveNodeEdit('${StringUtils.escapeHtml(nodeId)}')">保存</button>
                 </div>
             </div>
         `;
@@ -372,17 +463,27 @@ export class WorkflowNode {
     
     renderParamInput(param, value) {
         const required = param.required ? '<span class="required">*</span>' : '';
+        let displayValue = value;
+        if (param.type === 'json' && typeof value === 'object') {
+            displayValue = JSON.stringify(value, null, 2);
+        }
+        const safeValue = StringUtils.escapeHtml(String(displayValue ?? ''));
         let inputHtml = '';
         
         switch (param.type) {
             case 'select':
-                const options = param.options.map(opt => 
-                    `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
+                let dynSelectOptions = (param.options || []).map(opt => String(opt));
+                const dynHasMatch = dynSelectOptions.some(o => o === String(value ?? ''));
+                if (!dynHasMatch && value !== undefined && value !== null && String(value).trim() !== '') {
+                    dynSelectOptions.unshift(String(value));
+                }
+                const dynOptionsHtml = dynSelectOptions.map(opt => 
+                    `<option value="${StringUtils.escapeHtml(opt)}" ${opt === String(value ?? '') ? 'selected' : ''}>${StringUtils.escapeHtml(opt)}</option>`
                 ).join('');
                 inputHtml = `
                     <div class="form-group">
                         <label>${param.label}${required}</label>
-                        <select class="form-select" id="param_${param.name}">${options}</select>
+                        <select class="form-select" id="param_${param.name}">${dynOptionsHtml}</select>
                     </div>
                 `;
                 break;
@@ -392,7 +493,7 @@ export class WorkflowNode {
                     <div class="form-group">
                         <label>${param.label}${required}</label>
                         <input type="number" class="form-input" id="param_${param.name}" 
-                               value="${value}" min="${param.min}" max="${param.max}" step="${param.step || 1}">
+                               value="${safeValue}" min="${param.min}" max="${param.max}" step="${param.step || 1}">
                     </div>
                 `;
                 break;
@@ -401,7 +502,7 @@ export class WorkflowNode {
                 inputHtml = `
                     <div class="form-group">
                         <label>${param.label}${required}</label>
-                        <textarea class="form-textarea" id="param_${param.name}">${value}</textarea>
+                        <textarea class="form-textarea" id="param_${param.name}">${safeValue}</textarea>
                     </div>
                 `;
                 break;
@@ -410,7 +511,7 @@ export class WorkflowNode {
                 inputHtml = `
                     <div class="form-group">
                         <label>${param.label}${required}</label>
-                        <textarea class="form-textarea form-textarea-code" id="param_${param.name}" placeholder="{}">${value}</textarea>
+                        <textarea class="form-textarea form-textarea-code" id="param_${param.name}" placeholder="{}">${safeValue}</textarea>
                     </div>
                 `;
                 break;
@@ -419,7 +520,7 @@ export class WorkflowNode {
                 inputHtml = `
                     <div class="form-group">
                         <label>${param.label}${required}</label>
-                        <textarea class="form-textarea form-textarea-code" rows="8" id="param_${param.name}">${value}</textarea>
+                        <textarea class="form-textarea form-textarea-code" rows="8" id="param_${param.name}">${safeValue}</textarea>
                     </div>
                 `;
                 break;
@@ -428,7 +529,7 @@ export class WorkflowNode {
                 inputHtml = `
                     <div class="form-group">
                         <label>${param.label}${required}</label>
-                        <input type="text" class="form-input" id="param_${param.name}" value="${value}">
+                        <input type="text" class="form-input" id="param_${param.name}" value="${safeValue}">
                     </div>
                 `;
         }
@@ -497,5 +598,167 @@ export class WorkflowNode {
         
         this.core.saveHistory('编辑节点');
         this.ui.updateHistoryPanel();
+    }
+
+    renderInputOutputParams(paramsList, prefix) {
+        if (!paramsList || paramsList.length === 0) {
+            return '<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">暂无参数</p>';
+        }
+        const isInput = prefix === 'input';
+        return paramsList.map((p, i) => {
+            const types = ['string', 'number', 'boolean', 'object', 'array'];
+            const typeOpts = types.map(t => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`).join('');
+            const requiredCheck = isInput ? `
+                <div class="param-field">
+                    <label class="param-label">必填</label>
+                    <input type="checkbox" id="${prefix}Required_${i}" ${p.required ? 'checked' : ''}>
+                </div>
+            ` : '';
+            return `<div class="param-card" id="${prefix}Card_${i}">
+                <div class="param-card-header">
+                    <span class="param-card-title">参数 #${i+1}</span>
+                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${prefix}', ${i})">× 删除</button>
+                </div>
+                <div class="param-card-row">
+                    <div class="param-field">
+                        <label class="param-label">参数名称</label>
+                        <input class="param-input" id="${prefix}Name_${i}" type="text" placeholder="参数名" value="${StringUtils.escapeHtml(p.name || '')}">
+                    </div>
+                    <div class="param-field">
+                        <label class="param-label">参数类型</label>
+                        <select class="param-select" id="${prefix}Type_${i}">${typeOpts}</select>
+                    </div>
+                </div>
+                <div class="param-card-row">
+                    <div class="param-field">
+                        <label class="param-label">默认值</label>
+                        <input class="param-input" id="${prefix}Value_${i}" type="text" placeholder="默认值（可选）" value="${StringUtils.escapeHtml(String(p.value ?? ''))}">
+                    </div>
+                    ${requiredCheck}
+                </div>
+                <div class="param-field">
+                    <label class="param-label">描述</label>
+                    <textarea class="param-textarea" id="${prefix}Desc_${i}" placeholder="参数描述（可选）" title="${StringUtils.escapeHtml(p.description || '')}">${StringUtils.escapeHtml(p.description || '')}</textarea>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    addInputParam(nodeId) {
+        try {
+            const node = this.core.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            if (!node.inputParams) node.inputParams = [];
+            node.inputParams.push({ name: '', type: 'string', value: '', required: false, description: '' });
+            this.renderPropertyPanel(node);
+        } catch (e) {}
+    }
+
+    addOutputParam(nodeId) {
+        try {
+            const node = this.core.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            if (!node.outputParams) node.outputParams = [];
+            node.outputParams.push({ name: '', type: 'string', value: '', description: '' });
+            this.renderPropertyPanel(node);
+        } catch (e) {}
+    }
+
+    removeParam(prefix, index) {
+        try {
+            const selectedNode = this.core.selectedNode;
+            if (!selectedNode) return;
+            const node = this.core.nodes.find(n => n.id === selectedNode);
+            if (!node) return;
+            if (prefix === 'input' && node.inputParams) {
+                node.inputParams.splice(index, 1);
+            } else if (prefix === 'output' && node.outputParams) {
+                node.outputParams.splice(index, 1);
+            }
+            this.renderPropertyPanel(node);
+        } catch (e) {}
+    }
+
+    saveNodeDetail(nodeId) {
+        const node = this.core.nodes.find(n => n.id === nodeId);
+        if (!node) return;
+        
+        const titleEl = document.getElementById('prop_nodeTitle');
+        const descEl = document.getElementById('prop_nodeDescription');
+        
+        if (titleEl && titleEl.value) {
+            node.title = titleEl.value;
+            const el = document.querySelector(`[data-node-id="${nodeId}"] .node-title`);
+            if (el) el.textContent = titleEl.value;
+        }
+        
+        if (descEl) {
+            node.description = descEl.value;
+            const el = document.querySelector(`[data-node-id="${nodeId}"] .node-description`);
+            if (el) el.textContent = descEl.value;
+        }
+        
+        const info = this.core.nodeTypeInfo[node.type] || {};
+        const params = info.parameters || [];
+        
+        if (!node.parameters) {
+            node.parameters = {};
+        }
+        
+        params.forEach(param => {
+            const input = document.getElementById(`prop_${param.name}`);
+            if (input) {
+                let value;
+                if (param.type === 'boolean') {
+                    value = input.checked;
+                } else if (param.type === 'number') {
+                    value = parseFloat(input.value);
+                } else if (param.type === 'json') {
+                    try {
+                        value = JSON.parse(input.value);
+                    } catch {
+                        value = input.value;
+                    }
+                } else {
+                    value = input.value;
+                }
+                node.parameters[param.name] = value;
+            }
+        });
+
+        // 保存入参
+        this.saveDynamicParams(node, 'input');
+        // 保存出参
+        this.saveDynamicParams(node, 'output');
+        
+        this.ui.updateEdges();
+        this.core.saveHistory('编辑节点');
+        this.ui.updateHistoryPanel();
+        this.ui.showMessage('节点已保存', 'success');
+    }
+
+    saveDynamicParams(node, prefix) {
+        const key = prefix === 'input' ? 'inputParams' : 'outputParams';
+        const params = (node[key] || []).map((p, i) => {
+            const nameEl = document.getElementById(`${prefix}Name_${i}`);
+            const typeEl = document.getElementById(`${prefix}Type_${i}`);
+            const valueEl = document.getElementById(`${prefix}Value_${i}`);
+            const descEl = document.getElementById(`${prefix}Desc_${i}`);
+            const reqEl = document.getElementById(`${prefix}Required_${i}`);
+            
+            const result = {
+                name: nameEl ? nameEl.value.trim() : p.name,
+                type: typeEl ? typeEl.value : p.type,
+                value: valueEl ? valueEl.value : (p.value || ''),
+                description: descEl ? descEl.value : (p.description || '')
+            };
+            if (prefix === 'input' && reqEl) {
+                result.required = reqEl.checked;
+            } else if (prefix === 'input') {
+                result.required = p.required || false;
+            }
+            return result;
+        }).filter(p => p.name); // 过滤掉空名称
+        node[key] = params;
     }
 }

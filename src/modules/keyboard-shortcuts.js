@@ -1,25 +1,34 @@
 let elements = {};
 
+function safeClick(el) {
+    if (el) el.click();
+}
+
+function safeGet(id) {
+    return document.getElementById(id);
+}
+
 export function initKeyboardShortcuts() {
-    // 在 DOM 就绪后获取元素
     elements = {
-        modeFileBtn: document.getElementById('modeFileBtn'),
-        convertFileBtn: document.getElementById('convertFileBtn'),
-        convertTextBtn: document.getElementById('convertTextBtn'),
-        inputText: document.getElementById('inputText'),
-        copyOutputBtn: document.getElementById('copyOutputBtn'),
-        resetBtn: document.getElementById('resetBtn'),
+        modeFileBtn: safeGet('modeFileBtn'),
+        convertFileBtn: safeGet('convertFileBtn'),
+        convertTextBtn: safeGet('convertTextBtn'),
+        inputText: safeGet('inputText'),
+        copyOutputBtn: safeGet('copyOutputBtn'),
+        resetBtn: safeGet('resetBtn')
     };
 
     document.addEventListener('keydown', (e) => {
+        if (!elements.inputText) return;
+        
         // Ctrl/Cmd + Enter 快速转换
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
             e.preventDefault();
-            if (elements.modeFileBtn.classList.contains('active')) {
-                elements.convertFileBtn.click();
+            if (elements.modeFileBtn && elements.modeFileBtn.classList.contains('active')) {
+                safeClick(elements.convertFileBtn);
             } else {
-                if (elements.inputText.value.trim()) {
-                    elements.convertTextBtn.click();
+                if (elements.inputText.value && elements.inputText.value.trim()) {
+                    safeClick(elements.convertTextBtn);
                 }
             }
         }
@@ -27,20 +36,20 @@ export function initKeyboardShortcuts() {
         // Ctrl/Cmd + C 复制结果（当结果区域有内容时）
         if ((e.ctrlKey || e.metaKey) && e.key === 'c' && document.activeElement !== elements.inputText) {
             e.preventDefault();
-            elements.copyOutputBtn.click();
+            safeClick(elements.copyOutputBtn);
         }
         
         // Ctrl/Cmd + R 重置
         if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
             e.preventDefault();
-            elements.resetBtn.click();
+            safeClick(elements.resetBtn);
         }
         
         // Escape 清空输入
         if (e.key === 'Escape') {
             e.preventDefault();
-            elements.inputText.value = '';
-            elements.resetBtn.click();
+            if (elements.inputText) elements.inputText.value = '';
+            safeClick(elements.resetBtn);
         }
     });
 }

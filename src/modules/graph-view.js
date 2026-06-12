@@ -1,6 +1,7 @@
 import { getNodeTypeName, getNodeColor, cleanIcon, convertLargeNumbersToStrings } from '../utils/utils.js';
 import { StringUtils, ClipboardUtils } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
+import { Logger } from '../utils/logger.js';
 
 let workflowGraph = null;
 let graphRenderCount = 0;
@@ -584,7 +585,7 @@ export function renderWorkflowGraph(data, isJson) {
         });
         
     } catch (e) {
-        console.error('Graph render error:', e);
+        Logger.error('Graph render error:', e);
         workflowGraph.innerHTML = `
             <div class="workflow-empty">
                 <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">❌</div>

@@ -93,7 +93,7 @@ function calculateBounds(nodes) {
     }
     if (!isFinite(minX)) minX = 0;
     if (!isFinite(minY)) minY = 0;
-    return { x: minX - 180, y: minY - 20, width: maxX - minX + 720, height: maxY - minY + 140 };
+    return { x: minX - 200, y: minY - 20, width: maxX - minX + 800, height: maxY - minY + 140 };
 }
 
 /**
@@ -159,6 +159,30 @@ export function convertNode(node, outputMap) {
 }
 
 /**
+ * 在原始YAML文本中查找节点的近似行号
+ * @param {string} rawYaml - 原始YAML文本
+ * @param {object} node - 节点对象
+ * @returns {number|null} 近似行号（1-based），找不到返回null
+ */
+function findNodeLineInYaml(rawYaml, node) {
+    if (!rawYaml) return null;
+    const lines = rawYaml.split('\n');
+    const searchId = node.id != null ? String(node.id) : null;
+    const searchTitle = node.title;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (searchId && (line === `id: ${searchId}` || line.startsWith(`id: ${searchId}`))) {
+            return i + 1;
+        }
+        if (searchTitle && line === `title: ${searchTitle}`) {
+            return i + 1;
+        }
+    }
+    return null;
+}
+
+/**
  * 将YAML格式转换为Coze剪贴板格式
  * 
  * @param {object} yaml - YAML解析后的工作流对象
@@ -166,14 +190,29 @@ export function convertNode(node, outputMap) {
  * @param {string} [yaml.name] - 工作流名称
  * @param {Array} yaml.nodes - 节点数组
  * @param {Array} [yaml.edges] - 连线数组
+ * @param {string} [rawYaml] - 原始YAML文本（用于错误定位行号）
  * @returns {object} Coze剪贴板格式数据
- * @throws {ConversionError} 当输入数据无效时抛出异常
+ * @throws {Error} 当转换失败时，错误消息包含节点信息和行号
  */
-export function convertYamlToClipboard(yaml) {
+export function convertYamlToClipboard(yaml, rawYaml) {
     validateYamlInput(yaml);
     const outputMap = buildOutputMap(yaml.nodes);
-    const newNodes = yaml.nodes.map(n => convertNode(n, outputMap));
-    
+
+    const newNodes = [];
+    for (const n of yaml.nodes) {
+        try {
+            const converted = convertNode(n, outputMap);
+            newNodes.push(converted);
+        } catch (e) {
+            const line = findNodeLineInYaml(rawYaml, n);
+            const lineInfo = line ? `（第 ${line} 行附近）` : '';
+            const nodeInfo = `节点 [${n.title || ''}] (id: ${n.id}, type: ${n.type})${lineInfo}`;
+            const enrichedError = new Error(`${nodeInfo} 转换失败: ${e.message}`);
+            enrichedError.nodeInfo = { id: n.id, title: n.title, type: n.type, line };
+            throw enrichedError;
+        }
+    }
+
     clearRefCache();
     
     return {

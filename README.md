@@ -25,21 +25,21 @@
 
 ## 📦 支持的节点类型
 
-| 图标 | 类型 | 说明 |
-|------|------|------|
-| 🚀 | start | 开始节点 |
-| 🏁 | end | 结束节点 |
-| 🤖 | llm | 大模型调用 |
-| 🔌 | plugin | 插件调用 |
-| 💻 | code | 代码执行 |
-| 🔀 | condition | 条件分支 |
-| 🌐 | http | HTTP 请求 |
-| 📝 | text | 文本处理 |
-| 🎨 | image_generate | 图片生成 |
-| 📚 | knowledge | 知识库 |
-| ❓ | question | 问答节点 |
-| 🔄 | loop | 循环节点 |
-| ⏳ | async_task | 异步任务 |
+| 图标 | 类型           | 说明       |
+| ---- | -------------- | ---------- |
+| 🚀   | start          | 开始节点   |
+| 🏁   | end            | 结束节点   |
+| 🤖   | llm            | 大模型调用 |
+| 🔌   | plugin         | 插件调用   |
+| 💻   | code           | 代码执行   |
+| 🔀   | condition      | 条件分支   |
+| 🌐   | http           | HTTP 请求  |
+| 📝   | text           | 文本处理   |
+| 🎨   | image_generate | 图片生成   |
+| 📚   | knowledge      | 知识库     |
+| ❓   | question       | 问答节点   |
+| 🔄   | loop           | 循环节点   |
+| ⏳   | async_task     | 异步任务   |
 
 ## 🚀 快速开始
 
@@ -64,13 +64,14 @@ npm run build
 ```
 
 构建后会生成三个独立 HTML 文件（位于 `dist/` 目录）：
+
 - `workflow_converter.html` - 转换器单文件版本
 - `workflow_editor.html` - 编辑器单文件版本
 - `workflow_manager.html` - 工作流管理单文件版本
 
 ## 📁 项目结构
 
-```
+```text
 workflow/
 ├── src/
 │   ├── assets/            # 静态资源（favicon.svg）
@@ -114,28 +115,28 @@ workflow/
 
 ## 🔧 核心模块说明
 
-| 模块 | 说明 |
-|------|------|
-| `workflow-core.js` | 工作流核心数据管理（节点/边CRUD、历史记录、验证、导入导出） |
-| `workflow-ui.js` | 工作流编辑器 UI 总控（整合画布、节点、边、键盘快捷键） |
-| `workflow-canvas.js` | 画布管理（无限画布、缩放、平移、屏幕/画布坐标转换） |
-| `workflow-node.js` | 节点 UI 组件（拖拽、多选、属性面板、连接点事件） |
-| `workflow-edge.js` | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接） |
-| `workflow-clipboard.js` | 编辑器剪贴板（Coze 格式复制/粘贴、多节点+连线关系保留） |
-| `workflow-history.js` | 历史步骤面板（可视化撤销/重做导航） |
-| `converter.js` | YAML → Coze 格式转换器（核心转换逻辑） |
-| `reverse.js` | Coze → YAML 反向转换器 |
-| `dialog.js` | 模态对话框组件（alert/confirm/success/error） |
-| `navigator.js` | 页面导航管理（三页面间带淡入淡出动效的跳转） |
-| `graph-view.js` | 图形可视化视图（SVG 渲染工作流拓扑） |
-| `stats-view.js` | 统计视图（节点数量/类型分布） |
-| `theme-controller.js` | 主题控制器（深色/浅色自动切换） |
-| `i18n-controller.js` | 国际化控制器（中英文切换） |
-| `keyboard-shortcuts.js` | 键盘快捷键管理 |
-| `virtual-scroll.js` | 虚拟滚动优化（大文本量性能） |
-| `highlighter.js` | 语法高亮（YAML/JSON Web Worker 异步处理） |
-| `app.js` | 应用入口（初始化 theme/i18n/页面路由） |
-| `build.js` | 单文件构建脚本（ESM→单 HTML 打包，兼容 file:// 协议） |
+| 模块                    | 说明                                                        |
+| ----------------------- | ----------------------------------------------------------- |
+| `workflow-core.js`      | 工作流核心数据管理（节点/边CRUD、历史记录、验证、导入导出） |
+| `workflow-ui.js`        | 工作流编辑器 UI 总控（整合画布、节点、边、键盘快捷键）      |
+| `workflow-canvas.js`    | 画布管理（无限画布、缩放、平移、屏幕/画布坐标转换）         |
+| `workflow-node.js`      | 节点 UI 组件（拖拽、多选、属性面板、连接点事件）            |
+| `workflow-edge.js`      | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接）        |
+| `workflow-clipboard.js` | 编辑器剪贴板（Coze 格式复制/粘贴、多节点+连线关系保留）     |
+| `workflow-history.js`   | 历史步骤面板（可视化撤销/重做导航）                         |
+| `converter.js`          | YAML → Coze 格式转换器（核心转换逻辑）                      |
+| `reverse.js`            | Coze → YAML 反向转换器                                      |
+| `dialog.js`             | 模态对话框组件（alert/confirm/success/error）               |
+| `navigator.js`          | 页面导航管理（三页面间带淡入淡出动效的跳转）                |
+| `graph-view.js`         | 图形可视化视图（SVG 渲染工作流拓扑）                        |
+| `stats-view.js`         | 统计视图（节点数量/类型分布）                               |
+| `theme-controller.js`   | 主题控制器（深色/浅色自动切换）                             |
+| `i18n-controller.js`    | 国际化控制器（中英文切换）                                  |
+| `keyboard-shortcuts.js` | 键盘快捷键管理                                              |
+| `virtual-scroll.js`     | 虚拟滚动优化（大文本量性能）                                |
+| `highlighter.js`        | 语法高亮（YAML/JSON Web Worker 异步处理）                   |
+| `app.js`                | 应用入口（初始化 theme/i18n/页面路由）                      |
+| `build.js`              | 单文件构建脚本（ESM→单 HTML 打包，兼容 file:// 协议）       |
 
 ## 📖 使用方法
 

@@ -2,6 +2,8 @@
  * 页面导航模块 - 提供更友好的页面切换体验
  */
 
+import { Logger } from '../utils/logger.js';
+
 const PAGES = {
     MANAGER: '/',
     CONVERTER: '/converter',
@@ -9,6 +11,26 @@ const PAGES = {
 };
 
 let isNavigating = false;
+
+let tFn = null;
+
+function t(key, fallback) {
+    try {
+        return (tFn && tFn(key)) || fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+async function loadI18n() {
+    try {
+        const m = await import('../i18n/i18n.js');
+        tFn = m.t || m.default?.t;
+    } catch {
+        tFn = null;
+    }
+}
+loadI18n();
 
 /**
  * 导航到指定页面
@@ -27,7 +49,7 @@ export function navigateTo(url, options = {}) {
     
     // 如果有提示消息，先显示
     if (message) {
-        console.log(message);
+        Logger.info(message);
     }
     
     // 添加页面切换动画
@@ -57,21 +79,21 @@ export function goBack() {
  * 导航到工作流管理页面
  */
 export function goToManager() {
-    navigateTo(PAGES.MANAGER, { message: '正在返回工作流管理...' });
+    navigateTo(PAGES.MANAGER, { message: t('navigator.goingManager', '正在返回工作流管理...') });
 }
 
 /**
  * 导航到转换器页面
  */
 export function goToConverter() {
-    navigateTo(PAGES.CONVERTER, { message: '正在打开转换器...' });
+    navigateTo(PAGES.CONVERTER, { message: t('navigator.goingConverter', '正在打开转换器...') });
 }
 
 /**
  * 导航到编辑器页面
  */
 export function goToEditor() {
-    navigateTo(PAGES.EDITOR, { message: '正在打开编辑器...' });
+    navigateTo(PAGES.EDITOR, { message: t('navigator.goingEditor', '正在打开编辑器...') });
 }
 
 /**

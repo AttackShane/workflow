@@ -13,6 +13,11 @@ export class VirtualScroll {
         this.visibleCount = 30;
         this.cacheCount = APP_CONFIG.VIRTUAL_SCROLL.CACHE_COUNT;
         
+        this.boundHandleScroll = this.handleScroll.bind(this);
+        this.boundResizeHandler = () => {
+            this.visibleCount = Math.ceil(this.container.clientHeight / this.lineHeight) + 5;
+        };
+        
         this.init();
     }
     
@@ -20,10 +25,8 @@ export class VirtualScroll {
         this.updateLineHeight();
         this.visibleCount = Math.ceil(this.container.clientHeight / this.lineHeight) + 5;
         
-        this.container.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
-        this.container.addEventListener('resize', () => {
-            this.visibleCount = Math.ceil(this.container.clientHeight / this.lineHeight) + 5;
-        });
+        this.container.addEventListener('scroll', this.boundHandleScroll, { passive: true });
+        this.container.addEventListener('resize', this.boundResizeHandler);
         
         // 禁止行号区域滚动
         this.lineNumbers.style.overflow = 'hidden';
@@ -111,7 +114,11 @@ export class VirtualScroll {
     }
     
     destroy() {
-        this.container.removeEventListener('scroll', this.handleScroll.bind(this));
+        this.container.removeEventListener('scroll', this.boundHandleScroll);
+        this.container.removeEventListener('resize', this.boundResizeHandler);
+        
+        this.boundHandleScroll = null;
+        this.boundResizeHandler = null;
         
         // 恢复行号区域的样式
         this.lineNumbers.style.overflow = '';

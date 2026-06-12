@@ -6,6 +6,7 @@ import { goToEditor, goToManager, initNavigator } from './navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, StringUtils, ClipboardUtils } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
+import { Logger } from '../utils/logger.js';
 
 // 动态导入虚拟滚动模块
 let VirtualScroll = null;
@@ -21,9 +22,32 @@ let worker = null;
 let workerTaskId = 0;
 let virtualScroll = null;
 
+function terminateWorker() {
+    if (worker) {
+        worker.terminate();
+        worker = null;
+    }
+}
+
+window.addEventListener('beforeunload', terminateWorker);
+
 // 缓存系统
 const conversionCache = new Map();
 const highlightCache = new Map();
+
+// 安全验证：Worker 返回的高亮 HTML 只允许 highlight.js 使用的标签
+const ALLOWED_TAGS = ['span', 'br'];
+function isHighlightHtmlSafe(html) {
+    const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+    let match;
+    while ((match = tagRegex.exec(html)) !== null) {
+        const tagName = match[1].toLowerCase();
+        if (!ALLOWED_TAGS.includes(tagName)) {
+            return false;
+        }
+    }
+    return true;
+}
 
 // 性能监控
 const performanceStats = {
@@ -213,7 +237,7 @@ export async function handleConvert() {
         } else {
             // 默认当作 YAML 处理
             const yamlData = loadYamlWithStringIds(input);
-            const clipboardData = convertYamlToClipboard(yamlData);
+            const clipboardData = convertYamlToClipboard(yamlData, input);
             result = JSON.stringify(clipboardData, null, 2);
             type = 'json';
         }
@@ -226,7 +250,7 @@ export async function handleConvert() {
         msg(`${APP_CONFIG.MESSAGES.SUCCESS.CONVERT} (${performanceStats.conversionTime.toFixed(1)}ms)`);
     } catch (error) {
         msg(`${APP_CONFIG.MESSAGES.ERROR.CONVERT}${error.message}`, true);
-        console.error('Conversion error:', error);
+        Logger.error('Conversion error:', error);
     }
 }
 
@@ -341,8 +365,10 @@ function renderWithVirtualScroll(data, type, contentKey) {
         if (e.data.id === currentTaskId) {
             worker.removeEventListener('message', handler);
             isHighlighting = false;
-            addToCache(highlightCache, contentKey, e.data.result);
-            virtualScroll.setContent(e.data.result, originalLineCount);
+            const result = e.data.result;
+            const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
+            addToCache(highlightCache, contentKey, safe);
+            virtualScroll.setContent(safe, originalLineCount);
             virtualScroll.scrollToTop();
         }
     });
@@ -391,8 +417,10 @@ async function renderAsync(data, type, contentKey) {
         await new Promise((resolve) => {
             const handler = function(e) {
                 if (e.data.id === currentTaskId) {
-                    addToCache(highlightCache, contentKey, e.data.result);
-                    outputArea.innerHTML = e.data.result;
+                    const result = e.data.result;
+                    const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
+                    addToCache(highlightCache, contentKey, safe);
+                    outputArea.innerHTML = safe;
                     worker.removeEventListener('message', handler);
                     resolve();
                 }
@@ -400,7 +428,7 @@ async function renderAsync(data, type, contentKey) {
             worker.addEventListener('message', handler);
         });
     } catch (error) {
-        console.error('Worker error:', error);
+        Logger.error('Worker error:', error);
         const highlighted = type === 'json' ? highlightJson(data) : highlightYaml(data);
         addToCache(highlightCache, contentKey, highlighted);
         outputArea.innerHTML = highlighted;

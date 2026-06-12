@@ -5,6 +5,7 @@
 
 import { zhCN } from './zh-CN.js';
 import { enUS } from './en-US.js';
+import { Logger } from '../utils/logger.js';
 
 /**
  * 支持的语言列表
@@ -59,7 +60,7 @@ export class I18nManager {
             this.saveToStorage();
             this.notifyListeners();
         } else {
-            console.warn(`Unsupported language: ${language}`);
+            Logger.warn(`Unsupported language: ${language}`);
         }
     }
 
@@ -138,7 +139,7 @@ export class I18nManager {
                 this.language = stored;
             }
         } catch (e) {
-            console.warn('Failed to load language from storage:', e);
+            Logger.warn('Failed to load language from storage:', e);
         }
     }
 
@@ -149,7 +150,7 @@ export class I18nManager {
         try {
             localStorage.setItem('workflow_language', this.language);
         } catch (e) {
-            console.warn('Failed to save language to storage:', e);
+            Logger.warn('Failed to save language to storage:', e);
         }
     }
 
@@ -182,7 +183,7 @@ export class I18nManager {
             try {
                 listener(this.language);
             } catch (e) {
-                console.warn('Listener error:', e);
+                Logger.warn('Listener error:', e);
             }
         }
     }

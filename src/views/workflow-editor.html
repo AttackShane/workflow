@@ -23,12 +23,18 @@
             <span>就绪</span>
         </div>
         <div class="actions">
+            <div class="node-search-wrapper">
+                <input type="text" class="node-search-input" id="nodeSearchInput" placeholder="🔍 搜索节点..." title="按节点名称/类型搜索 (Esc清除)">
+                <span class="node-search-count" id="nodeSearchCount" style="display:none;"></span>
+            </div>
             <button id="navConverterBtn" class="btn btn-primary">🏠 转换器</button>
             <button id="navManagerBtn" class="btn btn-secondary">📋 工作流管理</button>
             <button id="languageBtn" class="btn">US English</button>
+            <button class="btn btn-secondary" onclick="window.workflowUI.shareLink()">🔗 分享链接</button>
             <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 保存并返回</button>
             <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ 验证工作流</button>
             <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 导出工作流</button>
+            <button class="btn btn-secondary" onclick="window.workflowUI.resetView()">🔍 重置视图</button>
             <button class="btn btn-danger" onclick="workflowUI.clearCanvas()">🗑️ 清空画布</button>
         </div>
     </div>
@@ -45,40 +51,8 @@
             </div>
             <div class="sidebar-section">
                 <h3>节点面板</h3>
-                <div class="node-palette">
-                    <div class="node-item" draggable="true" data-node-type="start" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">🚀</div>
-                        <div class="label">开始</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="end" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">🏁</div>
-                        <div class="label">结束</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="llm" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">🤖</div>
-                        <div class="label">大模型</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="condition" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">🔀</div>
-                        <div class="label">选择器</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="image_generate" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">🖼️</div>
-                        <div class="label">图片生成</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="text" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">📝</div>
-                        <div class="label">文本处理</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="code" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">💻</div>
-                        <div class="label">代码执行</div>
-                    </div>
-                    <div class="node-item" draggable="true" data-node-type="comment" ondragstart="window.dragStartHandler(event)">
-                        <div class="icon">📋</div>
-                        <div class="label">注释</div>
-                    </div>
-                </div>
+                <input type="text" class="node-palette-search" id="nodePaletteSearch" placeholder="筛选节点...">
+                <div class="node-palette" id="nodePalette"></div>
             </div>
             <div class="sidebar-section">
                 <h3>使用提示</h3>
@@ -92,6 +66,18 @@
         </div>
         
         <div class="canvas" id="canvas" ondragover="window.dragOverHandler(event)" ondrop="window.dropHandler(event)">
+            <div class="align-toolbar" id="alignToolbar">
+                <button class="align-btn" title="左对齐" data-align="left"><span class="icon">⬅</span></button>
+                <button class="align-btn" title="水平居中" data-align="centerH"><span class="icon">↔</span></button>
+                <button class="align-btn" title="右对齐" data-align="right"><span class="icon">➡</span></button>
+                <div style="width:1px;background:var(--border);margin:0 2px;"></div>
+                <button class="align-btn" title="顶对齐" data-align="top"><span class="icon">⬆</span></button>
+                <button class="align-btn" title="垂直居中" data-align="centerV"><span class="icon">↕</span></button>
+                <button class="align-btn" title="底对齐" data-align="bottom"><span class="icon">⬇</span></button>
+                <div style="width:1px;background:var(--border);margin:0 2px;"></div>
+                <button class="align-btn" title="水平等距分布" data-align="distH"><span class="icon">⇥</span></button>
+                <button class="align-btn" title="垂直等距分布" data-align="distV"><span class="icon">⇩</span></button>
+            </div>
             <svg class="svg-layer" id="svgLayer"></svg>
             <div class="canvas-content" id="canvasContent"></div>
             <svg class="svg-hit-layer" id="svgHitLayer"></svg>
@@ -115,24 +101,26 @@
                     </div>
                 </div>
                 
-                <div class="workflow-summary">
+                <div class="workflow-summary" id="workflowSummary">
                     <div class="summary-row">
-                        <span class="label">节点数量</span>
+                        <span class="label" id="summaryNodeLabel">节点数量</span>
                         <span class="value" id="nodeCount">0</span>
                     </div>
                     <div class="summary-row">
-                        <span class="label">连接数量</span>
+                        <span class="label" id="summaryEdgeLabel">连接数量</span>
                         <span class="value" id="edgeCount">0</span>
                     </div>
-                    <div class="summary-row">
+                    <div class="summary-row" id="summaryStartRow">
                         <span class="label">开始节点</span>
                         <span class="value" id="startCount">0</span>
                     </div>
-                    <div class="summary-row">
+                    <div class="summary-row" id="summaryEndRow">
                         <span class="label">结束节点</span>
                         <span class="value" id="endCount">0</span>
                     </div>
                 </div>
+                
+                <div class="node-detail" id="nodeDetail" style="display: none;"></div>
                 
                 <p style="color: var(--text-secondary); font-size: 0.875rem; text-align: center; padding: 1rem;">
                     选择节点查看属性
@@ -196,6 +184,15 @@
         window.workflowUI = new WorkflowUI(core);
         window.workflowUI.init();
         
+        // 检查分享链接参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareData = urlParams.get('share');
+        if (shareData && !core.hasSavedWorkflow() && !sessionStorage.getItem('editingWorkflow')) {
+            if (WorkflowUI.loadFromShareLink(shareData)) {
+                window.location.reload();
+            }
+        }
+        
         window.draggedNodeType = null;
         
         window.dragStartHandler = function(event) {
@@ -225,7 +222,7 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             
-            window.workflowUI.addNodeToCanvas(window.draggedNodeType, x - 90, y - 40);
+            window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);
             window.draggedNodeType = null;
         };
     </script>

@@ -283,6 +283,80 @@ body {
     gap: 0.75rem;
 }
 
+.btn-accent {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.btn-accent:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+}
+
+.template-modal {
+    max-width: 700px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.template-category {
+    margin-bottom: 1.5rem;
+}
+
+.template-category-title {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.template-category-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.template-card {
+    padding: 1rem;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.template-card:hover {
+    border-color: #667eea;
+    background: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.template-card-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.template-card-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 0.25rem;
+}
+
+.template-card-desc {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 0.5rem;
+}
+
+.template-card-nodes {
+    font-size: 0.7rem;
+    color: #667eea;
+    font-weight: 500;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .header {

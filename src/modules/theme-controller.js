@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { APP_CONFIG } from '../config/constants.js';
 import { DOM, Storage } from '../utils/helpers.js';
+import { Logger } from '../utils/logger.js';
 
 let elements = {};
 let currentFontSize = Storage.get(APP_CONFIG.THEME.FONT_SIZE_KEY, APP_CONFIG.THEME.DEFAULT_FONT_SIZE);
@@ -53,7 +54,7 @@ async function loadTranslations() {
             DOM.setText(elements.themeBtn, currentTheme === 'dark' ? themeTextCache.light : themeTextCache.dark);
         }
     } catch (e) {
-        console.warn('Failed to load translations:', e);
+        Logger.warn('Failed to load translations:', e);
     }
 }
 
@@ -77,7 +78,7 @@ function saveThemeToStorage(theme) {
         try {
             Storage.set(APP_CONFIG.THEME.KEY, theme);
         } catch (e) {
-            console.warn('Failed to save theme:', e);
+            Logger.warn('Failed to save theme:', e);
         }
         storageTimeout = null;
     }, 500);

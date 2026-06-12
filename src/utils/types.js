@@ -4,7 +4,7 @@ import { findRef, clearRefCache } from './refCache.js';
 export const NODE_DEFAULT_WIDTH = 360;
 export const NODE_DEFAULT_HEIGHT = 112;
 export const NODE_QUESTION_HEIGHT = 295;
-export const NODE_CENTER_OFFSET = 180;
+export const NODE_CENTER_OFFSET = 200;
 
 // 语言类型常量
 export const LANG_PYTHON = 5;
@@ -17,7 +17,8 @@ export const TYPE_MAP = {
     knowledge: "17", question: "18", loop: "21", intent: "22", break: "23",
     variable_assign: "24", batch: "28", comment: "31",
     variable_merge: "32", video_generation: "65", async_task: "72",
-    output: "13", input: "30"
+    output: "13", input: "30", delay: "33", database: "34", email: "35",
+    webhook: "36", json_parse: "37"
 };
 
 // 反向类型映射（ID -> 名称）
@@ -41,7 +42,7 @@ export const RAW_TYPE = {
 export const NODE_CAPABILITIES = {
     INHERIT_ASSIST: new Set(["llm", "code", "image_generate", "video_generation", "condition", "loop", "batch", "intent", "knowledge", "async_task"]),
     HAS_BLOCKS: new Set(["loop", "batch"]),
-    HAS_OUTPUTS: new Set(["start", "llm", "code", "image_generate", "video_generation", "condition", "variable_merge", "plugin", "loop", "batch", "intent", "async_task", "http", "text", "output", "input", "question"])
+    HAS_OUTPUTS: new Set(["start", "llm", "code", "image_generate", "video_generation", "condition", "variable_merge", "plugin", "loop", "batch", "intent", "async_task", "http", "text", "output", "input", "question", "delay", "variable_assign", "knowledge", "database", "email", "webhook", "json_parse"])
 };
 
 // 兼容旧代码
@@ -54,7 +55,8 @@ export const NODE_DISPLAY_NAMES = {
     knowledge: '📚 知识库', question: '❓ 问答', loop: '🔄 循环', intent: '🧠 意图识别', break: '⏹️ 跳出',
     variable_assign: '📦 变量赋值', batch: '📤 批处理', comment: '📝 注释',
     variable_merge: '🔗 变量聚合', video_generation: '🎬 视频生成', async_task: '⏳ 异步任务',
-    output: '📤 输出', input: '📥 输入'
+    output: '📤 输出', input: '📥 输入', delay: '⏱️ 延迟', database: '🗄️ 数据库',
+    email: '📧 邮件', webhook: '🪝 Webhook', json_parse: '🔍 JSON解析'
 };
 
 // 节点颜色映射
@@ -64,7 +66,8 @@ export const NODE_COLORS = {
     knowledge: '#10B981', question: '#3071F2', loop: '#00B2B2', intent: '#00B2B2', break: '#EF4444',
     variable_assign: '#8B5CF6', batch: '#00B2B2', comment: '#6B7280',
     variable_merge: '#00B2B2', video_generation: '#3071F2', async_task: '#3071F2',
-    output: '#5C62FF', input: '#5C62FF'
+    output: '#5C62FF', input: '#5C62FF', delay: '#059669', database: '#059669',
+    email: '#F59E0B', webhook: '#F59E0B', json_parse: '#3B82F6'
 };
 
 // 节点高度映射（用于布局计算）
@@ -72,7 +75,9 @@ export const NODE_HEIGHTS = {
     start: 86, end: 112, comment: 150, llm: 164, code: 112,
     image_generate: 164, video_generation: 162, condition: 138,
     knowledge: 164, question: 164, loop: 138, batch: 112, intent: 176,
-    async_task: 164, http: 130, output: 112, input: 86
+    async_task: 164, http: 130, output: 112, input: 86, delay: 112,
+    variable_assign: 112, variable_merge: 112, break: 86, plugin: 112,
+    database: 130, email: 164, webhook: 130, json_parse: 112
 };
 
 export function getAssistFromType(t) {

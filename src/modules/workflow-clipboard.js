@@ -1,6 +1,20 @@
 import { TYPE_MAP, getMainColor, getSubTitle } from "../utils/types.js";
 import { ClipboardUtils } from "../utils/helpers.js";
 
+/**
+ * 从 Slate 格式提取纯文本
+ * @param {Array} slate - Slate JSON 节点数组
+ * @returns {string} 纯文本
+ */
+function extractSlateText(slate) {
+    if (!Array.isArray(slate)) return '';
+    return slate.map(node => {
+        if (node.text !== undefined) return node.text;
+        if (node.children) return extractSlateText(node.children);
+        return '';
+    }).join('\n');
+}
+
 export class WorkflowClipboard {
     constructor(ui) {
         this.ui = ui;
@@ -50,14 +64,18 @@ export class WorkflowClipboard {
                     outputs: [],
                     inputs: {
                         inputParameters: []
+                    },
+                    size: {
+                        width: node.width || 200,
+                        height: node.height || 100
                     }
                 },
                 _temp: {
                     bounds: {
-                        x: node.x - 90,
-                        y: node.y - 40,
-                        width: node.width || 180,
-                        height: node.height || 80
+                        x: node.x - 100,
+                        y: node.y - 50,
+                        width: node.width || 200,
+                        height: node.height || 100
                     },
                     externalData: {
                         icon: node.icon || '',
@@ -97,6 +115,32 @@ export class WorkflowClipboard {
                     }
                 });
             }
+
+            // 写入动态入参
+            if (node.inputParams && Array.isArray(node.inputParams)) {
+                cozeNode.data.inputs.inputParameters = node.inputParams.map(p => ({
+                    name: p.name,
+                    type: p.type || 'string',
+                    required: p.required === true,
+                    description: p.description || '',
+                    input: { type: p.type || 'string', value: { type: 'literal', content: p.value || '' } }
+                }));
+            }
+
+            // 写入动态出参
+            if (node.outputParams && Array.isArray(node.outputParams)) {
+                node.outputParams.forEach(p => {
+                    const exists = cozeNode.data.outputs.find(o => o.name === p.name);
+                    if (!exists) {
+                        cozeNode.data.outputs.push({
+                            name: p.name,
+                            type: p.type || 'string',
+                            description: p.description || '',
+                            defaultValue: p.value || ''
+                        });
+                    }
+                });
+            }
             
             if (node.parameters && typeof node.parameters === 'object' && !Array.isArray(node.parameters)) {
                 if (type === 'variable_merge' && node.parameters.mergeGroups) {
@@ -110,43 +154,58 @@ export class WorkflowClipboard {
                     cozeNode.data.inputs.outputSchema = typeof node.parameters.outputSchema === 'string' 
                         ? JSON.parse(node.parameters.outputSchema) 
                         : node.parameters.outputSchema;
-                } else if (type === 'question') {
-                    cozeNode.data.inputs.answer_type = node.parameters.answer_type || 'text';
-                    cozeNode.data.inputs.option_type = node.parameters.option_type || 'static';
-                    cozeNode.data.inputs.options = node.parameters.options || [];
-                    cozeNode.data.inputs.limit = node.parameters.limit || 3;
-                    cozeNode.data.inputs.extra_output = node.parameters.extra_output === true;
-                    cozeNode.data.inputs.question = node.parameters.question || '';
-                    
-                    if (node.parameters.llmParam) {
-                        const llmParam = {};
-                        if (Array.isArray(node.parameters.llmParam)) {
-                            node.parameters.llmParam.forEach((param, index) => {
-                                llmParam[String(index)] = {
-                                    name: param.name,
-                                    input: {
-                                        type: param.input?.type || 'string',
-                                        value: param.input?.value || { type: 'literal', content: '' }
-                                    }
-                                };
-                            });
-                            llmParam.systemPrompt = node.parameters.llmParam.find(p => p.name === 'systemPrompt')?.input?.value?.content || '';
-                        } else if (typeof node.parameters.llmParam === 'object') {
-                            Object.entries(node.parameters.llmParam).forEach(([key, value]) => {
-                                if (!isNaN(key)) {
-                                    llmParam[key] = {
-                                        name: value.name || key,
-                                        input: {
-                                            type: value.input?.type || 'string',
-                                            value: value.input?.value || { type: 'literal', content: '' }
-                                        }
-                                    };
-                                }
-                            });
-                            llmParam.systemPrompt = node.parameters.llmParam.systemPrompt || '';
-                        }
-                        cozeNode.data.inputs.llmParam = llmParam;
+                } else if (type === 'comment' && node.parameters.content !== undefined) {
+                    cozeNode.data.inputs = {
+                        schemaType: 'slate',
+                        note: JSON.stringify([{
+                            type: 'paragraph',
+                            children: [{ text: node.parameters.content, type: 'text' }]
+                        }])
+                    };
+                // LLM节点：所有参数（除结构字段外）全部放入 llmParam 数组，与Coze格式一致
+                } else if (type === 'llm') {
+                    const llmParams = [];
+                    const flatParams = node.parameters;
+                    // 结构字段：不放入 llmParam
+                    const structuralKeys = ['fcParamVar', 'settingOnError', 'node_outputs', 'node_inputs'];
+
+                    // modelName/modleName 统一输出为 modleName（Coze LLM拼写）
+                    const modelValue = flatParams.modelName || flatParams.modleName;
+                    const handledKeys = new Set(['modelName', 'modleName']);
+                    if (modelValue) {
+                        llmParams.push({ name: 'modleName', input: { type: 'string', value: { type: 'literal', content: modelValue } } });
                     }
+
+                    // 其余所有参数原样放入 llmParam
+                    Object.entries(flatParams).forEach(([key, value]) => {
+                        if (!structuralKeys.includes(key) && !handledKeys.has(key) && value !== undefined && value !== '') {
+                            llmParams.push({ name: key, input: { type: 'string', value: { type: 'literal', content: value } } });
+                        }
+                    });
+
+                    cozeNode.data.inputs.llmParam = llmParams;
+                    cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
+                    cozeNode.data.inputs.settingOnError = flatParams.settingOnError || { switch: false, processType: 1, timeoutMs: 600000, retryTimes: 0 };
+                } else if (type === 'question') {
+                    const flatParams = node.parameters;
+                    cozeNode.data.inputs.answer_type = flatParams.answer_type || 'text';
+                    cozeNode.data.inputs.option_type = flatParams.option_type || 'static';
+                    cozeNode.data.inputs.options = flatParams.options || [];
+                    cozeNode.data.inputs.limit = flatParams.limit || 3;
+                    cozeNode.data.inputs.extra_output = flatParams.extra_output === true;
+                    cozeNode.data.inputs.question = flatParams.question || '';
+
+                    const llmParams = {};
+                    const llmParamKeys = ['modelName', 'systemPrompt', 'temperature', 'maxTokens'];
+                    llmParamKeys.forEach((key, idx) => {
+                        if (flatParams[key] !== undefined && flatParams[key] !== '') {
+                            llmParams[String(idx)] = { name: key, input: { type: 'string', value: { type: 'literal', content: flatParams[key] } } };
+                        }
+                    });
+                    // question类型llmParam是对象格式
+                    cozeNode.data.inputs.llmParam = llmParams;
+                    cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
+                    cozeNode.data.inputs.settingOnError = flatParams.settingOnError || { switch: false, processType: 1, timeoutMs: 600000, retryTimes: 0 };
                 } else {
                     Object.entries(node.parameters).forEach(([key, value]) => {
                         if (key !== 'node_outputs' && key !== 'node_inputs') {
@@ -186,8 +245,8 @@ export class WorkflowClipboard {
             
             cozeNodes.push(cozeNode);
             
-            const nodeWidth = node.width || 180;
-            const nodeHeight = node.height || 80;
+            const nodeWidth = node.width || 200;
+            const nodeHeight = node.height || 100;
             minX = Math.min(minX, node.x);
             minY = Math.min(minY, node.y);
             maxX = Math.max(maxX, node.x + nodeWidth);
@@ -213,10 +272,10 @@ export class WorkflowClipboard {
                 }))
             },
             bounds: {
-                x: minX - 90,
-                y: minY - 40,
-                width: maxX - minX + 180,
-                height: maxY - minY + 80
+                x: minX - 100,
+                y: minY - 50,
+                width: maxX - minX + 200,
+                height: maxY - minY + 100
             }
         };
         
@@ -274,19 +333,22 @@ export class WorkflowClipboard {
             return;
         }
         
-        const offset = 50;
         const idMap = {};
         let nodeCount = 0;
         let edgeCount = 0;
         let skippedEdges = 0;
         
-        let minX = Infinity, minY = Infinity;
-        data.json.nodes.forEach(cozeNode => {
-            const nodeX = cozeNode.meta?.position?.x || cozeNode.x || 0;
-            const nodeY = cozeNode.meta?.position?.y || cozeNode.y || 0;
-            minX = Math.min(minX, nodeX);
-            minY = Math.min(minY, nodeY);
-        });
+        let minX = 0, minY = 0;
+        if (Array.isArray(data.json.nodes) && data.json.nodes.length > 0) {
+            minX = Infinity;
+            minY = Infinity;
+            data.json.nodes.forEach(cozeNode => {
+                const nodeX = (cozeNode.meta?.position?.x ?? cozeNode.x ?? 0) || 0;
+                const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
+                minX = Math.min(minX, nodeX);
+                minY = Math.min(minY, nodeY);
+            });
+        }
         
         const { canvasX: pasteX, canvasY: pasteY } = this.ui.canvas.screenToCanvas(
             this.ui.canvas.lastMouseX || 100, 
@@ -295,6 +357,7 @@ export class WorkflowClipboard {
         
         try {
             data.json.nodes.forEach(cozeNode => {
+                if (!cozeNode || !cozeNode.id) return;
                 const originalId = String(cozeNode.id);
                 const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                 idMap[originalId] = newNodeId;
@@ -306,8 +369,8 @@ export class WorkflowClipboard {
                     type = 'plugin';
                 }
                 
-                const nodeX = cozeNode.meta?.position?.x || cozeNode.x || 0;
-                const nodeY = cozeNode.meta?.position?.y || cozeNode.y || 0;
+                const nodeX = (cozeNode.meta?.position?.x ?? cozeNode.x ?? 0) || 0;
+                const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
                 
                 const x = pasteX + (nodeX - minX);
                 const y = pasteY + (nodeY - minY);
@@ -320,8 +383,65 @@ export class WorkflowClipboard {
                         }
                     });
                 }
+                // 从 cozeNode.data.inputs 提取自定义参数
+                if (cozeNode.data?.inputs && typeof cozeNode.data.inputs === 'object') {
+                    Object.entries(cozeNode.data.inputs).forEach(([key, value]) => {
+                        if (key !== 'inputParameters' && key !== 'schemaType') {
+                            // Coze 注释节点使用 note (Slate 格式)，转为纯文本
+                            if (key === 'note' && typeof value === 'string') {
+                                try {
+                                    const slate = JSON.parse(value);
+                                    const text = extractSlateText(slate);
+                                    parameters.content = text;
+                                } catch (e) {
+                                    parameters.content = value;
+                                }
+                            // LLM参数：llmParam 数组/对象转为扁平键值对，字段名与Coze一致
+                            } else if (key === 'llmParam' && Array.isArray(value)) {
+                                value.forEach(p => {
+                                    const v = p.input?.value?.content;
+                                    if (p.name && v !== undefined) {
+                                        // Coze LLM节点拼写为 modleName，统一为 modelName
+                                        const keyName = p.name === 'modleName' ? 'modelName' : p.name;
+                                        parameters[keyName] = v;
+                                    }
+                                });
+                            } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
+                                Object.entries(value).forEach(([k, v]) => {
+                                    if (typeof v === 'object' && v !== null && v.name) {
+                                        const content = v.input?.value?.content;
+                                        if (content !== undefined) {
+                                            const keyName = v.name === 'modleName' ? 'modelName' : v.name;
+                                            parameters[keyName] = content;
+                                        }
+                                    } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+                                        parameters[k] = v;
+                                    }
+                                });
+                            }
+                            // 代码：code 直接存
+                            else if (key === 'code') {
+                                parameters.code = value;
+                            // HTTP：url, method, headers, body 直接存
+                            } else if (key === 'url' || key === 'method') {
+                                parameters[key] = value;
+                            } else if (key === 'headers' || key === 'body') {
+                                parameters[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                            // 输出：content 可能是对象，提取 literal 内容
+                            } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'literal') {
+                                parameters.content = value.value.content ?? '';
+                            } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'ref') {
+                                parameters.content = JSON.stringify(value);
+                            } else if (key === 'content') {
+                                parameters.content = value;
+                            } else {
+                                parameters[key] = value;
+                            }
+                        }
+                    });
+                }
                 
-                const nodeMeta = cozeNode.data?.nodeMeta || {};
+                const nodeMeta = cozeNode.data?.nodeMeta || cozeNode._temp?.externalData || {};
                 const title = nodeMeta.title || cozeNode.title || '节点';
                 const description = nodeMeta.description || cozeNode.description || '';
                 const icon = nodeMeta.icon || cozeNode.icon || '';
@@ -335,10 +455,21 @@ export class WorkflowClipboard {
                     description: description,
                     icon: icon,
                     parameters: parameters,
-                    inputParameters: cozeNode.data?.inputs?.inputParameters || [],
-                    inputs: cozeNode.data?.inputs || {},
-                    width: cozeNode._temp?.bounds?.width || cozeNode.width || 180,
-                    height: cozeNode._temp?.bounds?.height || cozeNode.height || 80
+                    inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => ({
+                        name: p.name || '',
+                        type: p.type || p.input?.type || 'string',
+                        value: p.input?.value?.content ?? p.defaultValue ?? '',
+                        required: p.required === true,
+                        description: p.description || ''
+                    })),
+                    outputParams: (cozeNode.data?.outputs || []).map(o => ({
+                        name: o.name || '',
+                        type: o.type || 'string',
+                        value: o.defaultValue || '',
+                        description: o.description || ''
+                    })),
+                    width: cozeNode.data?.size?.width || cozeNode._temp?.bounds?.width || cozeNode.width || 200,
+                    height: cozeNode.data?.size?.height || cozeNode._temp?.bounds?.height || cozeNode.height || 100
                 };
                 
                 this.core.addNode(newNode);

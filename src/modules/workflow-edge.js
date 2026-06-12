@@ -1,3 +1,5 @@
+import { StringUtils } from '../utils/helpers.js';
+
 export class WorkflowEdge {
     constructor(ui) {
         this.ui = ui;
@@ -32,10 +34,10 @@ export class WorkflowEdge {
             
             if (!source || !target) return;
             
-            const width1 = source.width || 180;
-            const height1 = source.height || 96;
-            const width2 = target.width || 180;
-            const height2 = target.height || 96;
+            const width1 = source.width || 200;
+            const height1 = source.height || 100;
+            const width2 = target.width || 200;
+            const height2 = target.height || 100;
             
             const x1 = source.x + width1;
             const y1 = source.y + height1 / 2;
@@ -115,7 +117,7 @@ export class WorkflowEdge {
             if (edge) this.renderPropertyPanel(edge);
         } else {
             this.core.selectEdge(null);
-            this.propertyContent.innerHTML = '';
+            this.ui.showSummaryPanel();
         }
         
         this.update();
@@ -126,7 +128,7 @@ export class WorkflowEdge {
         this.core.selectEdge(null);
         this.update();
         this.ui.updateSummary();
-        this.propertyContent.innerHTML = '';
+        this.ui.showSummaryPanel();
         
         if (saveHistory) {
             this.core.saveHistory('删除连接');
@@ -138,28 +140,50 @@ export class WorkflowEdge {
     }
 
     renderPropertyPanel(edge) {
+        const selectedNodes = document.querySelectorAll('.canvas-node.selected');
+        const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
+        const selectedCount = selectedNodes.length + selectedEdges.length;
+        
+        // 多选或无选中 - 显示摘要
+        if (selectedCount !== 1 || !edge) {
+            this.ui.showSummaryPanel();
+            return;
+        }
+        
+        // 单选一条边 - 显示详情
         const source = this.core.nodes.find(n => n.id === edge.source);
         const target = this.core.nodes.find(n => n.id === edge.target);
         
-        this.propertyContent.innerHTML = `
-            <div class="workflow-summary">
-                <div class="summary-row"><span class="label">节点数量</span><span class="value" id="nodeCount">${this.core.nodes.length}</span></div>
-                <div class="summary-row"><span class="label">连接数量</span><span class="value" id="edgeCount">${this.core.edges.length}</span></div>
-                <div class="summary-row"><span class="label">开始节点</span><span class="value" id="startCount">${this.core.nodes.filter(n => n.type === 'start').length}</span></div>
-                <div class="summary-row"><span class="label">结束节点</span><span class="value" id="endCount">${this.core.nodes.filter(n => n.type === 'end').length}</span></div>
-            </div>
-            
+        this.ui.showDetailPanel();
+        const detailContainer = document.getElementById('nodeDetail');
+        if (!detailContainer) return;
+        
+        detailContainer.innerHTML = `
             <div class="property-panel-section">
                 <h4>🔗 连接边</h4>
                 <div class="property-group">
                     <label class="property-label">源节点</label>
-                    <input class="property-input" type="text" value="${source?.title || '未知'}" readonly>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(source?.title || '未知')}" readonly>
                 </div>
                 <div class="property-group">
                     <label class="property-label">目标节点</label>
-                    <input class="property-input" type="text" value="${target?.title || '未知'}" readonly>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(target?.title || '未知')}" readonly>
                 </div>
-                <button class="btn btn-danger" onclick="workflowUI.deleteEdge('${edge.id}')">删除连接</button>
+                ${edge.sourcePortID ? `
+                <div class="property-group">
+                    <label class="property-label">源端口</label>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.sourcePortID)}" readonly>
+                </div>
+                ` : ''}
+                ${edge.targetPortID ? `
+                <div class="property-group">
+                    <label class="property-label">目标端口</label>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.targetPortID)}" readonly>
+                </div>
+                ` : ''}
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn btn-danger" onclick="workflowUI.deleteEdge('${StringUtils.escapeHtml(edge.id)}')">删除连接</button>
+                </div>
             </div>
         `;
     }
@@ -192,10 +216,37 @@ export class WorkflowEdge {
             this.ui.svgPath.setAttribute('d', `M ${startX} ${startY} C ${startX + ctrl} ${startY}, ${x - ctrl} ${y}, ${x} ${y}`);
         };
         
-        const onMouseUp = () => {
-            this.cancelConnection();
+        const onMouseUp = (e) => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
+            
+            // 检测鼠标是否在某个节点的输入端口上方
+            const target = document.elementFromPoint(e.clientX, e.clientY);
+            const inputPort = target?.closest('.input-port');
+            
+            if (inputPort) {
+                const targetNode = inputPort.closest('.canvas-node');
+                if (targetNode) {
+                    const targetId = targetNode.dataset.nodeId;
+                    const sourceId = this.ui.connectingFrom;
+                    
+                    if (sourceId && targetId && sourceId !== targetId) {
+                        // 检查是否已存在相同的边
+                        const exists = this.core.edges.some(
+                            ed => ed.source === sourceId && ed.target === targetId
+                        );
+                        if (!exists) {
+                            this.core.createEdge(sourceId, targetId);
+                            this.core.saveHistory('创建连接');
+                            this.ui.updateHistoryPanel();
+                            this.ui.updateSummary();
+                            this.ui.showMessage('连接已创建', 'success');
+                        }
+                    }
+                }
+            }
+            
+            this.cancelConnection();
         };
         
         document.addEventListener('mousemove', onMouseMove);

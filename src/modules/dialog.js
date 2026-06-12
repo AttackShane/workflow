@@ -2,6 +2,7 @@ export class Dialog {
     static #overlay = null;
     static #container = null;
     static #currentResolve = null;
+    static #keydownHandler = null;
     
     static #init() {
         if (this.#overlay) return;
@@ -43,15 +44,29 @@ export class Dialog {
                 this.#close(false);
             }
         });
+        
+        this.#keydownHandler = (e) => {
+            if (e.key === 'Escape') {
+                this.#close(false);
+            }
+        };
+    }
+    
+    static #escapeHtml(str) {
+        if (!str || typeof str !== 'string') return '';
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return str.replace(/[&<>"']/g, c => map[c]);
     }
     
     static #show() {
         this.#overlay.style.opacity = '1';
         this.#container.style.transform = 'scale(1) translateY(0)';
         document.body.style.overflow = 'hidden';
+        document.addEventListener('keydown', this.#keydownHandler);
     }
     
     static #close(result = false) {
+        document.removeEventListener('keydown', this.#keydownHandler);
         this.#overlay.style.opacity = '0';
         this.#container.style.transform = 'scale(0.9) translateY(-20px)';
         document.body.style.overflow = '';
@@ -117,17 +132,21 @@ export class Dialog {
             this.#init();
             this.#currentResolve = resolve;
             
+            const safeMessage = this.#escapeHtml(message);
+            const safeTitle = this.#escapeHtml(title);
+            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
             this.#container.innerHTML = `
                 <div style="padding: 24px;">
                     <div style="display: flex; align-items: center; margin-bottom: 16px;">
                         <div style="width: 40px; height: 40px; background: #FEF3C7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
                             <span style="font-size: 20px;">ℹ️</span>
                         </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${title}</h3>
+                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
                     </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${message}</p>
+                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
                     <div style="display: flex; justify-content: flex-end;">
-                        <button id="dialog-ok-btn" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); color: #fff; box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3);">
+                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); color: #fff; box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3);">
                             确定
                         </button>
                     </div>
@@ -136,7 +155,7 @@ export class Dialog {
             
             this.#show();
             
-            document.getElementById('dialog-ok-btn').addEventListener('click', () => {
+            document.getElementById(btnId).addEventListener('click', () => {
                 this.#close(true);
             });
         });
@@ -147,7 +166,14 @@ export class Dialog {
             this.#init();
             this.#currentResolve = resolve;
             
+            const safeMessage = this.#escapeHtml(message);
+            const safeTitle = this.#escapeHtml(title);
             const { okText = '确定', cancelText = '取消', danger = false } = options;
+            const safeOkText = this.#escapeHtml(okText);
+            const safeCancelText = this.#escapeHtml(cancelText);
+            const btnPrefix = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const confirmBtnId = `${btnPrefix}-confirm`;
+            const cancelBtnId = `${btnPrefix}-cancel`;
             
             this.#container.innerHTML = `
                 <div style="padding: 24px;">
@@ -155,15 +181,15 @@ export class Dialog {
                         <div style="width: 40px; height: 40px; background: ${danger ? '#FEE2E2' : '#FEF3C7'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
                             <span style="font-size: 20px;">${danger ? '⚠️' : '❓'}</span>
                         </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${title}</h3>
+                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
                     </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${message}</p>
+                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
                     <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                        <button id="dialog-cancel-btn" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: #f3f4f6; color: #374151;">
-                            ${cancelText}
+                        <button id="${cancelBtnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: #f3f4f6; color: #374151;">
+                            ${safeCancelText}
                         </button>
-                        <button id="dialog-confirm-btn" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: ${danger ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3)' : 'linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3)'}; color: #fff;">
-                            ${okText}
+                        <button id="${confirmBtnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: ${danger ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3)' : 'linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3)'}; color: #fff;">
+                            ${safeOkText}
                         </button>
                     </div>
                 </div>
@@ -171,11 +197,11 @@ export class Dialog {
             
             this.#show();
             
-            document.getElementById('dialog-cancel-btn').addEventListener('click', () => {
+            document.getElementById(cancelBtnId).addEventListener('click', () => {
                 this.#close(false);
             });
             
-            document.getElementById('dialog-confirm-btn').addEventListener('click', () => {
+            document.getElementById(confirmBtnId).addEventListener('click', () => {
                 this.#close(true);
             });
         });
@@ -186,17 +212,21 @@ export class Dialog {
             this.#init();
             this.#currentResolve = resolve;
             
+            const safeMessage = this.#escapeHtml(message);
+            const safeTitle = this.#escapeHtml(title);
+            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
             this.#container.innerHTML = `
                 <div style="padding: 24px;">
                     <div style="display: flex; align-items: center; margin-bottom: 16px;">
                         <div style="width: 40px; height: 40px; background: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
                             <span style="font-size: 20px;">✅</span>
                         </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${title}</h3>
+                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
                     </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${message}</p>
+                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
                     <div style="display: flex; justify-content: flex-end;">
-                        <button id="dialog-ok-btn" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
                             确定
                         </button>
                     </div>
@@ -205,7 +235,7 @@ export class Dialog {
             
             this.#show();
             
-            document.getElementById('dialog-ok-btn').addEventListener('click', () => {
+            document.getElementById(btnId).addEventListener('click', () => {
                 this.#close(true);
             });
         });
@@ -216,17 +246,21 @@ export class Dialog {
             this.#init();
             this.#currentResolve = resolve;
             
+            const safeMessage = this.#escapeHtml(message);
+            const safeTitle = this.#escapeHtml(title);
+            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            
             this.#container.innerHTML = `
                 <div style="padding: 24px;">
                     <div style="display: flex; align-items: center; margin-bottom: 16px;">
                         <div style="width: 40px; height: 40px; background: #FEE2E2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
                             <span style="font-size: 20px;">❌</span>
                         </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${title}</h3>
+                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
                     </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${message}</p>
+                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
                     <div style="display: flex; justify-content: flex-end;">
-                        <button id="dialog-ok-btn" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
+                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
                             确定
                         </button>
                     </div>
@@ -235,7 +269,7 @@ export class Dialog {
             
             this.#show();
             
-            document.getElementById('dialog-ok-btn').addEventListener('click', () => {
+            document.getElementById(btnId).addEventListener('click', () => {
                 this.#close(true);
             });
         });

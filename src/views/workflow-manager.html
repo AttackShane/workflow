@@ -16,6 +16,7 @@
             </div>
             <div class="header-right">
                 <button id="btnNewWorkflow" class="btn btn-primary">新建工作流</button>
+                <button id="btnTemplates" class="btn btn-accent">📚 模板库</button>
                 <button id="btnImport" class="btn btn-secondary">导入工作流</button>
                 <button id="languageBtn" class="btn">US English</button>
                 <button id="navConverterBtn" class="btn btn-primary">🔧 转换器</button>
@@ -79,6 +80,20 @@
                 <div class="modal-footer">
                     <button id="btnImportCancel" class="btn btn-secondary">取消</button>
                     <button id="btnImportConfirm" class="btn btn-primary">导入</button>
+                </div>
+            </div>
+        </div>
+    <!-- 模板库弹窗 -->
+        <div class="modal-overlay" id="templateModalOverlay" style="display: none;">
+            <div class="modal template-modal">
+                <div class="modal-header">
+                    <h2>📚 工作流模板库</h2>
+                    <button class="modal-close" id="templateModalClose">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="template-grid" id="templateGrid">
+                        <!-- 模板将动态生成 -->
+                    </div>
                 </div>
             </div>
         </div>

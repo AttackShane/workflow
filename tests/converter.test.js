@@ -43,7 +43,7 @@ describe('Converter Module', () => {
         position: { x: 200, y: 100 },
         parameters: {
           prompt: '你好',
-          model: 'gpt-4'
+          modelName: 'gpt-4'
         }
       };
       const outputMap = new Map();
@@ -79,6 +79,27 @@ describe('Converter Module', () => {
       
       expect(typeof result.id).toBe('string');
       expect(result.id).toBe('1234567890123');
+    });
+
+    it('should convert comment node with note field', () => {
+      const node = {
+        id: 'node_comment_1',
+        type: 'comment',
+        title: '注释',
+        position: { x: 100, y: 200 },
+        note: '诶嘿'
+      };
+      const outputMap = new Map();
+      
+      const result = convertNode(node, outputMap);
+      
+      expect(result.type).toBe('31');
+      expect(result.data.inputs).toEqual({
+        schemaType: 'slate',
+        note: '诶嘿'
+      });
+      expect(result.data.nodeMeta.title).toBe('注释');
+      expect(result.data.outputs).toEqual([]);
     });
   });
 

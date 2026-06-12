@@ -1,6 +1,8 @@
 /**
  * DOM 操作工具函数
  */
+import { Logger } from './logger.js';
+
 export const DOM = {
     /**
      * 获取 DOM 元素
@@ -220,7 +222,7 @@ export const Storage = {
         try {
             localStorage.setItem(key, JSON.stringify(value));
         } catch (error) {
-            console.error('Storage set error:', error);
+            Logger.error('Storage set error:', error);
         }
     },
     
@@ -250,9 +252,9 @@ export const StringUtils = {
      * @returns {string}
      */
     escapeHtml(str) {
-        if (!str) return '';
+        if (str == null || str === '') return '';
         const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-        return str.replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
+        return String(str).replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
     },
     
     /**
@@ -363,9 +365,9 @@ export const ClipboardUtils = {
             await navigator.clipboard.writeText(text);
             return true;
         } catch (error) {
-            console.error('Clipboard copy error:', error);
-            return false;
-        }
+        Logger.error('Clipboard copy error:', error);
+        return false;
+    }
     },
     
     /**
@@ -400,7 +402,7 @@ export const ClipboardUtils = {
             }, 2000);
             return true;
         } catch (error) {
-            console.error('Clipboard copy error:', error);
+            Logger.error('Clipboard copy error:', error);
             if (btn) {
                 btn.textContent = errorText;
             }

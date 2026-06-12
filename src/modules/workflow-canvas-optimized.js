@@ -17,6 +17,7 @@ export class WorkflowCanvasOptimized {
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.isMarqueeSelectionActive = false;
+        this.hasDraggedCanvas = false;
         
         // 性能优化相关
         this.isRendering = false;
@@ -141,8 +142,8 @@ export class WorkflowCanvasOptimized {
     isNodeVisible(node) {
         const x = node.x || 0;
         const y = node.y || 0;
-        const width = node.width || 180;
-        const height = node.height || 96;
+        const width = node.width || 200;
+        const height = node.height || 100;
         
         // 检查节点是否与视口重叠
         return !(
@@ -287,8 +288,8 @@ export class WorkflowCanvasOptimized {
             // 如果节点被标记为可见或者我们需要完整的边界计算
             const x = node.x || 0;
             const y = node.y || 0;
-            const width = node.width || 180;
-            const height = node.height || 96;
+            const width = node.width || 200;
+            const height = node.height || 100;
             
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
@@ -392,6 +393,10 @@ export class WorkflowCanvasOptimized {
             const left = Math.min(startX, e.clientX);
             const top = Math.min(startY, e.clientY);
             
+            if (width > 3 || height > 3) {
+                this.hasDraggedCanvas = true;
+            }
+            
             DOM.setStyle(marquee, 'left', `${left}px`);
             DOM.setStyle(marquee, 'top', `${top}px`);
             DOM.setStyle(marquee, 'width', `${width}px`);
@@ -441,6 +446,10 @@ export class WorkflowCanvasOptimized {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
             
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                this.hasDraggedCanvas = true;
+            }
+            
             const newTranslateX = startTranslateX + deltaX;
             const newTranslateY = startTranslateY + deltaY;
             
@@ -466,6 +475,10 @@ export class WorkflowCanvasOptimized {
      */
     onCanvasClick(e) {
         if (this.isMarqueeSelectionActive) return;
+        if (this.hasDraggedCanvas) {
+            this.hasDraggedCanvas = false;
+            return;
+        }
         
         const isNode = e.target.closest('.canvas-node');
         const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');

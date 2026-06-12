@@ -12,6 +12,7 @@ export class WorkflowCanvas {
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.isMarqueeSelectionActive = false;
+        this.hasDraggedCanvas = false;
     }
 
     /**
@@ -149,8 +150,8 @@ export class WorkflowCanvas {
         this.core.nodes.forEach(node => {
             const x = node.x || 0;
             const y = node.y || 0;
-            const width = node.width || 180;
-            const height = node.height || 96;
+            const width = node.width || 200;
+            const height = node.height || 100;
             
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
@@ -216,10 +217,6 @@ export class WorkflowCanvas {
         
         if (isNode || isEdge) return;
         
-        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.length > 0) {
-            return;
-        }
-        
         const startX = e.clientX;
         const startY = e.clientY;
         const isMarqueeMode = e.ctrlKey || e.metaKey;
@@ -256,6 +253,10 @@ export class WorkflowCanvas {
             const height = Math.abs(e.clientY - startY);
             const left = Math.min(startX, e.clientX);
             const top = Math.min(startY, e.clientY);
+            
+            if (width > 3 || height > 3) {
+                this.hasDraggedCanvas = true;
+            }
             
             DOM.setStyle(marquee, 'left', `${left}px`);
             DOM.setStyle(marquee, 'top', `${top}px`);
@@ -307,6 +308,10 @@ export class WorkflowCanvas {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
             
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                this.hasDraggedCanvas = true;
+            }
+            
             const newTranslateX = startTranslateX + deltaX;
             const newTranslateY = startTranslateY + deltaY;
             
@@ -329,6 +334,10 @@ export class WorkflowCanvas {
      */
     onCanvasClick(e) {
         if (this.isMarqueeSelectionActive) return;
+        if (this.hasDraggedCanvas) {
+            this.hasDraggedCanvas = false;
+            return;
+        }
         
         const isNode = e.target.closest('.canvas-node');
         const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');

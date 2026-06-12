@@ -6,6 +6,7 @@
  */
 import { TYPE_MAP, REV_TYPE_MAP } from '../utils/types.js';
 import { Storage } from '../utils/helpers.js';
+import { Logger } from '../utils/logger.js';
 
 export class WorkflowCore {
     /**
@@ -18,6 +19,8 @@ export class WorkflowCore {
         this.edges = [];
         /** @type {number} 节点ID计数器 */
         this.nodeIdCounter = 100000;
+        /** @type {number} 边ID计数器 */
+        this.edgeIdCounter = 100000;
         /** @type {string|null} 当前选中的节点ID */
         this.selectedNode = null;
         /** @type {string|null} 当前选中的边ID */
@@ -55,8 +58,9 @@ export class WorkflowCore {
                 title: '大模型', icon: '🤖', description: '调用大语言模型生成智能回复', 
                 hasInput: true, hasOutput: true,
                 parameters: [
-                    { name: 'model', label: '模型名称', type: 'select', options: ['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'qwen'], defaultValue: 'gpt-3.5-turbo', required: true },
-                    { name: 'prompt', label: '提示词', type: 'textarea', defaultValue: '', required: true },
+                    { name: 'modelName', label: '模型名称', type: 'select', options: ['GLM-4.7', '豆包·2.0·pro', '豆包·2.0·lite', '豆包·2.0·mini', '豆包·1.8·深度思考', '豆包·1.6·思考深度调节', 'DeepSeek-V3.2'], defaultValue: '豆包·2.0·lite', required: true },
+                    { name: 'systemPrompt', label: '系统提示词', type: 'textarea', defaultValue: '', required: false },
+                    { name: 'prompt', label: '用户提示词', type: 'textarea', defaultValue: '', required: true },
                     { name: 'temperature', label: '温度', type: 'number', min: 0, max: 2, step: 0.1, defaultValue: 0.7, required: false },
                     { name: 'maxTokens', label: '最大Token', type: 'number', min: 1, max: 4096, defaultValue: 1024, required: false }
                 ]
@@ -129,7 +133,7 @@ export class WorkflowCore {
             },
             input: { 
                 title: '输入', icon: '📥', description: '支持中间过程的信息输入', 
-                hasInput: false, hasOutput: true,
+                hasInput: true, hasOutput: true,
                 parameters: [
                     { name: 'outputSchema', label: '输出字段', type: 'json', defaultValue: '[]', required: false }
                 ]
@@ -149,6 +153,114 @@ export class WorkflowCore {
                     { name: 'answer_type', label: '回答类型', type: 'select', options: ['text', 'options'], defaultValue: 'text', required: false },
                     { name: 'options', label: '选项列表', type: 'json', defaultValue: '[]', required: false },
                     { name: 'limit', label: '选项数量限制', type: 'number', min: 1, max: 10, defaultValue: 3, required: false }
+                ]
+            },
+            variable_assign: { 
+                title: '变量赋值', icon: '📦', description: '定义或修改工作流变量', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'variables', label: '变量定义', type: 'json', defaultValue: '{}', required: true }
+                ]
+            },
+            variable_merge: { 
+                title: '变量聚合', icon: '🔗', description: '合并多个分支的输出变量', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'mergeStrategy', label: '合并策略', type: 'select', options: ['overwrite', 'merge', 'first'], defaultValue: 'merge', required: false }
+                ]
+            },
+            batch: { 
+                title: '批处理', icon: '📤', description: '对数组中的每个元素执行相同操作', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'inputArray', label: '输入数组', type: 'text', defaultValue: '', required: true },
+                    { name: 'batchSize', label: '批量大小', type: 'number', min: 1, max: 100, defaultValue: 10, required: false }
+                ]
+            },
+            knowledge: { 
+                title: '知识库', icon: '📚', description: '从知识库中检索相关文档片段', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'query', label: '查询文本', type: 'text', defaultValue: '', required: true },
+                    { name: 'knowledgeId', label: '知识库ID', type: 'text', defaultValue: '', required: true },
+                    { name: 'topK', label: '返回条数', type: 'number', min: 1, max: 20, defaultValue: 5, required: false }
+                ]
+            },
+            intent: { 
+                title: '意图识别', icon: '🧠', description: '识别用户输入的意图进行分类', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'categories', label: '意图分类', type: 'json', defaultValue: '[]', required: true },
+                    { name: 'input', label: '输入文本', type: 'text', defaultValue: '', required: true }
+                ]
+            },
+            break: { 
+                title: '跳出', icon: '⏹️', description: '跳出当前循环或批处理', 
+                hasInput: true, hasOutput: false,
+                parameters: [
+                    { name: 'condition', label: '跳出条件', type: 'text', defaultValue: '', required: false }
+                ]
+            },
+            plugin: { 
+                title: '插件', icon: '🔌', description: '调用第三方插件扩展功能', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'pluginId', label: '插件ID', type: 'text', defaultValue: '', required: true },
+                    { name: 'pluginParams', label: '插件参数', type: 'json', defaultValue: '{}', required: false }
+                ]
+            },
+            async_task: { 
+                title: '异步任务', icon: '⏳', description: '提交异步任务并等待结果返回', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'taskType', label: '任务类型', type: 'text', defaultValue: '', required: true },
+                    { name: 'timeout', label: '超时时间(秒)', type: 'number', min: 1, max: 3600, defaultValue: 300, required: false },
+                    { name: 'pollInterval', label: '轮询间隔(秒)', type: 'number', min: 1, max: 60, defaultValue: 5, required: false }
+                ]
+            },
+            video_generation: { 
+                title: '视频生成', icon: '🎬', description: '通过文字或图片生成视频内容', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'prompt', label: '描述词', type: 'textarea', defaultValue: '', required: true },
+                    { name: 'duration', label: '时长(秒)', type: 'number', min: 1, max: 60, defaultValue: 5, required: false },
+                    { name: 'resolution', label: '分辨率', type: 'select', options: ['720p', '1080p'], defaultValue: '720p', required: false }
+                ]
+            },
+            database: { 
+                title: '数据库', icon: '🗄️', description: '执行数据库查询操作', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'dbType', label: '数据库类型', type: 'select', options: ['mysql', 'postgresql', 'mongodb', 'redis'], defaultValue: 'mysql', required: true },
+                    { name: 'query', label: '查询语句', type: 'code', defaultValue: 'SELECT * FROM table', required: true },
+                    { name: 'connection', label: '连接配置', type: 'json', defaultValue: '{}', required: true }
+                ]
+            },
+            email: { 
+                title: '邮件', icon: '📧', description: '发送电子邮件通知', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'to', label: '收件人', type: 'text', defaultValue: '', required: true },
+                    { name: 'subject', label: '主题', type: 'text', defaultValue: '', required: true },
+                    { name: 'body', label: '正文', type: 'textarea', defaultValue: '', required: true },
+                    { name: 'isHtml', label: 'HTML格式', type: 'boolean', defaultValue: false, required: false }
+                ]
+            },
+            webhook: { 
+                title: 'Webhook', icon: '🪝', description: '发送Webhook回调通知', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'url', label: '回调URL', type: 'text', defaultValue: '', required: true },
+                    { name: 'payload', label: '发送数据', type: 'json', defaultValue: '{}', required: false },
+                    { name: 'secret', label: '签名密钥', type: 'text', defaultValue: '', required: false }
+                ]
+            },
+            json_parse: { 
+                title: 'JSON解析', icon: '🔍', description: '解析JSON字符串为结构化数据', 
+                hasInput: true, hasOutput: true,
+                parameters: [
+                    { name: 'input', label: 'JSON字符串', type: 'json', defaultValue: '{}', required: true },
+                    { name: 'schema', label: '校验Schema', type: 'json', defaultValue: '{}', required: false }
                 ]
             }
         };
@@ -173,7 +285,9 @@ export class WorkflowCore {
             y: y,
             title: data?.title || info.title,
             description: data?.description || info.description,
-            parameters: data?.parameters || {}
+            parameters: data?.parameters || {},
+            inputParams: data?.inputParams || [],
+            outputParams: data?.outputParams || []
         };
         
         this.nodes.push(nodeData);
@@ -241,7 +355,7 @@ export class WorkflowCore {
         if (existingEdge) return null;
         
         const edge = {
-            id: `edge_${Date.now()}`,
+            id: `edge_${++this.edgeIdCounter}`,
             source: sourceId,
             target: targetId
         };
@@ -258,7 +372,7 @@ export class WorkflowCore {
     addEdge(edgeData) {
         const existingEdge = this.edges.find(e => e.source === edgeData.source && e.target === edgeData.target);
         if (existingEdge) {
-            console.warn('边已存在:', edgeData.source, '→', edgeData.target);
+            Logger.warn('边已存在:', edgeData.source, '→', edgeData.target);
             return null;
         }
         this.edges.push(edgeData);
@@ -429,7 +543,7 @@ export class WorkflowCore {
         }
         
         this.nodes.forEach(node => {
-            if (node.type !== 'start' && node.type !== 'comment') {
+            if (node.type !== 'start' && node.type !== 'comment' && node.type !== 'input') {
                 const hasInput = this.edges.some(e => e.target === node.id);
                 if (!hasInput && this.nodes.length > 1) {
                     errors.push(`节点 "${node.title}" 缺少输入连接`);
@@ -528,6 +642,7 @@ export class WorkflowCore {
             nodes: this.nodes,
             edges: this.edges,
             nodeIdCounter: this.nodeIdCounter,
+            edgeIdCounter: this.edgeIdCounter,
             selectedNode: this.selectedNode,
             selectedEdge: this.selectedEdge,
             savedAt: Date.now()
@@ -550,6 +665,7 @@ export class WorkflowCore {
         this.nodes = data.nodes || [];
         this.edges = data.edges || [];
         this.nodeIdCounter = data.nodeIdCounter || 100000;
+        this.edgeIdCounter = data.edgeIdCounter || 100000;
         this.selectedNode = data.selectedNode || null;
         this.selectedEdge = data.selectedEdge || null;
         
@@ -580,7 +696,7 @@ export class WorkflowCore {
      */
     loadFromClipboard(data) {
         if (!data || !data.json?.nodes?.length) {
-            console.warn('无效的剪贴板数据');
+            Logger.warn('无效的剪贴板数据');
             return;
         }
         
@@ -623,8 +739,8 @@ export class WorkflowCore {
                 title: title,
                 description: description,
                 parameters: parameters,
-                width: cozeNode._temp?.bounds?.width || cozeNode.width || 180,
-                height: cozeNode._temp?.bounds?.height || cozeNode.height || 80
+                width: cozeNode._temp?.bounds?.width || cozeNode.width || 200,
+                height: cozeNode._temp?.bounds?.height || cozeNode.height || 100
             };
             
             this.nodes.push(newNode);
