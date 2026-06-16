@@ -9,12 +9,13 @@ import { buildOutputMap } from "../components/outputMapper.js";
 import { convertInputParameters } from "../components/inputMapper.js";
 import { nodeHandlers } from "../components/nodeHandlers.js";
 import { validateYamlInput, convertEdges, cleanIcon } from "../utils/utils.js";
+import { t } from "../i18n/i18n.js";
 
 /**
  * 默认节点标题映射
  * @type {Object.<string, string>}
  */
-const DEFAULT_TITLES = { start: "开始", end: "结束" };
+const DEFAULT_TITLES = { start: () => t('nodeTypes.start'), end: () => t('nodeTypes.end') };
 
 /**
  * 获取节点默认标题
@@ -22,7 +23,7 @@ const DEFAULT_TITLES = { start: "开始", end: "结束" };
  * @returns {string} 默认标题
  */
 function getNodeDefaultTitle(type) {
-    return DEFAULT_TITLES[type] || "节点";
+    return (DEFAULT_TITLES[type] && DEFAULT_TITLES[type]()) || t('nodeTypes.plugin');
 }
 
 /**
@@ -206,8 +207,8 @@ export function convertYamlToClipboard(yaml, rawYaml) {
         } catch (e) {
             const line = findNodeLineInYaml(rawYaml, n);
             const lineInfo = line ? `（第 ${line} 行附近）` : '';
-            const nodeInfo = `节点 [${n.title || ''}] (id: ${n.id}, type: ${n.type})${lineInfo}`;
-            const enrichedError = new Error(`${nodeInfo} 转换失败: ${e.message}`);
+            const nodeInfo = t('converter.nodeConvertError', { title: n.title || '', id: n.id, type: n.type, lineInfo, message: e.message });
+            const enrichedError = new Error(nodeInfo);
             enrichedError.nodeInfo = { id: n.id, title: n.title, type: n.type, line };
             throw enrichedError;
         }

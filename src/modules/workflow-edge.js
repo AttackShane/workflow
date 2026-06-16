@@ -1,4 +1,5 @@
 import { StringUtils } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 
 export class WorkflowEdge {
     constructor(ui) {
@@ -126,16 +127,10 @@ export class WorkflowEdge {
     delete(edgeId, saveHistory = true, updatePanel = true) {
         this.core.deleteEdge(edgeId);
         this.core.selectEdge(null);
-        this.update();
-        this.ui.updateSummary();
         this.ui.showSummaryPanel();
         
         if (saveHistory) {
-            this.core.saveHistory('删除连接');
-        }
-        
-        if (updatePanel) {
-            this.ui.updateHistoryPanel();
+            this.core.saveHistory(t('actions.deleteConnection'));
         }
     }
 
@@ -160,29 +155,29 @@ export class WorkflowEdge {
         
         detailContainer.innerHTML = `
             <div class="property-panel-section">
-                <h4>🔗 连接边</h4>
+                <h4>${t('edge.connectionEdge')}</h4>
                 <div class="property-group">
-                    <label class="property-label">源节点</label>
-                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(source?.title || '未知')}" readonly>
+                    <label class="property-label">${t('edge.sourceNode')}</label>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(source?.title || t('edge.unknown'))}" readonly>
                 </div>
                 <div class="property-group">
-                    <label class="property-label">目标节点</label>
-                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(target?.title || '未知')}" readonly>
+                    <label class="property-label">${t('edge.targetNode')}</label>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(target?.title || t('edge.unknown'))}" readonly>
                 </div>
                 ${edge.sourcePortID ? `
                 <div class="property-group">
-                    <label class="property-label">源端口</label>
+                    <label class="property-label">${t('edge.sourcePort')}</label>
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.sourcePortID)}" readonly>
                 </div>
                 ` : ''}
                 ${edge.targetPortID ? `
                 <div class="property-group">
-                    <label class="property-label">目标端口</label>
+                    <label class="property-label">${t('edge.targetPort')}</label>
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.targetPortID)}" readonly>
                 </div>
                 ` : ''}
                 <div style="margin-top: 1.5rem;">
-                    <button class="btn btn-danger" onclick="workflowUI.deleteEdge('${StringUtils.escapeHtml(edge.id)}')">删除连接</button>
+                    <button class="btn btn-danger" onclick="workflowUI.deleteEdge('${StringUtils.escapeHtml(edge.id)}')">${t('edge.deleteConnection')}</button>
                 </div>
             </div>
         `;
@@ -237,10 +232,8 @@ export class WorkflowEdge {
                         );
                         if (!exists) {
                             this.core.createEdge(sourceId, targetId);
-                            this.core.saveHistory('创建连接');
-                            this.ui.updateHistoryPanel();
-                            this.ui.updateSummary();
-                            this.ui.showMessage('连接已创建', 'success');
+                            this.core.saveHistory(t('actions.createConnection'));
+                            this.ui.showMessage(t('actions.connectionCreated'), 'success');
                         }
                     }
                 }

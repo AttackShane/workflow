@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-i18n-lang>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工作流编辑器</title>
+    <title data-i18n="editor.title">工作流编辑器</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-editor.css">
     <script type="module" src="/modules/app.js"></script>
@@ -11,118 +11,117 @@
 <body>
     <div class="header">
         <h1>
-            <span>🛠️</span>
-            <span>工作流编辑器</span>
+            <span data-i18n="editor.title">工作流编辑器</span>
         </h1>
         <div class="workflow-info">
-            <span class="workflow-name" id="workflowName">未命名工作流</span>
+            <span class="workflow-name" id="workflowName" data-i18n="editor.unnamedWorkflow">未命名工作流</span>
             <span class="workflow-id" id="workflowId"></span>
         </div>
         <div class="status">
             <span class="dot"></span>
-            <span>就绪</span>
+            <span data-i18n="editor.ready">就绪</span>
         </div>
         <div class="actions">
             <div class="node-search-wrapper">
-                <input type="text" class="node-search-input" id="nodeSearchInput" placeholder="🔍 搜索节点..." title="按节点名称/类型搜索 (Esc清除)">
+                <input type="text" class="node-search-input" id="nodeSearchInput" data-i18n-placeholder="editor.searchNodes" title data-i18n-title="editor.searchNodesTitle" placeholder="🔍 搜索节点...">
                 <span class="node-search-count" id="nodeSearchCount" style="display:none;"></span>
             </div>
-            <button id="navConverterBtn" class="btn btn-primary">🏠 转换器</button>
-            <button id="navManagerBtn" class="btn btn-secondary">📋 工作流管理</button>
+            <button id="navConverterBtn" class="btn btn-primary"><span data-i18n="converter.title">工作流转换器</span></button>
+            <button id="navManagerBtn" class="btn btn-secondary"><span data-i18n="editor.workflowManager">工作流管理</span></button>
             <button id="languageBtn" class="btn">US English</button>
-            <button class="btn btn-secondary" onclick="window.workflowUI.shareLink()">🔗 分享链接</button>
-            <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 保存并返回</button>
-            <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ 验证工作流</button>
-            <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 导出工作流</button>
-            <button class="btn btn-secondary" onclick="window.workflowUI.resetView()">🔍 重置视图</button>
-            <button class="btn btn-danger" onclick="workflowUI.clearCanvas()">🗑️ 清空画布</button>
+            <button class="btn btn-secondary" onclick="window.workflowUI.shareLink()">🔗 <span data-i18n="editor.shareLink">分享链接</span></button>
+            <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 <span data-i18n="editor.saveAndReturn">保存并返回</span></button>
+            <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ <span data-i18n="editor.validateWorkflow">验证工作流</span></button>
+            <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 <span data-i18n="editor.exportWorkflow">导出工作流</span></button>
+            <button class="btn btn-secondary" onclick="window.workflowUI.resetView()">🔍 <span data-i18n="editor.resetView">优化布局</span></button>
+            <button class="btn btn-danger" onclick="workflowUI.clearCanvas()">🗑️ <span data-i18n="editor.clearCanvas">清空画布</span></button>
         </div>
     </div>
     
     <div class="container">
         <div class="sidebar">
             <div class="sidebar-section">
-                <h3>历史记录</h3>
+                <h3 data-i18n="editor.history">历史记录</h3>
                 <div class="history-panel" id="historyPanel">
                     <div class="history-list" id="historyList">
-                        <div class="history-item initial">初始化</div>
+                        <div class="history-item initial" data-i18n="editor.initialHistory">初始化</div>
                     </div>
                 </div>
             </div>
             <div class="sidebar-section">
-                <h3>节点面板</h3>
-                <input type="text" class="node-palette-search" id="nodePaletteSearch" placeholder="筛选节点...">
+                <h3 data-i18n="editor.nodePalette">节点面板</h3>
+                <input type="text" class="node-palette-search" id="nodePaletteSearch" data-i18n-placeholder="editor.filterNodes" placeholder="筛选节点...">
                 <div class="node-palette" id="nodePalette"></div>
             </div>
             <div class="sidebar-section">
-                <h3>使用提示</h3>
+                <h3 data-i18n="editor.tips">使用提示</h3>
                 <div class="sidebar-info">
-                    <p>🖱️ 拖拽节点到画布创建</p>
-                    <p>🔗 点击输出点拖拽创建连接</p>
-                    <p>🖼️ 双击节点编辑属性</p>
-                    <p>🗑️ Delete键删除选中节点</p>
+                    <p data-i18n="editor.tip1">🖱️ 拖拽节点到画布创建</p>
+                    <p data-i18n="editor.tip2">🔗 点击输出点拖拽创建连接</p>
+                    <p data-i18n="editor.tip3">🖼️ 双击节点编辑属性</p>
+                    <p data-i18n="editor.tip4">🗑️ Delete键删除选中节点</p>
                 </div>
             </div>
         </div>
         
         <div class="canvas" id="canvas" ondragover="window.dragOverHandler(event)" ondrop="window.dropHandler(event)">
             <div class="align-toolbar" id="alignToolbar">
-                <button class="align-btn" title="左对齐" data-align="left"><span class="icon">⬅</span></button>
-                <button class="align-btn" title="水平居中" data-align="centerH"><span class="icon">↔</span></button>
-                <button class="align-btn" title="右对齐" data-align="right"><span class="icon">➡</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignLeft" data-align="left"><span class="icon">⬅</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignCenterH" data-align="centerH"><span class="icon">↔</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignRight" data-align="right"><span class="icon">➡</span></button>
                 <div style="width:1px;background:var(--border);margin:0 2px;"></div>
-                <button class="align-btn" title="顶对齐" data-align="top"><span class="icon">⬆</span></button>
-                <button class="align-btn" title="垂直居中" data-align="centerV"><span class="icon">↕</span></button>
-                <button class="align-btn" title="底对齐" data-align="bottom"><span class="icon">⬇</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignTop" data-align="top"><span class="icon">⬆</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignCenterV" data-align="centerV"><span class="icon">↕</span></button>
+                <button class="align-btn" title data-i18n-title="editor.alignBottom" data-align="bottom"><span class="icon">⬇</span></button>
                 <div style="width:1px;background:var(--border);margin:0 2px;"></div>
-                <button class="align-btn" title="水平等距分布" data-align="distH"><span class="icon">⇥</span></button>
-                <button class="align-btn" title="垂直等距分布" data-align="distV"><span class="icon">⇩</span></button>
+                <button class="align-btn" title data-i18n-title="editor.distributeH" data-align="distH"><span class="icon">⇥</span></button>
+                <button class="align-btn" title data-i18n-title="editor.distributeV" data-align="distV"><span class="icon">⇩</span></button>
             </div>
             <svg class="svg-layer" id="svgLayer"></svg>
             <div class="canvas-content" id="canvasContent"></div>
             <svg class="svg-hit-layer" id="svgHitLayer"></svg>
             <div class="empty-state" id="emptyState">
                 <div class="icon">📦</div>
-                <p>从左侧拖拽节点到画布</p>
-                <p style="font-size: 0.8rem;">或从转换器导入工作流</p>
+                <p data-i18n="editor.emptyDragNode">从左侧拖拽节点到画布</p>
+                <p style="font-size: 0.8rem;" data-i18n="editor.emptyImport">或从转换器导入工作流</p>
             </div>
         </div>
         
         <div class="property-panel">
             <div class="property-panel-header">
-                <h3>属性面板</h3>
+                <h3 data-i18n="editor.propertyPanel">属性面板</h3>
             </div>
             <div class="property-panel-body" id="propertyContent">
                 <div id="importedNodeInfo" class="imported-node-info" style="display: none;">
                     <span class="icon">✓</span>
                     <div>
-                        <div class="title">已导入节点</div>
-                        <div class="desc">节点已从转换器导入</div>
+                        <div class="title" data-i18n="editor.importedNode">已导入节点</div>
+                        <div class="desc" data-i18n="editor.importedNodeDesc">节点已从转换器导入</div>
                     </div>
                 </div>
                 
                 <div class="workflow-summary" id="workflowSummary">
                     <div class="summary-row">
-                        <span class="label" id="summaryNodeLabel">节点数量</span>
+                        <span class="label" id="summaryNodeLabel" data-i18n="editor.nodeCount">节点数量</span>
                         <span class="value" id="nodeCount">0</span>
                     </div>
                     <div class="summary-row">
-                        <span class="label" id="summaryEdgeLabel">连接数量</span>
+                        <span class="label" id="summaryEdgeLabel" data-i18n="editor.edgeCount">连接数量</span>
                         <span class="value" id="edgeCount">0</span>
                     </div>
                     <div class="summary-row" id="summaryStartRow">
-                        <span class="label">开始节点</span>
+                        <span class="label" data-i18n="editor.startNode">开始节点</span>
                         <span class="value" id="startCount">0</span>
                     </div>
                     <div class="summary-row" id="summaryEndRow">
-                        <span class="label">结束节点</span>
+                        <span class="label" data-i18n="editor.endNode">结束节点</span>
                         <span class="value" id="endCount">0</span>
                     </div>
                 </div>
                 
                 <div class="node-detail" id="nodeDetail" style="display: none;"></div>
                 
-                <p style="color: var(--text-secondary); font-size: 0.875rem; text-align: center; padding: 1rem;">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; text-align: center; padding: 1rem;" data-i18n="editor.selectNodeViewProp">
                     选择节点查看属性
                 </p>
             </div>
@@ -155,29 +154,39 @@
                 core.edges = JSON.parse(JSON.stringify(workflow.edges || []));
                 core.selectedNode = workflow.selectedNode || null;
                 core.selectedEdge = workflow.selectedEdge || null;
-                core.resetHistory('从工作流管理器加载');
-                
-                // 更新工作流信息显示
-                if (workflow.name) {
-                    document.getElementById('workflowName').textContent = workflow.name;
-                }
-                if (workflow.id) {
-                    document.getElementById('workflowId').textContent = `ID: ${workflow.id}`;
-                }
+            }
+            
+            core.resetHistory('从工作流管理器加载');
+            
+            // 更新工作流信息显示
+            if (workflow.name) {
+                document.getElementById('workflowName').textContent = workflow.name;
+                document.getElementById('workflowName').removeAttribute('data-i18n');
+            }
+            if (workflow.id) {
+                document.getElementById('workflowId').textContent = `ID: ${workflow.id}`;
             }
         } else if (isFromCache && core.hasSavedWorkflow()) {
-            // 从缓存返回，强制重新加载最新数据
+            // 从管理器进入后刷新页面，恢复工作流
             core.loadFromLocalStorage();
             
             // 更新工作流信息显示
             if (editingWorkflowId) {
                 document.getElementById('workflowId').textContent = `ID: ${editingWorkflowId}`;
+                
+                // 从本地存储中查找工作流名称
+                try {
+                    const storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+                    const found = storedWorkflows.find(w => w.id === editingWorkflowId);
+                    if (found && found.name) {
+                        document.getElementById('workflowName').textContent = found.name;
+                        document.getElementById('workflowName').removeAttribute('data-i18n');
+                    }
+                } catch (e) {}
             }
-        } else if (core.hasSavedWorkflow()) {
-            // 页面刷新后从 localStorage 恢复
-            core.loadFromLocalStorage();
         } else {
-            // 首次访问，初始化空工作流
+            // 直接访问或从转换器进入，清除旧数据，初始化空工作流
+            core.clearSavedWorkflow();
             core.resetHistory('初始化');
         }
         

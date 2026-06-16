@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n.js';
+
 export class WorkflowHistory {
     constructor(ui, prefix = '') {
         this.ui = ui;
@@ -43,34 +45,25 @@ export class WorkflowHistory {
         this.core.selectedNode = state.selectedNode;
         this.core.selectedEdge = state.selectedEdge;
         
-        this.ui.refreshCanvas();
-        this.updatePanel();
-        this.ui.showMessage(`跳转到: ${state.action}`, 'info');
+        this.core._emitChange('undo');
+        this.ui.showMessage(t('history.jumpTo', { action: state.action }), 'info');
     }
 
     undo() {
         if (this.core.canUndo()) {
-            const success = this.core.undo();
-            if (success) {
-                this.ui.refreshCanvas();
-                this.updatePanel();
-                this.ui.showMessage('撤销成功', 'info');
-            }
+            this.core.undo();
+            this.ui.showMessage(t('history.undoSuccess'), 'info');
         } else {
-            this.ui.showMessage('无法撤销', 'warning');
+            this.ui.showMessage(t('history.undoFail'), 'warning');
         }
     }
 
     redo() {
         if (this.core.canRedo()) {
-            const success = this.core.redo();
-            if (success) {
-                this.ui.refreshCanvas();
-                this.updatePanel();
-                this.ui.showMessage('重做成功', 'info');
-            }
+            this.core.redo();
+            this.ui.showMessage(t('history.redoSuccess'), 'info');
         } else {
-            this.ui.showMessage('无法重做', 'warning');
+            this.ui.showMessage(t('history.redoFail'), 'warning');
         }
     }
 }

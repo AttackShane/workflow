@@ -7,6 +7,7 @@ import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, StringUtils, ClipboardUtils } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
 import { Logger } from '../utils/logger.js';
+import { t } from '../i18n/i18n.js';
 
 // 动态导入虚拟滚动模块
 let VirtualScroll = null;
@@ -99,11 +100,11 @@ export function resetUI() {
     
     DOM.setText(DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY), '');
     DOM.setText(DOM.get(SELECTORS.CONVERTER.INPUT_TEXT), '');
-    DOM.setHtml(DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA), APP_CONFIG.UI.DEFAULT_OUTPUT);
+    DOM.setHtml(DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA), t('converter.defaultOutput'));
     DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), true);
     DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), true);
     
-    updateLineNumbers(APP_CONFIG.UI.DEFAULT_OUTPUT);
+    updateLineNumbers(t('converter.defaultOutput'));
 }
 
 /**
@@ -192,7 +193,7 @@ export async function handleConvert() {
     
     const input = inputText.value.trim();
     if (!input) {
-        msg(APP_CONFIG.MESSAGES.ERROR.EMPTY_INPUT, true);
+        msg(t('converter.emptyInput'), true);
         return;
     }
     
@@ -247,9 +248,9 @@ export async function handleConvert() {
         
         performanceStats.conversionTime = performance.now() - conversionStart;
         displayOutput(result, type);
-        msg(`${APP_CONFIG.MESSAGES.SUCCESS.CONVERT} (${performanceStats.conversionTime.toFixed(1)}ms)`);
+        msg(`${t('converter.successConvert')} (${performanceStats.conversionTime.toFixed(1)}ms)`);
     } catch (error) {
-        msg(`${APP_CONFIG.MESSAGES.ERROR.CONVERT}${error.message}`, true);
+        msg(`${t('converter.errorConvert')}: ${error.message}`, true);
         Logger.error('Conversion error:', error);
     }
 }
@@ -444,9 +445,9 @@ export async function copyOutput() {
     if (!curData) return;
     
     if (await ClipboardUtils.copy(curData)) {
-        msg(APP_CONFIG.MESSAGES.SUCCESS.COPY);
+        msg(t('converter.copySuccess'));
     } else {
-        msg(APP_CONFIG.MESSAGES.ERROR.COPY, true);
+        msg(t('converter.copyError'), true);
     }
 }
 
@@ -468,7 +469,7 @@ export function downloadOutput() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    msg(APP_CONFIG.MESSAGES.SUCCESS.DOWNLOAD);
+    msg(t('converter.downloadSuccess'));
 }
 
 /**
@@ -503,7 +504,7 @@ export function initUI() {
     
     // 初始化输出区域
     if (elements.outputArea) {
-        elements.outputArea.innerHTML = APP_CONFIG.UI.DEFAULT_OUTPUT;
+        elements.outputArea.innerHTML = t('converter.defaultOutput');
     }
     
     // 初始化行号同步滚动
@@ -590,7 +591,7 @@ function bindEvents() {
     DOM.on(resetBtn, 'click', resetUI);
     
     // 导航按钮
-    DOM.on(DOM.get('editorBtn'), 'click', goToEditor);
+    DOM.on(DOM.get('editorBtn'), 'click', () => goToEditor({ newWorkflow: true }));
     DOM.on(DOM.get('managerBtn'), 'click', goToManager);
     
     // 上传区域点击

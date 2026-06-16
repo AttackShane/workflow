@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-i18n-lang>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>工作流管理</title>
+    <title data-i18n="manager.title">工作流管理</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-manager.css">
     <script type="module" src="/modules/app.js"></script>
@@ -12,15 +12,15 @@
     <div class="workflow-manager">
         <header class="header">
             <div class="header-left">
-                <h1>工作流管理</h1>
+                <h1 data-i18n="manager.title">工作流管理</h1>
             </div>
             <div class="header-right">
-                <button id="btnNewWorkflow" class="btn btn-primary">新建工作流</button>
-                <button id="btnTemplates" class="btn btn-accent">📚 模板库</button>
-                <button id="btnImport" class="btn btn-secondary">导入工作流</button>
+                <button id="btnNewWorkflow" class="btn btn-primary" data-i18n="manager.createNew">新建工作流</button>
+                <button id="btnTemplates" class="btn btn-accent" data-i18n="manager.templateLibrary">📚 模板库</button>
+                <button id="btnImport" class="btn btn-secondary" data-i18n="manager.importWorkflow">导入工作流</button>
                 <button id="languageBtn" class="btn">US English</button>
-                <button id="navConverterBtn" class="btn btn-primary">🔧 转换器</button>
-            <button id="navEditorBtn" class="btn btn-secondary">🛠️ 编辑器</button>
+                <button id="navConverterBtn" class="btn btn-primary"><span data-i18n="converter.title">工作流转换器</span></button>
+                <button id="navEditorBtn" class="btn btn-secondary"><span data-i18n="editor.title">工作流编辑器</span></button>
             </div>
         </header>
 
@@ -31,8 +31,8 @@
 
             <div class="empty-state" id="emptyState" style="display: none;">
                 <div class="empty-icon">📋</div>
-                <h3>暂无工作流</h3>
-                <p>点击"新建工作流"创建您的第一个工作流</p>
+                <h3 data-i18n="manager.noWorkflows">暂无工作流</h3>
+                <p data-i18n="manager.createFirst">点击"新建工作流"创建您的第一个工作流</p>
             </div>
         </div>
 
@@ -40,22 +40,22 @@
         <div class="modal-overlay" id="modalOverlay" style="display: none;">
             <div class="modal">
                 <div class="modal-header">
-                    <h2 id="modalTitle">新建工作流</h2>
+                    <h2 id="modalTitle" data-i18n="manager.createDialogTitle">新建工作流</h2>
                     <button class="modal-close" id="modalClose">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="workflowName">工作流名称</label>
-                        <input type="text" id="workflowName" placeholder="请输入工作流名称">
+                        <label for="workflowName" data-i18n="manager.workflowName">工作流名称</label>
+                        <input type="text" id="workflowName" data-i18n-placeholder="manager.workflowNamePlaceholder" placeholder="请输入工作流名称">
                     </div>
                     <div class="form-group">
-                        <label for="workflowDescription">描述</label>
-                        <textarea id="workflowDescription" placeholder="请输入工作流描述"></textarea>
+                        <label for="workflowDescription" data-i18n="manager.description">描述</label>
+                        <textarea id="workflowDescription" data-i18n-placeholder="manager.descriptionPlaceholder" placeholder="请输入工作流描述"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button id="btnCancel" class="btn btn-secondary">取消</button>
-                    <button id="btnSave" class="btn btn-primary">保存</button>
+                    <button id="btnCancel" class="btn btn-secondary" data-i18n="manager.cancel">取消</button>
+                    <button id="btnSave" class="btn btn-primary" data-i18n="manager.save">保存</button>
                 </div>
             </div>
         </div>
@@ -64,22 +64,22 @@
         <div class="modal-overlay" id="importModalOverlay" style="display: none;">
             <div class="modal">
                 <div class="modal-header">
-                    <h2>导入工作流</h2>
+                    <h2 data-i18n="manager.importDialogTitle">导入工作流</h2>
                     <button class="modal-close" id="importModalClose">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="importFile">选择文件</label>
+                        <label for="importFile" data-i18n="manager.selectFile">选择文件</label>
                         <input type="file" id="importFile" accept=".json">
                     </div>
                     <div class="form-group">
-                        <label for="importText">或粘贴JSON内容</label>
-                        <textarea id="importText" placeholder="粘贴工作流JSON内容..."></textarea>
+                        <label for="importText" data-i18n="manager.orPasteJson">或粘贴JSON内容</label>
+                        <textarea id="importText" data-i18n-placeholder="manager.pasteJsonPlaceholder" placeholder="粘贴工作流JSON内容..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button id="btnImportCancel" class="btn btn-secondary">取消</button>
-                    <button id="btnImportConfirm" class="btn btn-primary">导入</button>
+                    <button id="btnImportCancel" class="btn btn-secondary" data-i18n="manager.cancel">取消</button>
+                    <button id="btnImportConfirm" class="btn btn-primary" data-i18n="common.import">导入</button>
                 </div>
             </div>
         </div>
@@ -87,7 +87,7 @@
         <div class="modal-overlay" id="templateModalOverlay" style="display: none;">
             <div class="modal template-modal">
                 <div class="modal-header">
-                    <h2>📚 工作流模板库</h2>
+                    <h2 data-i18n="manager.templateGallery">📚 工作流模板库</h2>
                     <button class="modal-close" id="templateModalClose">×</button>
                 </div>
                 <div class="modal-body">
@@ -98,12 +98,5 @@
             </div>
         </div>
     </div>
-
-    <script type="module">
-        import { WorkflowManager } from '/modules/workflow-manager.js';
-        
-        window.workflowManager = new WorkflowManager();
-        window.workflowManager.init();
-    </script>
 </body>
 </html>

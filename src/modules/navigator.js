@@ -91,8 +91,16 @@ export function goToConverter() {
 
 /**
  * 导航到编辑器页面
+ * @param {Object} options - 选项
+ * @param {boolean} [options.newWorkflow=false] - 是否新建空工作流（清除缓存）
  */
-export function goToEditor() {
+export function goToEditor(options = {}) {
+    const { newWorkflow = false } = options;
+    if (newWorkflow) {
+        sessionStorage.removeItem('editingWorkflowId');
+        sessionStorage.removeItem('editingWorkflow');
+        localStorage.removeItem('workflow_current');
+    }
     navigateTo(PAGES.EDITOR, { message: t('navigator.goingEditor', '正在打开编辑器...') });
 }
 

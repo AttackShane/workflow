@@ -3,11 +3,15 @@ import { WorkflowNode } from './workflow-node.js';
 import { WorkflowEdge } from './workflow-edge.js';
 import { WorkflowHistory } from './workflow-history.js';
 import { WorkflowClipboard } from './workflow-clipboard.js';
+import { WorkflowAlign } from './workflow-align.js';
+import { WorkflowKeyboard } from './workflow-keyboard.js';
+import { WorkflowSelection } from './workflow-selection.js';
 import { Logger } from '../utils/logger.js';
 import { Dialog } from './dialog.js';
-import { goToConverter, goToManager, initNavigator } from './navigator.js';
+import { goToManager } from './navigator.js';
 import { SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
+import { t, i18n } from '../i18n/i18n.js';
 
 export class WorkflowUI {
     constructor(core) {
@@ -39,11 +43,30 @@ export class WorkflowUI {
         this.edge = new WorkflowEdge(this);
         this.history = new WorkflowHistory(this, prefix);
         this.clipboard = new WorkflowClipboard(this);
+        this.align = new WorkflowAlign(this);
+        this.keyboard = new WorkflowKeyboard(this);
+        this.selection = new WorkflowSelection(this);
         
         // 启动子模块
         this.canvas.init();
         this.history.init();
         this.history.updatePanel();
+        
+        // 设置数据变更自动刷新
+        this.core.onChange = (action) => {
+            if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch') {
+                this.refreshCanvas();
+            } else if (action === 'history') {
+                this.history.updatePanel();
+            } else {
+                this.updateEdges();
+                this.canvas.updateSvgSize();
+                this.updateSummary();
+                if (this.core.nodes.length === 0) {
+                    this.canvas.setEmptyState(true);
+                }
+            }
+        };
         
         // 渲染动态节点面板
         this.renderNodePalette();
@@ -52,10 +75,10 @@ export class WorkflowUI {
         this.setupSearchHandler();
         
         // 设置对齐工具栏
-        this.setupAlignToolbar();
+        this.align.setupAlignToolbar();
         
         // 设置事件监听器
-        this.setupEventListeners();
+        this.keyboard.setupEventListeners();
         
         // 检查导入数据（优先级更高）
         this.checkImportedData();
@@ -72,11 +95,55 @@ export class WorkflowUI {
             });
             this.canvas.setEmptyState(false);
             this.updateEdges();
+            this.canvas.updateSvgSize();
             this.updateSummary();
+            this.canvas.centerView();
         }
+
+        // 记录初始快照，用于判断是否需要提示保存
+        this._lastSavedSnapshot = this._captureSnapshot();
         
         // 启动自动保存
         this.startAutoSave();
+        
+        // 监听语言切换，更新动态内容
+        i18n.addListener(() => this.handleLanguageChange());
+    }
+
+    /**
+     * 捕获当前状态快照（用于判断是否有未保存变更）
+     * @returns {string} JSON字符串快照
+     */
+    _captureSnapshot() {
+        return JSON.stringify({
+            nodes: this.core.nodes,
+            edges: this.core.edges
+        });
+    }
+
+    /**
+     * 检查是否有未保存的变更
+     * @returns {boolean} 是否有未保存变更
+     */
+    hasUnsavedChanges() {
+        const current = this._captureSnapshot();
+        return current !== this._lastSavedSnapshot;
+    }
+
+    /**
+     * 更新已保存快照（保存成功后调用）
+     */
+    markSaved() {
+        this._lastSavedSnapshot = this._captureSnapshot();
+    }
+    
+    /**
+     * 处理语言切换
+     */
+    handleLanguageChange() {
+        this.renderNodePalette();
+        this.updateSummary();
+        this.history.updatePanel();
     }
 
     /**
@@ -190,12 +257,15 @@ export class WorkflowUI {
 
         // 获取节点类型中文名映射
         const typeNameMap = {
-            start: '开始', end: '结束', llm: '大模型', plugin: '插件',
-            code: '代码', condition: '选择器', http: 'http', text: '文本',
-            image_generate: '图片生成', knowledge: '知识库', question: '问答',
-            loop: '循环', async_task: '异步任务', comment: '注释',
-            output: '输出', input: '输入', variable_merge: '变量合并',
-            intent: '意图', batch: '批处理', video_generation: '视频生成'
+            start: t('nodeTypes.start'), end: t('nodeTypes.end'), llm: t('nodeTypes.llm'),
+            plugin: t('nodeTypes.plugin'), code: t('nodeTypes.code'), condition: t('nodeTypes.condition'),
+            http: t('nodeTypes.http'), text: t('nodeTypes.text'),
+            image_generate: t('nodeTypes.image_generate'), knowledge: t('nodeTypes.knowledge'),
+            question: t('nodeTypes.question'), loop: t('nodeTypes.loop'),
+            async_task: t('nodeTypes.async_task'), comment: t('nodeTypes.comment'),
+            output: t('nodeTypes.output'), input: t('nodeTypes.input'),
+            variable_merge: t('nodeTypes.variable_merge'), intent: t('nodeTypes.intent'),
+            batch: t('nodeTypes.batch'), video_generation: t('nodeTypes.video_generation')
         };
 
         nodeEls.forEach(el => {
@@ -224,21 +294,6 @@ export class WorkflowUI {
             DOM.setStyle(searchCount, 'display', 'inline');
             DOM.setText(searchCount, `${matchCount}/${nodeEls.length}`);
         }
-    }
-
-    /**
-     * 设置对齐工具栏
-     */
-    setupAlignToolbar() {
-        const toolbar = DOM.get('alignToolbar');
-        if (!toolbar) return;
-
-        DOM.on(toolbar, 'click', (e) => {
-            const btn = e.target.closest('.align-btn');
-            if (!btn) return;
-            const mode = btn.dataset.align;
-            if (mode) this.alignNodes(mode);
-        });
     }
 
     /**
@@ -284,404 +339,6 @@ export class WorkflowUI {
     }
 
     /**
-     * 更新对齐工具栏位置和可见性
-     */
-    updateAlignToolbar() {
-        const toolbar = DOM.get('alignToolbar');
-        if (!toolbar) return;
-
-        const selectedNodes = document.querySelectorAll('.canvas-node.selected');
-        if (selectedNodes.length < 2) {
-            DOM.removeClass(toolbar, 'visible');
-            return;
-        }
-
-        const canvas = DOM.get('canvas');
-        const canvasRect = canvas.getBoundingClientRect();
-
-        let minX = Infinity, minY = Infinity, maxY = -Infinity;
-        selectedNodes.forEach(el => {
-            const rect = el.getBoundingClientRect();
-            if (rect.left < minX) minX = rect.left;
-            if (rect.top < minY) minY = rect.top;
-            if (rect.bottom > maxY) maxY = rect.bottom;
-        });
-
-        const toolbarLeft = minX - canvasRect.left;
-        const toolbarTop = minY - canvasRect.top - 44;
-
-        DOM.setStyle(toolbar, 'left', toolbarLeft + 'px');
-        DOM.setStyle(toolbar, 'top', Math.max(4, toolbarTop) + 'px');
-        DOM.addClass(toolbar, 'visible');
-    }
-
-    /**
-     * 对齐选中的节点
-     * @param {string} mode - 对齐模式
-     */
-    alignNodes(mode) {
-        const selectedEls = document.querySelectorAll('.canvas-node.selected');
-        if (selectedEls.length < 2) return;
-
-        const nodes = [];
-        selectedEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
-            if (node) {
-                const rect = el.getBoundingClientRect();
-                const canvasRect = document.getElementById('canvas').getBoundingClientRect();
-                const scale = this.canvas.canvasScale;
-                nodes.push({
-                    node,
-                    el,
-                    x: (rect.left - canvasRect.left) / scale,
-                    y: (rect.top - canvasRect.top) / scale,
-                    width: rect.width / scale,
-                    height: rect.height / scale
-                });
-            }
-        });
-
-        if (nodes.length < 2) return;
-
-        switch (mode) {
-            case 'left':
-                this.alignLeft(nodes);
-                break;
-            case 'centerH':
-                this.alignCenterH(nodes);
-                break;
-            case 'right':
-                this.alignRight(nodes);
-                break;
-            case 'top':
-                this.alignTop(nodes);
-                break;
-            case 'centerV':
-                this.alignCenterV(nodes);
-                break;
-            case 'bottom':
-                this.alignBottom(nodes);
-                break;
-            case 'distH':
-                this.distributeHorizontal(nodes);
-                break;
-            case 'distV':
-                this.distributeVertical(nodes);
-                break;
-        }
-        
-        this.core.saveHistory('对齐节点');
-    }
-
-    alignLeft(nodes) {
-        if (!nodes || nodes.length === 0) return;
-        const minX = Math.min(...nodes.map(n => n.x));
-        nodes.forEach(n => {
-            this.core.updateNodePosition(n.node.id, minX, n.y);
-            DOM.setStyle(n.el, 'left', minX + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    alignCenterH(nodes) {
-        const centerX = nodes.reduce((s, n) => s + n.x + n.width / 2, 0) / nodes.length;
-        nodes.forEach(n => {
-            const newX = centerX - n.width / 2;
-            this.core.updateNodePosition(n.node.id, newX, n.y);
-            DOM.setStyle(n.el, 'left', newX + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    alignRight(nodes) {
-        const maxX = Math.max(...nodes.map(n => n.x + n.width));
-        nodes.forEach(n => {
-            const newX = maxX - n.width;
-            this.core.updateNodePosition(n.node.id, newX, n.y);
-            DOM.setStyle(n.el, 'left', newX + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    alignTop(nodes) {
-        const minY = Math.min(...nodes.map(n => n.y));
-        nodes.forEach(n => {
-            this.core.updateNodePosition(n.node.id, n.x, minY);
-            DOM.setStyle(n.el, 'top', minY + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    alignCenterV(nodes) {
-        const centerY = nodes.reduce((s, n) => s + n.y + n.height / 2, 0) / nodes.length;
-        nodes.forEach(n => {
-            const newY = centerY - n.height / 2;
-            this.core.updateNodePosition(n.node.id, n.x, newY);
-            DOM.setStyle(n.el, 'top', newY + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    alignBottom(nodes) {
-        const maxY = Math.max(...nodes.map(n => n.y + n.height));
-        nodes.forEach(n => {
-            const newY = maxY - n.height;
-            this.core.updateNodePosition(n.node.id, n.x, newY);
-            DOM.setStyle(n.el, 'top', newY + 'px');
-        });
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    distributeHorizontal(nodes) {
-        if (nodes.length < 3) return;
-        const sorted = [...nodes].sort((a, b) => a.x - b.x);
-        const totalWidth = sorted.reduce((s, n) => s + n.width, 0);
-        const minX = sorted[0].x;
-        const maxX = sorted[sorted.length - 1].x + sorted[sorted.length - 1].width;
-        const gap = (maxX - minX - totalWidth) / (sorted.length - 1);
-
-        let curX = sorted[0].x;
-        sorted.forEach(n => {
-            this.core.updateNodePosition(n.node.id, curX, n.y);
-            DOM.setStyle(n.el, 'left', curX + 'px');
-            curX += n.width + gap;
-        });
-        this.core.saveHistory('水平分布');
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    distributeVertical(nodes) {
-        if (nodes.length < 3) return;
-        const sorted = [...nodes].sort((a, b) => a.y - b.y);
-        const totalHeight = sorted.reduce((s, n) => s + n.height, 0);
-        const minY = sorted[0].y;
-        const maxY = sorted[sorted.length - 1].y + sorted[sorted.length - 1].height;
-        const gap = (maxY - minY - totalHeight) / (sorted.length - 1);
-
-        let curY = sorted[0].y;
-        sorted.forEach(n => {
-            this.core.updateNodePosition(n.node.id, n.x, curY);
-            DOM.setStyle(n.el, 'top', curY + 'px');
-            curY += n.height + gap;
-        });
-        this.core.saveHistory('垂直分布');
-        this.updateEdges();
-        this.updateAlignToolbar();
-    }
-
-    /**
-     * 设置事件监听器
-     */
-    setupEventListeners() {
-        DOM.on(document, 'keydown', (e) => this.handleKeydown(e));
-        
-        // 导航按钮
-        DOM.on(DOM.get('navConverterBtn'), 'click', goToConverter);
-        DOM.on(DOM.get('navManagerBtn'), 'click', goToManager);
-    }
-
-    /**
-     * 处理键盘事件
-     * @param {KeyboardEvent} e - 键盘事件
-     */
-    handleKeydown(e) {
-        const activeEl = document.activeElement;
-        const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA';
-        const isContentEditable = activeEl.isContentEditable;
-        const isModalOpen = document.querySelector('.node-editor-modal') !== null;
-        
-        // 如果有模态框打开或在可编辑元素中，不处理快捷键
-        if (isModalOpen || isInput || isContentEditable) {
-            return;
-        }
-        
-        // 删除选中项
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            this.deleteSelected();
-        }
-        
-        // 复制
-        if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
-            e.preventDefault();
-            this.clipboard.copy();
-        }
-        
-        // 粘贴
-        if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
-            e.preventDefault();
-            this.clipboard.paste();
-        }
-        
-        // 复制并粘贴（Ctrl+D）
-        if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
-            e.preventDefault();
-            this.duplicateSelected();
-        }
-        
-        // 全选
-        if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-            e.preventDefault();
-            this.selectAll();
-        }
-        
-        // 撤销
-        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
-            e.preventDefault();
-            this.history.undo();
-        }
-        
-        // 重做 (Ctrl+Y 或 Ctrl+Shift+Z)
-        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'Z'))) {
-            e.preventDefault();
-            this.history.redo();
-        }
-        
-        // Esc - 返回管理页面并询问保存
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            this.confirmExit();
-        }
-        
-        // Ctrl+S - 快速保存（不返回）
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            this.quickSave();
-        }
-    }
-
-    /**
-     * 全选节点和边
-     */
-    selectAll() {
-        // 选中所有节点
-        document.querySelectorAll('.canvas-node').forEach(n => DOM.addClass(n, 'selected'));
-        
-        // 选中所有边
-        document.querySelectorAll('.workflow-edge').forEach(e => DOM.addClass(e, 'selected'));
-        
-        // 更新边的显示
-        if (this.core.edges.length > 0) {
-            this.core.selectEdge(this.core.edges[0].id);
-        }
-        this.updateEdges();
-        
-        // 更新属性面板
-        if (this.core.nodes.length > 0) {
-            const firstNode = this.core.nodes[0];
-            const node = this.core.nodes.find(n => n.id === firstNode.id);
-            if (node) this.node.renderPropertyPanel(node);
-        }
-        
-        // 设置多选模式
-        if (this.core.nodes.length > 1) {
-            this.isMultiSelectMode = true;
-        }
-    }
-
-    /**
-     * 更新选择状态
-     */
-    updateSelection() {
-        const selectedNodes = document.querySelectorAll('.canvas-node.selected');
-        const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
-        
-        if (selectedNodes.length > 0) {
-            const lastSelected = selectedNodes[selectedNodes.length - 1];
-            this.core.selectNode(lastSelected.dataset.nodeId);
-            
-            const node = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
-            if (node) this.node.renderPropertyPanel(node);
-            
-            if (selectedNodes.length > 1 || selectedEdges.length > 0) {
-                this.isMultiSelectMode = true;
-            }
-        } else if (selectedEdges.length > 0) {
-            const lastSelected = selectedEdges[selectedEdges.length - 1];
-            const lastEdgeId = lastSelected.getAttribute('data-edge-id');
-            this.core.selectEdge(lastEdgeId);
-            
-            const edge = this.core.edges.find(e => e.id === lastEdgeId);
-            if (edge) this.edge.renderPropertyPanel(edge);
-        }
-        
-        this.updateAlignToolbar();
-    }
-
-    /**
-     * 删除选中项
-     */
-    deleteSelected() {
-        const selectedNodes = document.querySelectorAll('.canvas-node.selected');
-        const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
-        
-        if (selectedNodes.length === 0 && selectedEdges.length === 0) {
-            return;
-        }
-        
-        // 删除选中的边（不保存历史）
-        selectedEdges.forEach(edgeEl => {
-            const edgeId = edgeEl.getAttribute('data-edge-id');
-            this.edge.delete(edgeId, false, false);
-        });
-        
-        // 删除选中的节点（不保存历史）
-        selectedNodes.forEach(nodeEl => {
-            const nodeId = nodeEl.dataset.nodeId;
-            this.node.delete(nodeId, false, false);
-        });
-        
-        // 批量操作只保存一次历史记录（删除后保存，确保 redo 能正确恢复删除状态）
-        this.core.saveHistory('删除选中项');
-        
-        this.updateHistoryPanel();
-        this.showMessage('已删除选中项', 'success');
-    }
-
-    /**
-     * 复制选中节点（Ctrl+D）
-     */
-    duplicateSelected() {
-        const selectedEls = document.querySelectorAll('.canvas-node.selected');
-        if (selectedEls.length === 0) return;
-        
-        const newIds = [];
-        selectedEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
-            if (!node) return;
-            
-            const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-            const newNode = {
-                ...JSON.parse(JSON.stringify(node)),
-                id: newId,
-                title: `${node.title} (副本)`,
-                x: node.x + 30,
-                y: node.y + 30
-            };
-            
-            this.core.addNode(newNode);
-            const newEl = this.node.createElement(newNode);
-            this.canvas.canvasContent.appendChild(newEl);
-            newEl.classList.add('selected');
-            newIds.push(newId);
-        });
-        
-        this.updateEdges();
-        this.updateSummary();
-        this.core.saveHistory('复制节点');
-        this.updateHistoryPanel();
-        this.showMessage(`已复制 ${selectedEls.length} 个节点`, 'success');
-    }
-
-    /**
      * 清除属性面板
      */
     clearPropertyPanel() {
@@ -698,66 +355,6 @@ export class WorkflowUI {
     }
 
     /**
-     * 取消全选
-     */
-    deselectAll() {
-        document.querySelectorAll('.canvas-node.selected').forEach(n => DOM.removeClass(n, 'selected'));
-        document.querySelectorAll('.workflow-edge.selected').forEach(e => DOM.removeClass(e, 'selected'));
-        this.isMultiSelectMode = false;
-        this.core.selectedNode = null;
-        this.core.selectedEdge = null;
-        this.clearPropertyPanel();
-        this.edge.update();
-    }
-
-    /**
-     * 选择指定矩形区域内的节点和边（当边的两个端点都被选中时才选中边）
-     * @param {number} left - 左侧坐标
-     * @param {number} top - 顶部坐标
-     * @param {number} width - 宽度
-     * @param {number} height - 高度
-     */
-    selectNodesInRect(left, top, width, height) {
-        this.deselectAll();
-        
-        const selectedNodeIds = new Set();
-        
-        document.querySelectorAll('.canvas-node').forEach(nodeEl => {
-            const rect = nodeEl.getBoundingClientRect();
-            const nodeLeft = rect.left;
-            const nodeTop = rect.top;
-            const nodeWidth = rect.width;
-            const nodeHeight = rect.height;
-            
-            if (
-                nodeLeft < left + width &&
-                nodeLeft + nodeWidth > left &&
-                nodeTop < top + height &&
-                nodeTop + nodeHeight > top
-            ) {
-                DOM.addClass(nodeEl, 'selected');
-                const nodeId = nodeEl.getAttribute('data-node-id');
-                if (nodeId) {
-                    selectedNodeIds.add(nodeId);
-                }
-            }
-        });
-        
-        document.querySelectorAll('.workflow-edge').forEach(edgeEl => {
-            const edgeId = edgeEl.getAttribute('data-edge-id');
-            if (edgeId) {
-                const edge = this.core.edges.find(e => e.id === edgeId);
-                if (edge && selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
-                    DOM.addClass(edgeEl, 'selected');
-                }
-            }
-        });
-        
-        this.updateSelection();
-        this.edge.update();
-    }
-
-    /**
      * 检查导入数据
      */
     checkImportedData() {
@@ -769,9 +366,9 @@ export class WorkflowUI {
             try {
                 const workflowData = JSON.parse(decodeURIComponent(data));
                 this.core.loadFromClipboard(workflowData);
-                this.showMessage('工作流数据已导入', 'success');
+                this.showMessage(t('messages.workflowImported'), 'success');
             } catch (error) {
-                this.showMessage('导入失败：无效的数据格式', 'error');
+                this.showMessage(t('messages.importInvalidFormat'), 'error');
                 Logger.error('Import error:', error);
             }
         }
@@ -802,15 +399,15 @@ export class WorkflowUI {
         const isMultiSelect = selectedNodes.length + selectedEdges.length > 1;
         
         if (isMultiSelect) {
-            if (nodeLabelEl) nodeLabelEl.textContent = '已选节点';
-            if (edgeLabelEl) edgeLabelEl.textContent = '已选边';
+            if (nodeLabelEl) nodeLabelEl.textContent = t('messages.selectedNodes');
+            if (edgeLabelEl) edgeLabelEl.textContent = t('messages.selectedEdges');
             if (nodeCountEl) nodeCountEl.textContent = selectedNodes.length;
             if (edgeCountEl) edgeCountEl.textContent = selectedEdges.length;
             if (startRowEl) startRowEl.style.display = 'none';
             if (endRowEl) endRowEl.style.display = 'none';
         } else {
-            if (nodeLabelEl) nodeLabelEl.textContent = '节点数量';
-            if (edgeLabelEl) edgeLabelEl.textContent = '连接数量';
+            if (nodeLabelEl) nodeLabelEl.textContent = t('messages.nodeCount');
+            if (edgeLabelEl) edgeLabelEl.textContent = t('messages.edgeCount');
             if (nodeCountEl) nodeCountEl.textContent = this.core.nodes.length;
             if (edgeCountEl) edgeCountEl.textContent = this.core.edges.length;
             if (startRowEl) startRowEl.style.display = 'flex';
@@ -839,8 +436,8 @@ export class WorkflowUI {
      * 重置视图到初始位置和缩放
      */
     resetView() {
-        this.canvas.resetView();
-        this.showMessage('视图已重置', 'success');
+        this.canvas.autoOptimizeLayout();
+        this.showMessage(t('messages.viewReset'), 'success');
     }
 
     /**
@@ -859,7 +456,14 @@ export class WorkflowUI {
                 this.core.saveToLocalStorage();
             }
         };
+        this.beforeUnloadCheckHandler = (e) => {
+            if (this.hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
         window.addEventListener('beforeunload', this.beforeUnloadHandler);
+        window.addEventListener('beforeunload', this.beforeUnloadCheckHandler);
     }
 
     stopAutoSave() {
@@ -870,6 +474,10 @@ export class WorkflowUI {
         if (this.beforeUnloadHandler) {
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             this.beforeUnloadHandler = null;
+        }
+        if (this.beforeUnloadCheckHandler) {
+            window.removeEventListener('beforeunload', this.beforeUnloadCheckHandler);
+            this.beforeUnloadCheckHandler = null;
         }
     }
 
@@ -883,9 +491,9 @@ export class WorkflowUI {
     saveWorkflow() {
         const success = this.core.saveToLocalStorage();
         if (success) {
-            this.showMessage('工作流已保存', 'success');
+            this.showMessage(t('messages.workflowSaved'), 'success');
         } else {
-            this.showMessage('保存失败', 'error');
+            this.showMessage(t('messages.saveFailed'), 'error');
         }
     }
     
@@ -894,7 +502,7 @@ export class WorkflowUI {
      */
     clearSavedWorkflow() {
         this.core.clearSavedWorkflow();
-        this.showMessage('已清除保存的工作流', 'success');
+        this.showMessage(t('messages.savedWorkflowCleared'), 'success');
     }
 
     /**
@@ -940,6 +548,8 @@ export class WorkflowUI {
         // 检查是否需要显示空状态
         if (this.core.nodes.length === 0) {
             this.canvas.setEmptyState(true);
+        } else {
+            this.canvas.setEmptyState(false);
         }
     }
     
@@ -1001,9 +611,9 @@ export class WorkflowUI {
     validate() {
         const result = this.core.validate();
         if (result.valid) {
-            this.showMessage('工作流验证通过', 'success');
+            this.showMessage(t('editor.validateSuccess'), 'success');
         } else {
-            this.showMessage(`验证失败：<br>${result.message.replace(/\n/g, '<br>')}`, 'error');
+            this.showMessage(t('editor.validateError') + '：<br>' + result.message.replace(/\n/g, '<br>'), 'error');
         }
     }
     
@@ -1022,7 +632,7 @@ export class WorkflowUI {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        this.showMessage('工作流导出成功', 'success');
+        this.showMessage(t('messages.workflowExported'), 'success');
     }
     
     /**
@@ -1038,7 +648,7 @@ export class WorkflowUI {
         
         try {
             await navigator.clipboard.writeText(shareUrl);
-            this.showMessage('分享链接已复制到剪贴板', 'success');
+            this.showMessage(t('messages.shareLinkCopied'), 'success');
         } catch {
             const textarea = document.createElement('textarea');
             textarea.value = shareUrl;
@@ -1048,7 +658,7 @@ export class WorkflowUI {
             textarea.select();
             document.execCommand('copy');
             document.body.removeChild(textarea);
-            this.showMessage('分享链接已复制到剪贴板', 'success');
+            this.showMessage(t('messages.shareLinkCopied'), 'success');
         }
     }
     
@@ -1075,23 +685,20 @@ export class WorkflowUI {
      * 清空画布（供外部调用）
      */
     async clearCanvas() {
-        const confirmed = await Dialog.confirm('确定要清空画布吗？', '清空确认', { danger: true });
+        const confirmed = await Dialog.confirm(t('messages.clearCanvasConfirm'), t('messages.clearCanvasTitle'), { danger: true });
         if (!confirmed) {
             return;
         }
         this.core.clearAll();
         this.core.clearSavedWorkflow();
-        document.querySelectorAll('.canvas-node').forEach(n => n.remove());
-        this.edge.update();
-        this.canvas.setEmptyState(true);
         this.clearPropertyPanel();
-        this.showMessage('画布已清空', 'info');
+        this.showMessage(t('messages.canvasCleared'), 'info');
     }
     
     /**
      * 保存工作流并返回管理页面
      */
-    saveAndReturn() {
+    async saveAndReturn() {
         const workflow = {
             nodes: this.core.nodes,
             edges: this.core.edges,
@@ -1100,14 +707,25 @@ export class WorkflowUI {
             updatedAt: Date.now()
         };
         
-        // 获取当前编辑的工作流ID
         const editingId = sessionStorage.getItem('editingWorkflowId');
-        if (editingId) {
+        
+        if (!editingId) {
+            const result = await Dialog.prompt(t('editor.saveWorkflow'));
+            if (!result) return;
+            
+            workflow.id = `wf_${Date.now()}`;
+            workflow.name = result.name;
+            workflow.description = result.description;
+            workflow.createdAt = Date.now();
+            sessionStorage.setItem('savedWorkflowName', result.name);
+            sessionStorage.setItem('savedWorkflowDesc', result.description);
+        } else {
             workflow.id = editingId;
         }
         
         // 保存到 sessionStorage，供工作流管理页面读取
         sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+        this.markSaved();
         
         // 同时保存到 localStorage，防止页面刷新丢失
         this.core.saveToLocalStorage();
@@ -1115,7 +733,7 @@ export class WorkflowUI {
         // 只清除 editingWorkflow，保留 editingWorkflowId 供管理页面更新使用
         sessionStorage.removeItem('editingWorkflow');
         
-        this.showMessage('工作流已保存', 'success');
+        this.showMessage(t('messages.workflowSaved'), 'success');
         
         // 延迟跳转，让用户看到保存成功的提示
         setTimeout(() => {
@@ -1127,13 +745,21 @@ export class WorkflowUI {
      * 确认退出并询问是否保存
      */
     async confirmExit() {
-        const result = await Dialog.confirm('是否保存当前工作流后返回？', '退出确认');
+        // 如果没有未保存的变更，直接退出不提问
+        if (!this.hasUnsavedChanges()) {
+            sessionStorage.removeItem('editingWorkflowId');
+            goToManager();
+            return;
+        }
+
+        const result = await Dialog.confirm(t('messages.exitConfirm'), t('messages.exitTitle'));
         
         if (result) {
             // 用户选择保存
-            this.saveAndReturn();
+            await this.saveAndReturn();
         } else {
             // 用户选择不保存，直接返回
+            sessionStorage.removeItem('editingWorkflowId');
             goToManager();
         }
     }
@@ -1141,8 +767,10 @@ export class WorkflowUI {
     /**
      * 快速保存（不返回）
      */
-    quickSave() {
+    async quickSave() {
         try {
+            const editingId = sessionStorage.getItem('editingWorkflowId');
+            
             const workflow = {
                 nodes: JSON.parse(JSON.stringify(this.core.nodes)),
                 edges: JSON.parse(JSON.stringify(this.core.edges)),
@@ -1151,16 +779,28 @@ export class WorkflowUI {
                 updatedAt: Date.now()
             };
             
-            // 保存到 sessionStorage，供工作流管理页面读取
-            sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+            if (!editingId) {
+                const result = await Dialog.prompt(t('editor.saveWorkflow'));
+                if (!result) return;
+                
+                workflow.id = `wf_${Date.now()}`;
+                workflow.name = result.name;
+                workflow.description = result.description;
+                workflow.createdAt = Date.now();
+                sessionStorage.setItem('savedWorkflowName', result.name);
+                sessionStorage.setItem('savedWorkflowDesc', result.description);
+            } else {
+                workflow.id = editingId;
+            }
             
-            // 同时保存到 localStorage，防止页面刷新丢失
+            sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+            this.markSaved();
             this.core.saveToLocalStorage();
             
-            this.showMessage('工作流已保存', 'success');
+            this.showMessage(t('messages.workflowSaved'), 'success');
         } catch (error) {
             Logger.error('保存失败:', error);
-            this.showMessage('保存失败，请重试', 'error');
+            this.showMessage(t('messages.saveRetry'), 'error');
         }
     }
 }

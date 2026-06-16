@@ -373,7 +373,7 @@ export function validateClipboardInput(clip) {
  */
 export function getNodeTypeName(type) {
     const typeName = REV_TYPE_MAP[String(type)];
-    return typeName ? NODE_DISPLAY_NAMES[typeName] : (type || '未知');
+    return typeName ? NODE_DISPLAY_NAMES[typeName] : (type || 'Unknown');
 }
 
 /**
@@ -395,23 +395,7 @@ export function formatError(error) {
     if (error instanceof ConversionError) {
         return `${error.getFriendlyMessage()}${error.getLocation()}`;
     }
-    return error.message || '未知错误';
-}
-
-/**
- * 安全解析YAML
- * @param {string} yamlString - YAML字符串
- * @returns {object} 解析结果
- * @throws {ConversionError} 解析失败时抛出错误
- */
-export function safeParseYaml(yamlString) {
-    try {
-        import('js-yaml').then(({ load }) => {
-            return load(yamlString);
-        });
-    } catch (error) {
-        throw ConversionError.fromYamlError(error);
-    }
+    return error.message || 'Unknown error';
 }
 
 /**

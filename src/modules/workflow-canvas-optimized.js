@@ -5,6 +5,7 @@
 
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 
 export class WorkflowCanvasOptimized {
     constructor(ui, prefix = '') {
@@ -411,7 +412,7 @@ export class WorkflowCanvasOptimized {
                 const left = Math.min(startX, e.clientX);
                 const top = Math.min(startY, e.clientY);
                 
-                this.ui.selectNodesInRect(left, top, width, height);
+                this.ui.selection.selectNodesInRect(left, top, width, height);
             }
             
             document.body.removeChild(marquee);
@@ -484,7 +485,7 @@ export class WorkflowCanvasOptimized {
         const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');
         
         if (!isNode && !isEdge) {
-            this.ui.deselectAll();
+            this.ui.selection.deselectAll();
         }
     }
 
@@ -572,6 +573,97 @@ export class WorkflowCanvasOptimized {
         if (this.emptyState) {
             this.emptyState.style.display = show ? 'flex' : 'none';
         }
+    }
+
+    /**
+     * 自动优化布局（按连接关系从左到右排列，紧凑不重叠，居中缩放适配画布）
+     */
+    autoOptimizeLayout() {
+        if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
+            this.resetView();
+            return;
+        }
+
+        const nodes = this.core.nodes;
+        const nodeWidth = 200;
+        const nodeHeight = 100;
+        const hGap = 100;
+        const vGap = 60;
+
+        const adj = new Map();
+        const inDegree = new Map();
+        const predecessors = new Map();
+        nodes.forEach(n => {
+            adj.set(n.id, []);
+            inDegree.set(n.id, 0);
+            predecessors.set(n.id, []);
+        });
+
+        this.core.edges.forEach(edge => {
+            const s = edge.source;
+            const t = edge.target;
+            if (s && t && adj.has(s) && adj.has(t)) {
+                adj.get(s).push(t);
+                inDegree.set(t, (inDegree.get(t) || 0) + 1);
+                predecessors.get(t).push(s);
+            }
+        });
+
+        const nodeLevel = new Map();
+        const sources = nodes.filter(n => inDegree.get(n.id) === 0);
+        const queue = sources.map(n => n.id);
+        sources.forEach(n => nodeLevel.set(n.id, 0));
+
+        while (queue.length > 0) {
+            const id = queue.shift();
+            adj.get(id).forEach(nextId => {
+                const predMax = Math.max(...predecessors.get(nextId).map(pid => nodeLevel.get(pid) ?? -1));
+                const newLevel = predMax + 1;
+                if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
+                    nodeLevel.set(nextId, newLevel);
+                    if (!queue.includes(nextId)) queue.push(nextId);
+                }
+            });
+        }
+
+        nodes.forEach(n => {
+            if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
+        });
+
+        const levels = [];
+        nodeLevel.forEach((level, id) => {
+            if (!levels[level]) levels[level] = [];
+            const node = nodes.find(n => n.id === id);
+            if (node) levels[level].push(node);
+        });
+
+        // 横向排列：层级决定 X，层内垂直居中
+        levels.forEach((level, col) => {
+            const totalH = level.length * nodeHeight + (level.length - 1) * vGap;
+            level.forEach((node, i) => {
+                node.x = col * (nodeWidth + hGap);
+                node.y = i * (nodeHeight + vGap) - totalH / 2 + nodeHeight / 2;
+                node.width = nodeWidth;
+                node.height = nodeHeight;
+            });
+        });
+
+        // 整体平移到正象限，避免 SVG 裁切负坐标内容
+        const bounds = this.calculateNodesBounds();
+        const offsetX = -Math.min(0, bounds.minX);
+        const offsetY = -Math.min(0, bounds.minY);
+        nodes.forEach(node => {
+            node.x += offsetX;
+            node.y += offsetY;
+        });
+
+        // 保存到历史记录
+        this.core.saveHistory(t('messages.viewReset'));
+
+        this.ui.refreshCanvas();
+        this.updateSvgSize();
+        this.scheduleRenderUpdate();
+        this.centerView();
     }
 
     /**

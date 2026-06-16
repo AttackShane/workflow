@@ -1,6 +1,7 @@
 import { msg } from './ui-controller.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, Storage, StringUtils } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 import { 
     getHistory as getData, 
     saveToHistory as saveData, 
@@ -35,8 +36,8 @@ export function updateHistoryPanel(searchQuery = '') {
     
     if (filteredHistory.length === 0) {
         const message = searchQuery.trim() 
-            ? APP_CONFIG.MESSAGES.ERROR.NO_DATA 
-            : APP_CONFIG.MESSAGES.ERROR.NO_HISTORY;
+            ? t('converter.noData')
+            : t('converter.noHistory');
         DOM.setHtml(historyList, `<div class="history-item empty">${message}</div>`);
         return;
     }
@@ -45,7 +46,7 @@ export function updateHistoryPanel(searchQuery = '') {
         <div class="history-item" data-id="${entry.id}">
             <div class="history-content">
                 <div class="history-info">
-                    <div class="history-name">${StringUtils.escapeHtml(entry.name || '未命名')}</div>
+                    <div class="history-name">${StringUtils.escapeHtml(entry.name || t('converter.unnamed'))}</div>
                     <div class="history-meta">
                         <span class="history-type">${entry.isJson ? 'JSON' : 'YAML'}</span>
                         <span class="history-time">${StringUtils.formatTime(entry.timestamp)}</span>

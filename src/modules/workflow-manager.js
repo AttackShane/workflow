@@ -1,7 +1,7 @@
 import { Dialog } from './dialog.js';
 import { goToConverter, goToEditor, initNavigator } from './navigator.js';
 import { StringUtils, Storage } from '../utils/helpers.js';
-import { t } from '../i18n/i18n.js';
+import { t, i18n } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
 import { WORKFLOW_TEMPLATES } from './templates.js';
 
@@ -41,6 +41,14 @@ export class WorkflowManager {
         this.loadSavedWorkflow();
         this.bindEvents();
         this.renderWorkflowList();
+        
+        // 监听语言切换，重新渲染列表
+        i18n.addListener(() => this.handleLanguageChange());
+    }
+    
+    handleLanguageChange() {
+        this.renderWorkflowList();
+        this.renderTemplateGrid();
     }
     
     loadSavedWorkflow() {
@@ -68,14 +76,29 @@ export class WorkflowManager {
                             updatedAt: workflow.updatedAt
                         };
                         this.saveWorkflows();
-                        
-                        if (this.elements.workflowList) {
-                            this.renderWorkflowList();
-                        }
+                        this.renderWorkflowList();
                     }
+                } else if (workflow.id && workflow.name) {
+                    const name = sessionStorage.getItem('savedWorkflowName') || workflow.name;
+                    const description = sessionStorage.getItem('savedWorkflowDesc') || workflow.description || '';
+                    sessionStorage.removeItem('savedWorkflowName');
+                    sessionStorage.removeItem('savedWorkflowDesc');
+                    
+                    const newWorkflow = {
+                        id: workflow.id,
+                        name: name,
+                        description: description,
+                        nodes: workflow.nodes || [],
+                        edges: workflow.edges || [],
+                        createdAt: workflow.createdAt || Date.now(),
+                        updatedAt: workflow.updatedAt || Date.now()
+                    };
+                    this.workflows.push(newWorkflow);
+                    this.saveWorkflows();
+                    this.renderWorkflowList();
                 }
             } catch (error) {
-                Logger.error('加载保存的工作流失败:', error);
+                Logger.error(t('manager.loadFailed'), error);
             }
         }
     }
@@ -119,12 +142,12 @@ export class WorkflowManager {
         return [
             {
                 id: 'wf_1',
-                name: '欢迎流程',
-                description: '一个简单的欢迎工作流示例',
+                name: t('manager.defaultFlow1Name'),
+                description: t('manager.defaultFlow1Desc'),
                 nodes: [
-                    { id: 'node_100001', type: 'start', x: 400, y: 80, title: '开始', description: '工作流起点' },
-                    { id: 'node_100002', type: 'llm', x: 400, y: 200, title: '大模型', description: '生成欢迎消息', parameters: { prompt: '请生成一条友好的欢迎消息' } },
-                    { id: 'node_100003', type: 'end', x: 400, y: 320, title: '结束', description: '工作流终点' }
+                    { id: 'node_100001', type: 'start', x: 400, y: 80, title: t('nodeTypes.start'), description: t('nodeTypes.description.start') },
+                    { id: 'node_100002', type: 'llm', x: 400, y: 200, title: t('nodeTypes.llm'), description: t('nodeTypes.description.llm'), parameters: { prompt: t('manager.defaultFlow1Prompt') } },
+                    { id: 'node_100003', type: 'end', x: 400, y: 320, title: t('nodeTypes.end'), description: t('nodeTypes.description.end') }
                 ],
                 edges: [
                     { id: 'edge_1', source: 'node_100001', target: 'node_100002' },
@@ -135,13 +158,13 @@ export class WorkflowManager {
             },
             {
                 id: 'wf_2',
-                name: '图片生成流程',
-                description: '使用文本描述生成图片',
+                name: t('manager.defaultFlow2Name'),
+                description: t('manager.defaultFlow2Desc'),
                 nodes: [
-                    { id: 'node_200001', type: 'start', x: 400, y: 80, title: '开始', description: '工作流起点' },
-                    { id: 'node_200002', type: 'text', x: 400, y: 200, title: '文本处理', description: '生成图片描述', parameters: { text: '一只可爱的小猫在草地上玩耍' } },
-                    { id: 'node_200003', type: 'image_generate', x: 400, y: 320, title: '图片生成', description: '根据描述生成图片' },
-                    { id: 'node_200004', type: 'end', x: 400, y: 440, title: '结束', description: '工作流终点' }
+                    { id: 'node_200001', type: 'start', x: 400, y: 80, title: t('nodeTypes.start'), description: t('nodeTypes.description.start') },
+                    { id: 'node_200002', type: 'text', x: 400, y: 200, title: t('nodeTypes.text'), description: t('nodeTypes.description.text'), parameters: { text: t('manager.defaultFlow2Prompt') } },
+                    { id: 'node_200003', type: 'image_generate', x: 400, y: 320, title: t('nodeTypes.image_generate'), description: t('nodeTypes.description.image_generate') },
+                    { id: 'node_200004', type: 'end', x: 400, y: 440, title: t('nodeTypes.end'), description: t('nodeTypes.description.end') }
                 ],
                 edges: [
                     { id: 'edge_3', source: 'node_200001', target: 'node_200002' },
@@ -176,7 +199,7 @@ export class WorkflowManager {
         const navConverterBtn = document.getElementById('navConverterBtn');
         const navEditorBtn = document.getElementById('navEditorBtn');
         if (navConverterBtn) navConverterBtn.addEventListener('click', goToConverter);
-        if (navEditorBtn) navEditorBtn.addEventListener('click', goToEditor);
+        if (navEditorBtn) navEditorBtn.addEventListener('click', () => goToEditor({ newWorkflow: true }));
         
         // 添加页面可见性监听，当页面重新获得焦点时自动刷新
         document.addEventListener('visibilitychange', () => {
@@ -204,12 +227,21 @@ export class WorkflowManager {
     }
 
     openNewWorkflowModal() {
-        this.currentEditingId = null;
-        this.elements.modalTitle.textContent = t('manager.createNew');
-        this.elements.workflowName.value = '';
-        this.elements.workflowDescription.value = '';
-        this.elements.modalOverlay.style.display = 'flex';
-        this.elements.workflowName.focus();
+        Dialog.prompt(t('manager.createNew')).then(result => {
+            if (!result) return;
+            const newWorkflow = {
+                id: `wf_${Date.now()}`,
+                name: result.name,
+                description: result.description,
+                nodes: [],
+                edges: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
+            this.workflows.push(newWorkflow);
+            this.saveWorkflows();
+            this.renderWorkflowList();
+        });
     }
 
     openEditModal(workflow) {
@@ -256,7 +288,7 @@ export class WorkflowManager {
         const description = this.elements.workflowDescription.value.trim();
 
         if (!name) {
-            await Dialog.alert('请输入工作流名称');
+            await Dialog.alert(t('manager.nameRequired'));
             return;
         }
 
@@ -267,17 +299,6 @@ export class WorkflowManager {
                 this.workflows[index].description = description;
                 this.workflows[index].updatedAt = Date.now();
             }
-        } else {
-            const newWorkflow = {
-                id: `wf_${Date.now()}`,
-                name,
-                description,
-                nodes: [],
-                edges: [],
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            };
-            this.workflows.push(newWorkflow);
         }
 
         this.saveWorkflows();
@@ -292,25 +313,25 @@ export class WorkflowManager {
             try {
                 workflowData = JSON.parse(this.elements.importText.value);
             } catch (e) {
-                await Dialog.error('JSON格式错误');
+                await Dialog.error(t('manager.jsonParseError'));
                 return;
             }
         } else if (this.elements.importFile.files[0]) {
-            await Dialog.alert('请先选择文件或粘贴JSON内容');
+            await Dialog.alert(t('manager.selectFileOrPaste'));
             return;
         } else {
-            await Dialog.alert('请提供工作流数据');
+            await Dialog.alert(t('manager.provideData'));
             return;
         }
 
         if (!workflowData.nodes || !Array.isArray(workflowData.nodes)) {
-            await Dialog.error('无效的工作流数据');
+            await Dialog.error(t('manager.invalidData'));
             return;
         }
 
         const newWorkflow = {
             id: `wf_${Date.now()}`,
-            name: workflowData.name || '导入的工作流',
+            name: workflowData.name || t('manager.importedWorkflowName'),
             description: workflowData.description || '',
             nodes: JSON.parse(JSON.stringify(workflowData.nodes)),
             edges: JSON.parse(JSON.stringify(workflowData.edges || [])),
@@ -322,11 +343,12 @@ export class WorkflowManager {
         this.saveWorkflows();
         this.renderWorkflowList();
         this.closeImportModal();
-        await Dialog.success('工作流导入成功');
+        await Dialog.success(t('manager.importSuccess'));
     }
 
     async deleteWorkflow(id) {
-        const confirmed = await Dialog.confirm('确定要删除这个工作流吗？', '删除确认', { danger: true });
+        const workflow = this.workflows.find(w => w.id === id);
+        const confirmed = await Dialog.confirm(t('manager.deleteConfirm', { name: workflow?.name || t('manager.thisWorkflow') }), t('common.confirm'), { danger: true });
         if (!confirmed) {
             return;
         }
@@ -382,14 +404,14 @@ export class WorkflowManager {
             <div class="workflow-card-header">
                 <h3 class="workflow-card-title">${StringUtils.escapeHtml(workflow.name)}</h3>
                 <div class="workflow-card-actions">
-                    <button class="action-btn edit-btn" title="编辑">✏️</button>
-                    <button class="action-btn export-btn" title="导出">📥</button>
-                    <button class="action-btn delete-btn" title="删除">🗑️</button>
+                    <button class="action-btn edit-btn" title="${t('manager.editTooltip')}">✏️</button>
+                    <button class="action-btn export-btn" title="${t('manager.exportTooltip')}">📥</button>
+                    <button class="action-btn delete-btn" title="${t('manager.deleteTooltip')}">🗑️</button>
                 </div>
             </div>
-            <p class="workflow-card-description">${StringUtils.escapeHtml(workflow.description) || '暂无描述'}</p>
+            <p class="workflow-card-description">${StringUtils.escapeHtml(workflow.description) || t('manager.noDescription')}</p>
             <div class="workflow-card-meta">
-                <span class="node-count">${nodeCount} 个节点</span>
+                <span class="node-count">${t('manager.nodesCount', { count: nodeCount })}</span>
                 <span>${updatedTime}</span>
             </div>
         `;
@@ -421,13 +443,13 @@ export class WorkflowManager {
         const diff = now - date;
 
         if (diff < 60000) {
-            return '刚刚';
+            return t('manager.justNow');
         } else if (diff < 3600000) {
-            return `${Math.floor(diff / 60000)} 分钟前`;
+            return t('manager.minutesAgo', { n: Math.floor(diff / 60000) });
         } else if (diff < 86400000) {
-            return `${Math.floor(diff / 3600000)} 小时前`;
+            return t('manager.hoursAgo', { n: Math.floor(diff / 3600000) });
         } else if (diff < 604800000) {
-            return `${Math.floor(diff / 86400000)} 天前`;
+            return t('manager.daysAgo', { n: Math.floor(diff / 86400000) });
         } else {
             return `${date.getMonth() + 1}/${date.getDate()}`;
         }
@@ -463,7 +485,7 @@ export class WorkflowManager {
                     <div class="template-card-icon">${tpl.icon}</div>
                     <div class="template-card-name">${StringUtils.escapeHtml(tpl.name)}</div>
                     <div class="template-card-desc">${StringUtils.escapeHtml(tpl.description)}</div>
-                    <div class="template-card-nodes">${tpl.nodes.length} 个节点</div>
+                    <div class="template-card-nodes">${t('manager.nodesCount', { count: tpl.nodes.length })}</div>
                 `;
                 grid.appendChild(card);
             });
@@ -500,7 +522,7 @@ export class WorkflowManager {
         this.renderWorkflowList();
         this.closeTemplateModal();
 
-        Dialog.success(`已从模板"${template.name}"创建工作流`);
+        Dialog.success(t('manager.createdFromTemplate', { name: template.name }));
     }
 }
 

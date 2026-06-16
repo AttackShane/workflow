@@ -1,7 +1,7 @@
 import { StringUtils } from '../utils/helpers.js';
 
-const JSON_REGEX = /"([^"]+)":|"([^"]*)"|^(true|false|null)\b|-?\d+\.?\d*/g;
-const YAML_REGEX = /(\s*)-\s|(\s*)(["'][^"'\n]*["']):|(\s*)([\w-]+):|(["'][^"'\n]*["'])|\b(true|false|null)\b|-?\d+\.?\d*/g;
+const JSON_REGEX = /"([^"]+)":|"([^"]*)"|\b(true|false|null)\b|(-?\d+\.?\d*)/g;
+const YAML_REGEX = /(\s*)-\s|(\s*)(["'][^"'\n]*["']):|(\s*)([\w-]+):|(["'][^"'\n]*["'])|\b(true|false|null)\b|(-?\d+\.?\d*)/g;
 
 function highlightLineFast(line, isJson) {
     const regex = isJson ? JSON_REGEX : YAML_REGEX;

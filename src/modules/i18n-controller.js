@@ -121,6 +121,7 @@ export class I18nController {
         // 每次都重新查询元素，确保新添加的元素也能被更新
         const i18nElements = document.querySelectorAll('[data-i18n]');
         const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+        const titleElements = document.querySelectorAll('[data-i18n-title]');
 
         // 更新带有 data-i18n 属性的元素（跳过主题按钮）
         const i18nLen = i18nElements.length;
@@ -149,6 +150,19 @@ export class I18nController {
                 const text = i18n.t(key);
                 if (text !== key && el.placeholder !== text) {
                     el.placeholder = text;
+                }
+            }
+        }
+
+        // 更新带有 data-i18n-title 属性的元素
+        const titleLen = titleElements.length;
+        for (let i = 0; i < titleLen; i++) {
+            const el = titleElements[i];
+            const key = el.getAttribute('data-i18n-title');
+            if (key) {
+                const text = i18n.t(key);
+                if (text !== key && el.title !== text) {
+                    el.title = text;
                 }
             }
         }

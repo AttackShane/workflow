@@ -1,4 +1,5 @@
 import { StringUtils } from '../utils/helpers.js';
+import { t } from '../i18n/i18n.js';
 
 export class WorkflowNode {
     constructor(ui) {
@@ -8,7 +9,7 @@ export class WorkflowNode {
     }
 
     createElement(nodeData) {
-        const info = this.core.nodeTypeInfo[nodeData.type] || { title: '未知节点', icon: '📦', description: '', hasInput: true, hasOutput: true };
+        const info = this.core.nodeTypeInfo[nodeData.type] || { title: t('messages.unknownNode'), icon: '📦', description: '', hasInput: true, hasOutput: true };
         const el = document.createElement('div');
         el.className = `canvas-node ${nodeData.type}`;
         el.style.left = `${nodeData.x}px`;
@@ -48,10 +49,7 @@ export class WorkflowNode {
                 if (this.ui.connectingFrom && this.ui.connectingFrom !== nodeData.id) {
                     const edge = this.core.createEdge(this.ui.connectingFrom, nodeData.id);
                     if (edge) {
-                        this.ui.updateEdges();
-                        this.ui.updateSummary();
-                        this.core.saveHistory('创建连接');
-                        this.ui.updateHistoryPanel();
+                        this.core.saveHistory(t('messages.createConnection'));
                     }
                     this.ui.cancelConnection();
                 }
@@ -77,10 +75,8 @@ export class WorkflowNode {
         const el = this.createElement(nodeData);
         this.ui.canvas.canvasContent.appendChild(el);
         this.ui.canvas.setEmptyState(false);
-        this.ui.updateSummary();
         
-        this.core.saveHistory(`添加节点: ${type}`);
-        this.ui.updateHistoryPanel();
+        this.core.saveHistory(t('actions.addNode', { type }));
         
         return el;
     }
@@ -194,8 +190,7 @@ export class WorkflowNode {
             
             // 只有真正移动了才保存历史
             if (this.ui.hasDragged) {
-                this.core.saveHistory('移动节点');
-                this.ui.updateHistoryPanel();
+                this.core.saveHistory(t('messages.moveNode'));
             }
             
             this.ui.updateEdges();
@@ -277,20 +272,10 @@ export class WorkflowNode {
             }
         }
         
-        this.ui.updateEdges();
-        this.ui.updateSummary();
         this.ui.showSummaryPanel();
         
-        if (this.core.nodes.length === 0) {
-            this.ui.canvas.setEmptyState(true);
-        }
-        
         if (saveHistory) {
-            this.core.saveHistory('删除节点');
-        }
-        
-        if (updatePanel) {
-            this.ui.updateHistoryPanel();
+            this.core.saveHistory(t('messages.deleteNode'));
         }
     }
 
@@ -369,26 +354,26 @@ export class WorkflowNode {
             <div class="property-panel-section">
                 <h4>${info.icon || '📦'} ${StringUtils.escapeHtml(node.title)}</h4>
                 <div class="property-group">
-                    <label class="property-label">节点名称</label>
+                    <label class="property-label">${t('nodes.nodeName')}</label>
                     <input class="property-input" id="prop_nodeTitle" type="text" value="${StringUtils.escapeHtml(node.title || '')}">
                 </div>
                 <div class="property-group">
-                    <label class="property-label">描述</label>
+                    <label class="property-label">${t('nodes.nodeDescription')}</label>
                     <textarea class="property-textarea" id="prop_nodeDescription" title="${StringUtils.escapeHtml(node.description || '')}">${StringUtils.escapeHtml(node.description || '')}</textarea>
                 </div>
                 <div class="property-group">
-                    <label class="property-label">类型</label>
+                    <label class="property-label">${t('nodes.type')}</label>
                     <div class="property-tag">${StringUtils.escapeHtml(node.type)}</div>
                 </div>
                 ${paramsHtml ? `
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
-                <h4>节点配置</h4>
+                <h4>${t('nodes.nodeConfig')}</h4>
                 ${paramsHtml}` : ''}
 
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
-                    输入
-                    <button class="btn btn-sm" onclick="workflowUI.node.addInputParam('${StringUtils.escapeHtml(node.id)}')">+ 添加</button>
+                    ${t('nodes.input')}
+                    <button class="btn btn-sm" onclick="workflowUI.node.addInputParam('${StringUtils.escapeHtml(node.id)}')">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="inputParamsList">
                     ${this.renderInputOutputParams(node.inputParams || [], 'input')}
@@ -396,16 +381,16 @@ export class WorkflowNode {
 
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
-                    输出
-                    <button class="btn btn-sm" onclick="workflowUI.node.addOutputParam('${StringUtils.escapeHtml(node.id)}')">+ 添加</button>
+                    ${t('nodes.output')}
+                    <button class="btn btn-sm" onclick="workflowUI.node.addOutputParam('${StringUtils.escapeHtml(node.id)}')">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="outputParamsList">
                     ${this.renderInputOutputParams(node.outputParams || [], 'output')}
                 </div>
 
                 <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary" onclick="workflowUI.node.saveNodeDetail('${StringUtils.escapeHtml(node.id)}')">保存修改</button>
-                    <button class="btn btn-danger" onclick="workflowUI.deleteNode('${StringUtils.escapeHtml(node.id)}')">删除节点</button>
+                    <button class="btn btn-primary" onclick="workflowUI.node.saveNodeDetail('${StringUtils.escapeHtml(node.id)}')">${t('nodes.saveChanges')}</button>
+                    <button class="btn btn-danger" onclick="workflowUI.deleteNode('${StringUtils.escapeHtml(node.id)}')">${t('nodes.deleteNode')}</button>
                 </div>
             </div>
         `;
@@ -430,31 +415,31 @@ export class WorkflowNode {
             <div class="modal-overlay" onclick="this.parentElement.remove()"></div>
             <div class="modal-content node-editor-content">
                 <div class="modal-header">
-                    <h3>${info.icon || '📦'} 编辑节点</h3>
+                    <h3>${info.icon || '📦'} ${t('nodes.editNode')}</h3>
                     <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
                 </div>
                 <div class="modal-body">
                     <div class="form-section">
-                        <h4>基本信息</h4>
+                        <h4>${t('nodes.basicInfo')}</h4>
                         <div class="form-group">
-                            <label>节点标题</label>
+                            <label>${t('nodes.nodeTitle')}</label>
                             <input type="text" class="form-input" id="editTitle" value="${StringUtils.escapeHtml(node.title)}">
                         </div>
                         <div class="form-group">
-                            <label>节点描述</label>
+                            <label>${t('nodes.nodeDescription')}</label>
                             <textarea class="form-textarea" id="editDescription">${StringUtils.escapeHtml(node.description || '')}</textarea>
                         </div>
                     </div>
                     ${params.length > 0 ? `
                     <div class="form-section">
-                        <h4>参数配置</h4>
+                        <h4>${t('nodes.paramsConfig')}</h4>
                         ${paramsHtml}
                     </div>
                     ` : ''}
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">取消</button>
-                    <button class="btn btn-primary" onclick="workflowUI.saveNodeEdit('${StringUtils.escapeHtml(nodeId)}')">保存</button>
+                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">${t('nodes.cancel')}</button>
+                    <button class="btn btn-primary" onclick="workflowUI.saveNodeEdit('${StringUtils.escapeHtml(nodeId)}')">${t('nodes.save')}</button>
                 </div>
             </div>
         `;
@@ -472,13 +457,18 @@ export class WorkflowNode {
         
         switch (param.type) {
             case 'select':
-                let dynSelectOptions = (param.options || []).map(opt => String(opt));
-                const dynHasMatch = dynSelectOptions.some(o => o === String(value ?? ''));
+                let dynSelectOptions = (param.options || []).map(opt => {
+                    if (typeof opt === 'object') {
+                        return { val: String(opt.value ?? opt), label: String(opt.label ?? opt.value ?? opt) };
+                    }
+                    return { val: String(opt), label: String(opt) };
+                });
+                const dynHasMatch = dynSelectOptions.some(o => o.val === String(value ?? ''));
                 if (!dynHasMatch && value !== undefined && value !== null && String(value).trim() !== '') {
-                    dynSelectOptions.unshift(String(value));
+                    dynSelectOptions.unshift({ val: String(value), label: String(value) });
                 }
-                const dynOptionsHtml = dynSelectOptions.map(opt => 
-                    `<option value="${StringUtils.escapeHtml(opt)}" ${opt === String(value ?? '') ? 'selected' : ''}>${StringUtils.escapeHtml(opt)}</option>`
+                const dynOptionsHtml = dynSelectOptions.map(o => 
+                    `<option value="${StringUtils.escapeHtml(o.val)}" ${o.val === String(value ?? '') ? 'selected' : ''}>${StringUtils.escapeHtml(o.label)}</option>`
                 ).join('');
                 inputHtml = `
                     <div class="form-group">
@@ -596,13 +586,12 @@ export class WorkflowNode {
             this.renderPropertyPanel(node);
         }
         
-        this.core.saveHistory('编辑节点');
-        this.ui.updateHistoryPanel();
+        this.core.saveHistory(t('actions.editNode'));
     }
 
     renderInputOutputParams(paramsList, prefix) {
         if (!paramsList || paramsList.length === 0) {
-            return '<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">暂无参数</p>';
+            return `<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">${t('properties.noParams')}</p>`;
         }
         const isInput = prefix === 'input';
         return paramsList.map((p, i) => {
@@ -610,35 +599,35 @@ export class WorkflowNode {
             const typeOpts = types.map(t => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`).join('');
             const requiredCheck = isInput ? `
                 <div class="param-field">
-                    <label class="param-label">必填</label>
+                    <label class="param-label">${t('properties.required')}</label>
                     <input type="checkbox" id="${prefix}Required_${i}" ${p.required ? 'checked' : ''}>
                 </div>
             ` : '';
             return `<div class="param-card" id="${prefix}Card_${i}">
                 <div class="param-card-header">
-                    <span class="param-card-title">参数 #${i+1}</span>
-                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${prefix}', ${i})">× 删除</button>
+                    <span class="param-card-title">${t('nodes.parameter', { index: i + 1 })}</span>
+                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${prefix}', ${i})">${t('nodes.remove')}</button>
                 </div>
                 <div class="param-card-row">
                     <div class="param-field">
-                        <label class="param-label">参数名称</label>
-                        <input class="param-input" id="${prefix}Name_${i}" type="text" placeholder="参数名" value="${StringUtils.escapeHtml(p.name || '')}">
+                        <label class="param-label">${t('nodes.paramName')}</label>
+                        <input class="param-input" id="${prefix}Name_${i}" type="text" placeholder="${t('common.paramName')}" value="${StringUtils.escapeHtml(p.name || '')}">
                     </div>
                     <div class="param-field">
-                        <label class="param-label">参数类型</label>
+                        <label class="param-label">${t('nodes.paramType')}</label>
                         <select class="param-select" id="${prefix}Type_${i}">${typeOpts}</select>
                     </div>
                 </div>
                 <div class="param-card-row">
                     <div class="param-field">
-                        <label class="param-label">默认值</label>
-                        <input class="param-input" id="${prefix}Value_${i}" type="text" placeholder="默认值（可选）" value="${StringUtils.escapeHtml(String(p.value ?? ''))}">
+                        <label class="param-label">${t('nodes.defaultValue')}</label>
+                        <input class="param-input" id="${prefix}Value_${i}" type="text" placeholder="${t('properties.defaultValue')}" value="${StringUtils.escapeHtml(String(p.value ?? ''))}">
                     </div>
                     ${requiredCheck}
                 </div>
                 <div class="param-field">
-                    <label class="param-label">描述</label>
-                    <textarea class="param-textarea" id="${prefix}Desc_${i}" placeholder="参数描述（可选）" title="${StringUtils.escapeHtml(p.description || '')}">${StringUtils.escapeHtml(p.description || '')}</textarea>
+                    <label class="param-label">${t('nodes.paramDescription')}</label>
+                    <textarea class="param-textarea" id="${prefix}Desc_${i}" placeholder="${t('nodes.paramDescription')}" title="${StringUtils.escapeHtml(p.description || '')}">${StringUtils.escapeHtml(p.description || '')}</textarea>
                 </div>
             </div>`;
         }).join('');
@@ -732,9 +721,8 @@ export class WorkflowNode {
         this.saveDynamicParams(node, 'output');
         
         this.ui.updateEdges();
-        this.core.saveHistory('编辑节点');
-        this.ui.updateHistoryPanel();
-        this.ui.showMessage('节点已保存', 'success');
+        this.core.saveHistory(t('actions.editNode'));
+        this.ui.showMessage(t('actions.nodeSaved'), 'success');
     }
 
     saveDynamicParams(node, prefix) {
@@ -752,6 +740,13 @@ export class WorkflowNode {
                 value: valueEl ? valueEl.value : (p.value || ''),
                 description: descEl ? descEl.value : (p.description || '')
             };
+            // 保留原始的 valueType 和 rawMeta，防止参数继承丢失
+            if (p.valueType !== undefined) {
+                result.valueType = p.valueType;
+            }
+            if (p.rawMeta !== undefined) {
+                result.rawMeta = p.rawMeta;
+            }
             if (prefix === 'input' && reqEl) {
                 result.required = reqEl.checked;
             } else if (prefix === 'input') {

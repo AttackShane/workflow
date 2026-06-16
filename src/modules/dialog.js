@@ -1,14 +1,21 @@
+import { t } from '../i18n/i18n.js';
+
 export class Dialog {
     static #overlay = null;
     static #container = null;
     static #currentResolve = null;
     static #keydownHandler = null;
-    
+    static #isClosing = false;
+    static #closeTimer = null;
+    static #TRANSITION_MS = 200;
+
     static #init() {
         if (this.#overlay) return;
-        
+
         this.#overlay = document.createElement('div');
         this.#overlay.className = 'dialog-overlay';
+        this.#overlay.setAttribute('role', 'dialog');
+        this.#overlay.setAttribute('aria-modal', 'true');
         this.#overlay.style.cssText = `
             position: fixed;
             top: 0;
@@ -21,13 +28,14 @@ export class Dialog {
             align-items: center;
             z-index: 10000;
             opacity: 0;
-            transition: opacity 0.2s ease;
+            transition: opacity ${this.#TRANSITION_MS}ms ease;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         `;
         document.body.appendChild(this.#overlay);
-        
+
         this.#container = document.createElement('div');
         this.#container.className = 'dialog-container';
+        this.#container.setAttribute('role', 'document');
         this.#container.style.cssText = `
             background: #fff;
             border-radius: 12px;
@@ -35,43 +43,72 @@ export class Dialog {
             min-width: 320px;
             max-width: 480px;
             transform: scale(0.9) translateY(-20px);
-            transition: transform 0.2s ease;
+            transition: transform ${this.#TRANSITION_MS}ms ease;
         `;
         this.#overlay.appendChild(this.#container);
-        
+
         this.#overlay.addEventListener('click', (e) => {
             if (e.target === this.#overlay) {
                 this.#close(false);
             }
         });
-        
+
         this.#keydownHandler = (e) => {
             if (e.key === 'Escape') {
                 this.#close(false);
             }
         };
     }
-    
+
     static #escapeHtml(str) {
-        if (!str || typeof str !== 'string') return '';
+        if (typeof str !== 'string') return String(str ?? '');
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
         return str.replace(/[&<>"']/g, c => map[c]);
     }
-    
+
+    static #ensureSingle() {
+        if (this.#currentResolve) {
+            if (this.#closeTimer) {
+                clearTimeout(this.#closeTimer);
+                this.#closeTimer = null;
+            }
+            const oldResolve = this.#currentResolve;
+            this.#currentResolve = null;
+            oldResolve(false);
+            this.#isClosing = false;
+            this.#container.innerHTML = '';
+        }
+    }
+
     static #show() {
         this.#overlay.style.opacity = '1';
+        this.#overlay.style.pointerEvents = 'auto';
         this.#container.style.transform = 'scale(1) translateY(0)';
         document.body.style.overflow = 'hidden';
         document.addEventListener('keydown', this.#keydownHandler);
+
+        const firstBtn = this.#container.querySelector('button');
+        if (firstBtn) {
+            setTimeout(() => firstBtn.focus(), 50);
+        }
     }
-    
+
     static #close(result = false) {
+        if (this.#isClosing) return;
+        this.#isClosing = true;
+
+        if (this.#closeTimer) {
+            clearTimeout(this.#closeTimer);
+            this.#closeTimer = null;
+        }
+
         document.removeEventListener('keydown', this.#keydownHandler);
         this.#overlay.style.opacity = '0';
+        this.#overlay.style.pointerEvents = 'none';
         this.#container.style.transform = 'scale(0.9) translateY(-20px)';
         document.body.style.overflow = '';
-        
-        setTimeout(() => {
+
+        this.#closeTimer = setTimeout(() => {
             if (this.#container) {
                 this.#container.innerHTML = '';
             }
@@ -79,9 +116,34 @@ export class Dialog {
                 this.#currentResolve(result);
                 this.#currentResolve = null;
             }
-        }, 200);
+            this.#isClosing = false;
+            this.#closeTimer = null;
+        }, this.#TRANSITION_MS);
     }
-    
+
+    static #buildContent({ icon, iconBg, title, message, buttons }) {
+        this.#container.innerHTML = `
+            <div style="padding: 24px;">
+                <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <div style="width: 40px; height: 40px; background: ${iconBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                        <span style="font-size: 20px;">${icon}</span>
+                    </div>
+                    <h3 id="dialog-title" style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${title}</h3>
+                </div>
+                <p id="dialog-message" style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${message}</p>
+                <div id="dialog-actions" style="display: flex; justify-content: flex-end; gap: 12px;"></div>
+            </div>
+        `;
+
+        this.#overlay.setAttribute('aria-labelledby', 'dialog-title');
+        this.#overlay.setAttribute('aria-describedby', 'dialog-message');
+
+        const actionsDiv = this.#container.querySelector('#dialog-actions');
+        for (const btn of buttons) {
+            actionsDiv.appendChild(btn);
+        }
+    }
+
     static #createButton(text, style = 'primary', onClick) {
         const btn = document.createElement('button');
         btn.textContent = text;
@@ -95,7 +157,7 @@ export class Dialog {
             transition: all 0.2s ease;
             min-width: 80px;
         `;
-        
+
         if (style === 'primary') {
             btn.style.background = 'linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%)';
             btn.style.color = '#fff';
@@ -112,6 +174,26 @@ export class Dialog {
             btn.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
             btn.style.color = '#fff';
             btn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-1px)';
+                btn.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0)';
+                btn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+            });
+        } else if (style === 'success') {
+            btn.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+            btn.style.color = '#fff';
+            btn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transform = 'translateY(-1px)';
+                btn.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.transform = 'translateY(0)';
+                btn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+            });
         } else {
             btn.style.background = '#f3f4f6';
             btn.style.color = '#374151';
@@ -122,156 +204,185 @@ export class Dialog {
                 btn.style.background = '#f3f4f6';
             });
         }
-        
+
         btn.addEventListener('click', onClick);
         return btn;
     }
-    
-    static alert(message, title = '提示') {
+
+    static alert(message, title = t('common.info')) {
         return new Promise((resolve) => {
             this.#init();
+            this.#ensureSingle();
             this.#currentResolve = resolve;
-            
+
             const safeMessage = this.#escapeHtml(message);
             const safeTitle = this.#escapeHtml(title);
-            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
-            this.#container.innerHTML = `
-                <div style="padding: 24px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: #FEF3C7; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                            <span style="font-size: 20px;">ℹ️</span>
-                        </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
-                    </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
-                    <div style="display: flex; justify-content: flex-end;">
-                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); color: #fff; box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3);">
-                            确定
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            this.#show();
-            
-            document.getElementById(btnId).addEventListener('click', () => {
-                this.#close(true);
+
+            this.#buildContent({
+                icon: 'ℹ️',
+                iconBg: '#FEF3C7',
+                title: safeTitle,
+                message: safeMessage,
+                buttons: [
+                    this.#createButton(t('common.ok'), 'primary', () => this.#close(true))
+                ]
             });
+
+            this.#show();
         });
     }
-    
-    static confirm(message, title = '确认', options = {}) {
+
+    static confirm(message, title = t('common.confirm'), options = {}) {
         return new Promise((resolve) => {
             this.#init();
+            this.#ensureSingle();
             this.#currentResolve = resolve;
-            
+
             const safeMessage = this.#escapeHtml(message);
             const safeTitle = this.#escapeHtml(title);
-            const { okText = '确定', cancelText = '取消', danger = false } = options;
-            const safeOkText = this.#escapeHtml(okText);
-            const safeCancelText = this.#escapeHtml(cancelText);
-            const btnPrefix = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            const confirmBtnId = `${btnPrefix}-confirm`;
-            const cancelBtnId = `${btnPrefix}-cancel`;
-            
-            this.#container.innerHTML = `
-                <div style="padding: 24px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: ${danger ? '#FEE2E2' : '#FEF3C7'}; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                            <span style="font-size: 20px;">${danger ? '⚠️' : '❓'}</span>
-                        </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
-                    </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
-                    <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                        <button id="${cancelBtnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: #f3f4f6; color: #374151;">
-                            ${safeCancelText}
-                        </button>
-                        <button id="${confirmBtnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: ${danger ? 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3)' : 'linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%); box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3)'}; color: #fff;">
-                            ${safeOkText}
-                        </button>
-                    </div>
-                </div>
-            `;
-            
+            const { okText = t('common.ok'), cancelText = t('common.cancel'), danger = false } = options;
+
+            this.#buildContent({
+                icon: danger ? '⚠️' : '❓',
+                iconBg: danger ? '#FEE2E2' : '#FEF3C7',
+                title: safeTitle,
+                message: safeMessage,
+                buttons: [
+                    this.#createButton(cancelText, 'secondary', () => this.#close(false)),
+                    this.#createButton(okText, danger ? 'danger' : 'primary', () => this.#close(true))
+                ]
+            });
+
             this.#show();
-            
-            document.getElementById(cancelBtnId).addEventListener('click', () => {
-                this.#close(false);
-            });
-            
-            document.getElementById(confirmBtnId).addEventListener('click', () => {
-                this.#close(true);
-            });
         });
     }
-    
-    static success(message, title = '成功') {
+
+    static success(message, title = t('common.success')) {
         return new Promise((resolve) => {
             this.#init();
+            this.#ensureSingle();
             this.#currentResolve = resolve;
-            
+
             const safeMessage = this.#escapeHtml(message);
             const safeTitle = this.#escapeHtml(title);
-            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
-            this.#container.innerHTML = `
-                <div style="padding: 24px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: #D1FAE5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                            <span style="font-size: 20px;">✅</span>
-                        </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
-                    </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
-                    <div style="display: flex; justify-content: flex-end;">
-                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
-                            确定
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            this.#show();
-            
-            document.getElementById(btnId).addEventListener('click', () => {
-                this.#close(true);
+
+            this.#buildContent({
+                icon: '✅',
+                iconBg: '#D1FAE5',
+                title: safeTitle,
+                message: safeMessage,
+                buttons: [
+                    this.#createButton(t('common.ok'), 'success', () => this.#close(true))
+                ]
             });
+
+            this.#show();
         });
     }
-    
-    static error(message, title = '错误') {
+
+    static error(message, title = t('common.error')) {
         return new Promise((resolve) => {
             this.#init();
+            this.#ensureSingle();
             this.#currentResolve = resolve;
-            
+
             const safeMessage = this.#escapeHtml(message);
             const safeTitle = this.#escapeHtml(title);
-            const btnId = `dialog-btn-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
+
+            this.#buildContent({
+                icon: '❌',
+                iconBg: '#FEE2E2',
+                title: safeTitle,
+                message: safeMessage,
+                buttons: [
+                    this.#createButton(t('common.ok'), 'danger', () => this.#close(true))
+                ]
+            });
+
+            this.#show();
+        });
+    }
+
+    static prompt(title, options = {}) {
+        return new Promise((resolve) => {
+            this.#init();
+            this.#ensureSingle();
+            this.#currentResolve = resolve;
+
+            const safeTitle = this.#escapeHtml(title);
+            const {
+                nameLabel = t('manager.workflowName'),
+                namePlaceholder = t('manager.namePlaceholder'),
+                nameValue = '',
+                descLabel = t('manager.workflowDescription'),
+                descPlaceholder = t('manager.descriptionPlaceholder'),
+                descValue = '',
+                okText = t('manager.save'),
+                cancelText = t('manager.cancel')
+            } = options;
+
+            this.#container.style.maxWidth = '500px';
+            this.#container.style.width = '90%';
+            this.#container.style.boxShadow = '0 10px 40px rgba(0, 0, 0, 0.2)';
+            this.#container.style.overflow = 'hidden';
+
             this.#container.innerHTML = `
-                <div style="padding: 24px;">
-                    <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                        <div style="width: 40px; height: 40px; background: #FEE2E2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                            <span style="font-size: 20px;">❌</span>
-                        </div>
-                        <h3 style="font-size: 16px; font-weight: 600; color: #1F2937; margin: 0;">${safeTitle}</h3>
+                <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 1.2rem; color: #333; margin: 0; font-weight: 600;">${safeTitle}</h2>
+                    <button id="dialog-prompt-close" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; padding: 0.25rem; line-height: 1;">×</button>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${this.#escapeHtml(nameLabel)}</label>
+                        <input id="dialog-prompt-name" type="text" value="${this.#escapeHtml(nameValue)}" placeholder="${this.#escapeHtml(namePlaceholder)}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: border-color 0.2s ease;">
                     </div>
-                    <p style="color: #4B5563; font-size: 14px; line-height: 1.5; margin: 0 0 20px;">${safeMessage}</p>
-                    <div style="display: flex; justify-content: flex-end;">
-                        <button id="${btnId}" style="padding: 10px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; min-width: 80px; background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); color: #fff; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);">
-                            确定
-                        </button>
+                    <div style="margin-bottom: 0;">
+                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${this.#escapeHtml(descLabel)}</label>
+                        <textarea id="dialog-prompt-desc" placeholder="${this.#escapeHtml(descPlaceholder)}" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; resize: vertical; transition: border-color 0.2s ease; font-family: inherit; min-height: 100px;">${this.#escapeHtml(descValue)}</textarea>
                     </div>
                 </div>
+                <div style="padding: 1rem 1.5rem; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button id="dialog-prompt-cancel" style="padding: 0.5rem 1rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: #fff; color: #666; transition: background 0.2s;">${this.#escapeHtml(cancelText)}</button>
+                    <button id="dialog-prompt-ok" style="padding: 0.5rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; transition: opacity 0.2s;">${this.#escapeHtml(okText)}</button>
+                </div>
             `;
-            
-            this.#show();
-            
-            document.getElementById(btnId).addEventListener('click', () => {
-                this.#close(true);
+
+            const nameInput = this.#container.querySelector('#dialog-prompt-name');
+            const descInput = this.#container.querySelector('#dialog-prompt-desc');
+
+            nameInput.addEventListener('focus', () => { nameInput.style.borderColor = '#667eea'; nameInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'; });
+            nameInput.addEventListener('blur', () => { nameInput.style.borderColor = '#ddd'; nameInput.style.boxShadow = 'none'; });
+            descInput.addEventListener('focus', () => { descInput.style.borderColor = '#667eea'; descInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'; });
+            descInput.addEventListener('blur', () => { descInput.style.borderColor = '#ddd'; descInput.style.boxShadow = 'none'; });
+
+            const handleConfirm = () => {
+                const name = nameInput.value.trim();
+                if (!name) {
+                    nameInput.style.borderColor = '#EF4444';
+                    nameInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+                    nameInput.focus();
+                    return;
+                }
+                this.#close({ name, description: descInput.value.trim() });
+            };
+
+            nameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleConfirm();
             });
+            descInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleConfirm();
+                }
+            });
+
+            this.#container.querySelector('#dialog-prompt-close').addEventListener('click', () => this.#close(null));
+            this.#container.querySelector('#dialog-prompt-cancel').addEventListener('click', () => this.#close(null));
+            this.#container.querySelector('#dialog-prompt-ok').addEventListener('click', handleConfirm);
+
+            this.#show();
+
+            setTimeout(() => nameInput.focus(), 100);
         });
     }
 }

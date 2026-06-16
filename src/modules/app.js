@@ -8,13 +8,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initI18nController();
     initThemeController();
     
-    // 检查是否是转换器页面
+    // 检查当前页面类型并初始化对应的模块
     const h1Element = document.querySelector('h1');
-    if (h1Element && (h1Element.textContent.includes('转换器') || h1Element.textContent.includes('Workflow Converter'))) {
-        // 动态导入转换器特定的模块
+    const h1Text = h1Element ? h1Element.textContent.toLowerCase() : '';
+    
+    if (h1Text && (h1Text.includes('转换器') || h1Text.includes('converter'))) {
+        // 转换器页面
         import('./ui-controller.js').then(m => m.initUI());
         import('./keyboard-shortcuts.js').then(m => m.initKeyboardShortcuts());
         import('./stats-view.js').then(m => m.initHistoryPanel());
         import('./graph-view.js').then(m => m.initGraphModal());
+    } else if (h1Text && (h1Text.includes('工作流管理') || h1Text.includes('workflow manager'))) {
+        // 工作流管理器页面
+        import('./workflow-manager.js').then(m => {
+            const manager = new m.WorkflowManager();
+            manager.init();
+        });
     }
+    // 编辑器页面由内联 <script> 初始化，不在此处理
 });
