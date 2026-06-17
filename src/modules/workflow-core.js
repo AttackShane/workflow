@@ -406,9 +406,10 @@ export class WorkflowCore {
      * 创建新边
      * @param {string} sourceId - 源节点ID
      * @param {string} targetId - 目标节点ID
+     * @param {string} sourcePort - 源端口ID（可选，用于分支节点）
      * @returns {object|null} 创建的边对象，如果已存在则返回null
      */
-    createEdge(sourceId, targetId) {
+    createEdge(sourceId, targetId, sourcePort = '') {
         const existingEdge = this.edges.find(e => e.source === sourceId && e.target === targetId);
         if (existingEdge) return null;
         
@@ -417,6 +418,9 @@ export class WorkflowCore {
             source: sourceId,
             target: targetId
         };
+        if (sourcePort) {
+            edge.sourcePort = sourcePort;
+        }
         
         this.edges.push(edge);
         this._emitChange('createEdge', edge);
@@ -791,6 +795,20 @@ export class WorkflowCore {
                         parameters[output.name] = output.defaultValue;
                     }
                 });
+                const nodeOutputs = {};
+                cozeNode.data.outputs.forEach(output => {
+                    nodeOutputs[output.name] = {
+                        type: output.type || 'string',
+                        description: output.description || '',
+                        required: output.required || false
+                    };
+                    if (output.schema && Array.isArray(output.schema)) {
+                        nodeOutputs[output.name].properties = output.schema;
+                    }
+                });
+                if (Object.keys(nodeOutputs).length > 0) {
+                    parameters.node_outputs = nodeOutputs;
+                }
             }
             if (cozeNode.data?.inputs && typeof cozeNode.data.inputs === 'object') {
                 Object.entries(cozeNode.data.inputs).forEach(([key, value]) => {
@@ -856,14 +874,55 @@ export class WorkflowCore {
             this.nodes.push(newNode);
         });
         
+        // 构建反向 ID 映射，用于通过新 ID 查找源 ID
+        const reverseIdMap = {};
+        for (const [srcId, newId] of Object.entries(idMap)) {
+            reverseIdMap[newId] = srcId;
+        }
+
+        // 构建 variable_merge 节点的边匹配表，用于 mergeGroups 中无法通过 idMap 直接映射的 blockID
+        const variableMergeEdgeMap = new Map();
+        this.nodes.forEach(node => {
+            if (node.type === 'variable_merge' && node.parameters?.mergeGroups) {
+                const sourceId = reverseIdMap[node.id];
+                if (!sourceId) return;
+
+                const targetEdges = (data.json.edges || []).filter(e => e.targetNodeID === sourceId);
+                const filteredEdges = targetEdges.filter(e => e.sourcePortID !== 'default');
+
+                const edgeTypes = [];
+                filteredEdges.forEach(e => {
+                    const sourceNode = data.json.nodes.find(n => String(n.id) === e.sourceNodeID);
+                    if (sourceNode) edgeTypes.push(String(sourceNode.type));
+                });
+
+                const typeCount = {};
+                edgeTypes.forEach(t => { typeCount[t] = (typeCount[t] || 0) + 1; });
+                let mostCommonType = null;
+                let maxCount = 0;
+                for (const [t, c] of Object.entries(typeCount)) {
+                    if (c > maxCount) { maxCount = c; mostCommonType = t; }
+                }
+
+                const matchingEdges = mostCommonType
+                    ? filteredEdges.filter(e => {
+                        const sourceNode = data.json.nodes.find(n => String(n.id) === e.sourceNodeID);
+                        return sourceNode && String(sourceNode.type) === mostCommonType;
+                    })
+                    : filteredEdges;
+
+                variableMergeEdgeMap.set(node.id, matchingEdges);
+            }
+        });
+
         // 更新所有 ref 引用中的 blockID（节点 ID 映射）
         this.nodes.forEach(node => {
             if (node.inputParams && Array.isArray(node.inputParams)) {
                 node.inputParams.forEach(param => {
-                    if (param.valueType === 'ref' && typeof param.value === 'object' && param.value.blockID) {
-                        const newBlockId = idMap[String(param.value.blockID)];
+                    if (param.valueType === 'ref' && typeof param.value === 'object' && param.value.content?.blockID) {
+                        const newBlockId = idMap[String(param.value.content.blockID)];
                         if (newBlockId) {
-                            param.value.blockID = newBlockId;
+                            param.value.content.blockID = newBlockId;
                         }
                     }
                 });
@@ -885,6 +944,30 @@ export class WorkflowCore {
                         opt.value.content.blockID = newBlockId;
                     }
                 }
+            }
+            if (node.parameters && node.parameters.mergeGroups && Array.isArray(node.parameters.mergeGroups)) {
+                const edgeMatches = variableMergeEdgeMap.get(node.id);
+                let edgeIndex = 0;
+                node.parameters.mergeGroups.forEach(group => {
+                    if (group.variables && Array.isArray(group.variables)) {
+                        group.variables.forEach(v => {
+                            if (v.value?.type === 'ref' && v.value.content?.blockID) {
+                                const blockIdStr = String(v.value.content.blockID);
+                                const newBlockId = idMap[blockIdStr];
+                                if (newBlockId) {
+                                    v.value.content.blockID = newBlockId;
+                                } else if (edgeMatches && edgeIndex < edgeMatches.length) {
+                                    const edgeSourceId = edgeMatches[edgeIndex].sourceNodeID;
+                                    const mappedId = idMap[String(edgeSourceId)];
+                                    if (mappedId) {
+                                        v.value.content.blockID = mappedId;
+                                    }
+                                    edgeIndex++;
+                                }
+                            }
+                        });
+                    }
+                });
             }
         });
         

@@ -223,7 +223,7 @@ export class WorkflowCanvas {
         const isMarqueeMode = e.ctrlKey || e.metaKey;
         
         if (isMarqueeMode) {
-            this.handleMarqueeSelection(startX, startY);
+            this.handleMarqueeSelection(startX, startY, true);
         } else {
             this.handleCanvasDrag(startX, startY);
         }
@@ -234,7 +234,7 @@ export class WorkflowCanvas {
      * @param {number} startX - 起始 X 坐标
      * @param {number} startY - 起始 Y 坐标
      */
-    handleMarqueeSelection(startX, startY) {
+    handleMarqueeSelection(startX, startY, accumulate = false) {
         this.isMarqueeSelectionActive = true;
         DOM.setStyle(this.canvas, 'cursor', 'crosshair');
         
@@ -273,7 +273,7 @@ export class WorkflowCanvas {
                 const left = Math.min(startX, e.clientX);
                 const top = Math.min(startY, e.clientY);
                 
-                this.ui.selection.selectNodesInRect(left, top, width, height);
+                this.ui.selection.selectNodesInRect(left, top, width, height, accumulate);
             }
             
             document.body.removeChild(marquee);
@@ -297,6 +297,8 @@ export class WorkflowCanvas {
      */
     handleCanvasDrag(startX, startY) {
         DOM.setStyle(this.canvas, 'cursor', 'grabbing');
+        
+        this.hasDraggedCanvas = false;
         
         const transform = this.canvasContent?.style.transform || '';
         
@@ -337,6 +339,10 @@ export class WorkflowCanvas {
         if (this.isMarqueeSelectionActive) return;
         if (this.hasDraggedCanvas) {
             this.hasDraggedCanvas = false;
+            return;
+        }
+        if (this.ui.hasDragged) {
+            this.ui.hasDragged = false;
             return;
         }
         

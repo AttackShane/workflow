@@ -41,9 +41,27 @@ export class WorkflowEdge {
             const height2 = target.height || 100;
             
             const x1 = source.x + width1;
-            const y1 = source.y + height1 / 2;
             const x2 = target.x;
             const y2 = target.y + height2 / 2;
+            
+            let y1 = source.y + height1 / 2;
+            let labelText = '';
+            
+            if (edge.sourcePort && source.type === 'question' && source.parameters?.options) {
+                const options = Array.isArray(source.parameters.options) ? source.parameters.options : [];
+                const totalPorts = options.length + 1;
+                let portIndex = options.length;
+                if (edge.sourcePort.startsWith('branch_')) {
+                    portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
+                    if (isNaN(portIndex) || portIndex >= options.length) portIndex = options.length;
+                }
+                y1 = source.y + height1 * (portIndex + 0.5) / totalPorts;
+                if (portIndex < options.length) {
+                    labelText = typeof options[portIndex] === 'string' ? options[portIndex] : (options[portIndex]?.name || '');
+                } else {
+                    labelText = '其他';
+                }
+            }
             
             const dx = Math.abs(x2 - x1);
             const ctrl = Math.max(dx * 0.4, 50);
@@ -91,16 +109,28 @@ export class WorkflowEdge {
             this.svgLayer.appendChild(path);
             this.svgLayer.appendChild(arrow);
             this.svgHitLayer.appendChild(hitPath);
+            
+            if (labelText) {
+                const labelX = x1 + (x2 - x1) * 0.15;
+                const labelY = y1 - 8;
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', labelX);
+                label.setAttribute('y', labelY);
+                label.setAttribute('fill', '#94a3b8');
+                label.setAttribute('font-size', '11');
+                label.setAttribute('font-family', 'sans-serif');
+                label.textContent = labelText;
+                this.svgLayer.appendChild(label);
+            }
         });
     }
 
     select(edgeId, multiSelect = false) {
         if (!multiSelect) {
             document.querySelectorAll('.workflow-edge').forEach(e => e.classList.remove('selected'));
-            if (!this.ui.isMultiSelectMode) {
-                document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
-                this.core.selectNode(null);
-            }
+            document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
+            this.core.selectNode(null);
+            this.ui.isMultiSelectMode = false;
         }
         
         const edgePath = document.querySelector(`path[data-edge-id="${edgeId}"]`);
@@ -183,8 +213,9 @@ export class WorkflowEdge {
         `;
     }
 
-    startConnection(nodeId, e) {
+    startConnection(nodeId, e, portId = '') {
         this.ui.connectingFrom = nodeId;
+        this.ui.connectingFromPort = portId;
         const canvasRect = this.ui.canvas.canvas.getBoundingClientRect();
 
         const pointRect = e.target.getBoundingClientRect();
@@ -231,7 +262,7 @@ export class WorkflowEdge {
                             ed => ed.source === sourceId && ed.target === targetId
                         );
                         if (!exists) {
-                            this.core.createEdge(sourceId, targetId);
+                            this.core.createEdge(sourceId, targetId, this.ui.connectingFromPort);
                             this.core.saveHistory(t('actions.createConnection'));
                             this.ui.showMessage(t('actions.connectionCreated'), 'success');
                         }
@@ -256,6 +287,7 @@ export class WorkflowEdge {
             this.ui.svgPath = null;
         }
         this.ui.connectingFrom = null;
+        this.ui.connectingFromPort = '';
     }
 
     /**

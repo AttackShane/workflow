@@ -35,6 +35,8 @@ export class WorkflowSelection {
         if (this.core.nodes.length > 1) {
             this.ui.isMultiSelectMode = true;
         }
+        
+        this.ui.align.updateAlignToolbar();
     }
 
     /**
@@ -48,6 +50,7 @@ export class WorkflowSelection {
         this.core.selectedEdge = null;
         this.ui.clearPropertyPanel();
         this.ui.edge.update();
+        this.ui.align.updateAlignToolbar();
     }
 
     /**
@@ -86,8 +89,10 @@ export class WorkflowSelection {
      * @param {number} width - 宽度
      * @param {number} height - 高度
      */
-    selectNodesInRect(left, top, width, height) {
-        this.deselectAll();
+    selectNodesInRect(left, top, width, height, accumulate = false) {
+        if (!accumulate) {
+            this.deselectAll();
+        }
 
         const selectedNodeIds = new Set();
 

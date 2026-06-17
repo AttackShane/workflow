@@ -132,7 +132,9 @@ export class WorkflowClipboard {
                         type: p.type || 'string', 
                         value: { 
                             type: p.valueType || 'literal', 
-                            content: p.value || '',
+                            content: (p.valueType === 'ref' && p.value && typeof p.value === 'object')
+                                ? (p.value.content || '')
+                                : (p.value || ''),
                             ...(p.rawMeta && { rawMeta: p.rawMeta })
                         } 
                     }
@@ -395,6 +397,23 @@ export class WorkflowClipboard {
                 height: maxY - minY + 100
             }
         };
+
+        // 递归清理所有 blockID 值中的 "node_" 前缀
+        const stripNodePrefix = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (Array.isArray(obj)) {
+                obj.forEach(item => stripNodePrefix(item));
+                return;
+            }
+            for (const key of Object.keys(obj)) {
+                if (key === 'blockID' && typeof obj[key] === 'string' && obj[key].startsWith('node_')) {
+                    obj[key] = obj[key].replace('node_', '');
+                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    stripNodePrefix(obj[key]);
+                }
+            }
+        };
+        stripNodePrefix(copyData.json);
         
         if (!await ClipboardUtils.copy(JSON.stringify(copyData, null, 2))) {
             this.copiedNode = copyData;
@@ -580,7 +599,9 @@ export class WorkflowClipboard {
                     inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => ({
                         name: p.name || '',
                         type: p.type || p.input?.type || 'string',
-                        value: p.input?.value?.content ?? p.defaultValue ?? '',
+                        value: p.input?.value?.type === 'ref'
+                            ? { type: 'ref', content: p.input.value.content }
+                            : (p.input?.value?.content ?? p.defaultValue ?? ''),
                         valueType: p.input?.value?.type || 'literal',
                         rawMeta: p.input?.value?.rawMeta || null,
                         required: p.required === true,
@@ -608,10 +629,10 @@ export class WorkflowClipboard {
                 // 1. inputParams 中的 ref 引用
                 if (node.inputParams && Array.isArray(node.inputParams)) {
                     node.inputParams.forEach(param => {
-                        if (param.valueType === 'ref' && typeof param.value === 'object' && param.value.blockID) {
-                            const newBlockId = idMap[String(param.value.blockID)];
+                        if (param.valueType === 'ref' && typeof param.value === 'object' && param.value.content?.blockID) {
+                            const newBlockId = idMap[String(param.value.content.blockID)];
                             if (newBlockId) {
-                                param.value.blockID = newBlockId;
+                                param.value.content.blockID = newBlockId;
                             }
                         }
                     });
@@ -635,6 +656,21 @@ export class WorkflowClipboard {
                             opt.value.content.blockID = newBlockId;
                         }
                     }
+                }
+                // 4. parameters 中的 mergeGroups（变量聚合节点 ref 引用）
+                if (node.parameters && node.parameters.mergeGroups && Array.isArray(node.parameters.mergeGroups)) {
+                    node.parameters.mergeGroups.forEach(group => {
+                        if (group.variables && Array.isArray(group.variables)) {
+                            group.variables.forEach(v => {
+                                if (v.value?.type === 'ref' && v.value.content?.blockID) {
+                                    const newBlockId = idMap[String(v.value.content.blockID)];
+                                    if (newBlockId) {
+                                        v.value.content.blockID = newBlockId;
+                                    }
+                                }
+                            });
+                        }
+                    });
                 }
             });
             

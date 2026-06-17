@@ -432,6 +432,9 @@ export const enUS = {
         alignNodes: 'Align Nodes',
         distributeHorizontal: 'Distribute Horizontal',
         distributeVertical: 'Distribute Vertical',
+        createConnection: 'Create Connection',
+        moveNode: 'Move Node',
+        deleteNode: 'Delete Node',
         deleteSelection: 'Delete Selection',
         deletedSelection: 'Selection Deleted',
         duplicateNodeSuffix: ' (Copy)',
@@ -496,7 +499,11 @@ export const enUS = {
         paramName: 'Parameter Name',
         paramType: 'Parameter Type',
         defaultValue: 'Default Value',
-        paramDescription: 'Parameter Description'
+        paramDescription: 'Parameter Description',
+        mergeGroups: 'Merge Groups',
+        group: 'Group',
+        noRef: 'No Reference',
+        clickToSelect: 'Click to select'
     },
     actions: {
         addNode: 'Add node: {type}',

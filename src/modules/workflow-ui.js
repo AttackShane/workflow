@@ -56,6 +56,7 @@ export class WorkflowUI {
         this.core.onChange = (action) => {
             if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch') {
                 this.refreshCanvas();
+                this.history.updatePanel();
             } else if (action === 'history') {
                 this.history.updatePanel();
             } else {
@@ -558,9 +559,9 @@ export class WorkflowUI {
      * @param {string} nodeId - 源节点 ID
      * @param {MouseEvent} e - 鼠标事件
      */
-    startConnection(nodeId, e) {
+    startConnection(nodeId, e, portId = '') {
         if (this.edge) {
-            this.edge.startConnection(nodeId, e);
+            this.edge.startConnection(nodeId, e, portId);
         }
     }
     

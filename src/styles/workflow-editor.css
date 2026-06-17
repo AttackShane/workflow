@@ -12,6 +12,7 @@
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
     --accent: #5C62FF;
+    --accent-light: rgba(92, 98, 255, 0.15);
     --success: #10B981;
     --warning: #F59E0B;
     --danger: #EF4444;
@@ -519,6 +520,37 @@ body {
     right: -6px;
     top: 50%;
     transform: translateY(-50%);
+}
+
+.connection-point.branch-port {
+    right: -6px;
+    width: 14px;
+    height: 14px;
+    background: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.connection-point.branch-port:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    transform: translateY(-50%) scale(1.4);
+}
+
+.connection-point.branch-port:hover::after {
+    content: attr(title);
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    border: 1px solid var(--border);
+    pointer-events: none;
+    z-index: 100;
 }
 
 .connection-point.connected {
@@ -1180,4 +1212,88 @@ body {
 .history-item.initial {
     font-style: italic;
     color: var(--text-secondary);
+}
+
+/* ==================== Variable Selector Modal ==================== */
+
+.tree-item {
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.tree-item:hover {
+    background: rgba(96, 165, 250, 0.1);
+}
+
+.tree-selected {
+    background: rgba(96, 165, 250, 0.25) !important;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.tree-toggle {
+    display: inline-block;
+    width: 16px;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: center;
+    transition: transform 0.15s ease;
+}
+
+.tree-children {
+    margin-left: 0;
+}
+
+.tree-branch {
+    margin: 0;
+}
+
+.var-node-item {
+    padding: 0.4rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    transition: background-color 0.15s ease;
+}
+
+.var-node-item:hover {
+    background: rgba(96, 165, 250, 0.15);
+}
+
+.var-node-title {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.var-node-type {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    display: block;
+}
+
+.var-node-active {
+    background: var(--accent) !important;
+}
+
+.var-node-active .var-node-title,
+.var-node-active .var-node-type {
+    color: #fff !important;
+}
+
+.var-node-active:hover {
+    background: var(--accent) !important;
+}
+
+.variable-selector-modal {
+    animation: varFadeIn 0.15s ease;
+}
+
+@keyframes varFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

@@ -22,7 +22,7 @@ export class WorkflowHistory {
         this.core.history.forEach((state, index) => {
             const item = document.createElement('div');
             item.className = `history-item ${index === this.core.historyIndex ? 'current' : ''} ${index === 0 ? 'initial' : ''}`;
-            item.textContent = state.action;
+            item.textContent = t(state.action);
             item.style.order = index;
             
             item.addEventListener('click', () => {

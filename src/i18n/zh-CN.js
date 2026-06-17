@@ -371,6 +371,9 @@ export const zhCN = {
         alignNodes: '对齐节点',
         distributeHorizontal: '水平分布',
         distributeVertical: '垂直分布',
+        createConnection: '创建连接',
+        moveNode: '移动节点',
+        deleteNode: '删除节点',
         deleteSelection: '删除选中项',
         deletedSelection: '已删除选中项',
         duplicateNodeSuffix: ' (副本)',
@@ -496,7 +499,11 @@ export const zhCN = {
         paramName: '参数名称',
         paramType: '参数类型',
         defaultValue: '默认值',
-        paramDescription: '参数描述'
+        paramDescription: '参数描述',
+        mergeGroups: '聚合分组',
+        group: '分组',
+        noRef: '无引用',
+        clickToSelect: '点击选择'
     },
     actions: {
         addNode: '添加节点: {type}',

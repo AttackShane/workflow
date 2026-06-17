@@ -45,19 +45,32 @@ export class WorkflowAlign {
         const canvas = DOM.get('canvas');
         const canvasRect = canvas.getBoundingClientRect();
 
-        let minX = Infinity, minY = Infinity, maxY = -Infinity;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         selectedNodes.forEach(el => {
             const rect = el.getBoundingClientRect();
             if (rect.left < minX) minX = rect.left;
             if (rect.top < minY) minY = rect.top;
+            if (rect.right > maxX) maxX = rect.right;
             if (rect.bottom > maxY) maxY = rect.bottom;
         });
 
-        const toolbarLeft = minX - canvasRect.left;
-        const toolbarTop = minY - canvasRect.top - 44;
+        const boundCenterX = (minX + maxX) / 2;
+        const toolbarWidth = toolbar.offsetWidth || 280;
+        const toolbarHeight = toolbar.offsetHeight || 36;
+        const gap = 8;
+
+        let toolbarLeft = boundCenterX - canvasRect.left - toolbarWidth / 2;
+        let toolbarTop = minY - canvasRect.top - toolbarHeight - gap;
+
+        toolbarLeft = Math.max(4, Math.min(toolbarLeft, canvasRect.width - toolbarWidth - 4));
+        toolbarTop = Math.max(4, toolbarTop);
+
+        if (toolbarTop + toolbarHeight > canvasRect.height - 4) {
+            toolbarTop = maxY - canvasRect.top + gap;
+        }
 
         DOM.setStyle(toolbar, 'left', toolbarLeft + 'px');
-        DOM.setStyle(toolbar, 'top', Math.max(4, toolbarTop) + 'px');
+        DOM.setStyle(toolbar, 'top', toolbarTop + 'px');
         DOM.addClass(toolbar, 'visible');
     }
 
@@ -74,16 +87,13 @@ export class WorkflowAlign {
             const nodeId = el.dataset.nodeId;
             const node = this.core.nodes.find(n => n.id === nodeId);
             if (node) {
-                const rect = el.getBoundingClientRect();
-                const canvasRect = document.getElementById('canvas').getBoundingClientRect();
-                const scale = this.ui.canvas.canvasScale;
                 nodes.push({
                     node,
                     el,
-                    x: (rect.left - canvasRect.left) / scale,
-                    y: (rect.top - canvasRect.top) / scale,
-                    width: rect.width / scale,
-                    height: rect.height / scale
+                    x: node.x,
+                    y: node.y,
+                    width: node.width || 200,
+                    height: node.height || 100
                 });
             }
         });

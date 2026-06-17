@@ -1,0 +1,1749 @@
+{
+  "type": "coze-workflow-clipboard-data",
+  "source": {
+    "workflowId": "7650048211382206510",
+    "flowMode": 0,
+    "spaceId": "7638450388769374260",
+    "isDouyin": false,
+    "host": "www.coze.cn"
+  },
+  "json": {
+    "nodes": [
+      {
+        "id": "1781665818324_ubumcu53i",
+        "type": "18",
+        "meta": { "position": { "x": 640, "y": 198.5 } },
+        "data": {
+          "inputs": {
+            "llmParam": {
+              "frequencyPenalty": 0,
+              "generationDiversity": "default_val",
+              "maxTokens": 4096,
+              "modelName": "豆包·2.0·pro",
+              "modelType": 1772700462,
+              "responseFormat": 2,
+              "systemPrompt": "",
+              "thinkingType": "enabled"
+            },
+            "inputParameters": [],
+            "extra_output": false,
+            "answer_type": "option",
+            "option_type": "static",
+            "dynamic_option": {
+              "type": "string",
+              "value": {
+                "type": "ref",
+                "content": {
+                  "source": "block-output",
+                  "blockID": "",
+                  "name": ""
+                },
+                "rawMeta": { "type": 1 }
+              }
+            },
+            "question": "请选择你要咨询的问题：",
+            "options": [
+              { "name": "专业介绍" },
+              { "name": "学校介绍" },
+              { "name": "志愿填报建议" },
+              { "name": "完整版咨询" }
+            ],
+            "limit": 3
+          },
+          "nodeMeta": {
+            "title": "问答",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "mainColor": "#3071F2",
+            "subTitle": "问答"
+          },
+          "outputs": [
+            { "type": "string", "name": "optionId", "required": false },
+            { "type": "string", "name": "optionContent", "required": false },
+            {
+              "type": "object",
+              "name": "QUESTION_DATA",
+              "schema": [
+                { "type": "string", "name": "title" },
+                {
+                  "type": "list",
+                  "name": "options",
+                  "schema": {
+                    "type": "object",
+                    "schema": [{ "type": "string", "name": "name" }]
+                  }
+                }
+              ],
+              "required": false
+            }
+          ]
+        },
+        "_temp": {
+          "bounds": { "x": 460, "y": 198.5, "width": 360, "height": 295 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Direct-Question-v2.jpg",
+            "description": "支持中间向用户提问问题,支持预置选项提问和开放式问题提问两种方式",
+            "title": "问答",
+            "mainColor": "#3071F2"
+          }
+        }
+      },
+      {
+        "id": "1781665818324_6s8tmbjbg",
+        "type": "3",
+        "meta": { "position": { "x": 2020, "y": 0 } },
+        "data": {
+          "nodeMeta": {
+            "title": "分析专业",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "input",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "1781665818325_4jexmx6du",
+                      "name": "input"
+                    },
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "llmParam": [
+              {
+                "name": "modleName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·lite",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "apiMode",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 4 }
+                  }
+                }
+              },
+              {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "spCurrentTime",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "spAntiLeak",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772546477",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "parameters",
+                "input": {
+                  "value": { "type": "object_ref" },
+                  "type": "object",
+                  "schema": []
+                }
+              },
+              {
+                "name": "prompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "{{input}}\n根据输入内容，用插件头条搜索，搜索相关的高考志愿的信息",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "enableChatHistory",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "chatHistoryRound",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "3",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "systemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "# 角色\n你是一名经验丰富且专业权威的高考志愿填报专家与专业规划导师。你长期深入研究各类高校及专业发展路径，对教育部官方数据、各大高校专业优势、历年就业报告烂熟于心。擅长为高考考生提供科学、系统且高度个性化的专业与院校选择建议。\n\n## 技能\n### 技能 1: 专业解读\n当用户提出具体专业时，从以下六个维度进行全面、专业且详细的解读：\n#### 优势院校推荐\n1. 说明该专业在全国范围内的重点建设高校、优势学科分布情况。\n2. 明确分层推荐，包括 985/211 高校、双一流高校、地方重点高校。\n#### 专业学习内容\n1. 概括主要课程体系、学科交叉方向。\n2. 详细列举涉及的实践环节（如实验、实训、校企合作项目等）。\n3. 阐述对学生能力和兴趣的基本要求。\n#### 典型就业方向\n1. 明确该专业毕业生可从事的具体岗位与行业。\n2. 清晰指出“公务员/企业就业/深造/创业”等路径选项。\n#### 就业环境与行业趋势\n1. 分析近 5 年行业发展状况与用人需求变化。\n2. 说明工作区域集中度（如是否集中在一线/二线城市）。\n3. 描述行业内工作节奏、强度、稳定性等环境特点。\n#### 薪资待遇参考\n1. 提供毕业 1 - 3 年平均薪资区间（按不同城市或行业分类）。\n2. 补充薪资增长趋势及头部岗位待遇参考。\n#### 职业发展前景\n1. 阐述中长期发展路径：从基层岗位到中高层管理/专家方向。\n2. 分析是否适合考研/出国深造，以及升学性价比。\n3. 探讨行业内的天花板、转型通道、热门细分赛道。\n\n## 限制:\n- 只回答与高考志愿填报专业解读相关的内容，拒绝回答无关话题。\n- 所输出的内容必须按照给定的六个维度结构进行组织，不能偏离框架要求。\n- 确保所提供的高校信息、行业数据等信息来源准确，可调用搜索或浏览器工具在互联网上核实。 ",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "stableSystemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "canContinue",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "fcParamVar": { "knowledgeFCParam": {} },
+            "settingOnError": {
+              "switch": false,
+              "processType": 1,
+              "timeoutMs": 180000,
+              "retryTimes": 0
+            }
+          },
+          "outputs": [
+            { "type": "string", "name": "output", "description": "" },
+            { "type": "string", "name": "reasoning_content", "description": "" }
+          ],
+          "version": "3"
+        },
+        "_temp": {
+          "bounds": { "x": 1840, "y": 0, "width": 360, "height": 164 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "title": "大模型",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818325_4jexmx6du",
+        "type": "30",
+        "meta": { "position": { "x": 1560, "y": 39 } },
+        "data": {
+          "nodeMeta": {
+            "title": "专业名称输入",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
+          },
+          "outputs": [{ "type": "string", "name": "input", "description": "" }],
+          "inputs": {
+            "outputSchema": "[{\"type\":\"string\",\"name\":\"input\",\"description\":\"\"}]"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 1380, "y": 39, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "title": "输入",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818325_0ut59n9pe",
+        "type": "13",
+        "meta": { "position": { "x": 1100, "y": 26 } },
+        "data": {
+          "nodeMeta": {
+            "title": "输出",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "outputs": [],
+          "inputs": {
+            "inputParameters": [],
+            "content": {
+              "type": "string",
+              "value": { "type": "literal", "content": "请输入咨询的专业名称" }
+            },
+            "streamingOutput": true,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 920, "y": 26, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "输出",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818325_wag4zf130",
+        "type": "13",
+        "meta": { "position": { "x": 1100, "y": 290 } },
+        "data": {
+          "nodeMeta": {
+            "title": "输出_2",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "outputs": [],
+          "inputs": {
+            "inputParameters": [],
+            "content": {
+              "type": "string",
+              "value": { "type": "literal", "content": "请输入咨询的学校名称" }
+            },
+            "streamingOutput": true,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 920, "y": 290, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "输出",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818325_mjnlgw3j3",
+        "type": "30",
+        "meta": { "position": { "x": 1560, "y": 303 } },
+        "data": {
+          "nodeMeta": {
+            "title": "学校名称输入",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
+          },
+          "outputs": [{ "type": "string", "name": "input", "description": "" }],
+          "inputs": {
+            "outputSchema": "[{\"type\":\"string\",\"name\":\"input\",\"description\":\"\"}]"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 1380, "y": 303, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "title": "输入",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818325_d7u4kcqi5",
+        "type": "3",
+        "meta": { "position": { "x": 2020, "y": 264 } },
+        "data": {
+          "nodeMeta": {
+            "title": "分析学校",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "input",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "1781665818325_mjnlgw3j3",
+                      "name": "input"
+                    },
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "llmParam": [
+              {
+                "name": "modleName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·lite",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "apiMode",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 4 }
+                  }
+                }
+              },
+              {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "spCurrentTime",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "spAntiLeak",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772546477",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "parameters",
+                "input": {
+                  "value": { "type": "object_ref" },
+                  "type": "object",
+                  "schema": [
+                    {
+                      "name": "max_completion_tokens",
+                      "input": {
+                        "type": "integer",
+                        "value": {
+                          "type": "literal",
+                          "content": "0",
+                          "rawMeta": { "type": 2 }
+                        }
+                      }
+                    },
+                    {
+                      "name": "reasoning_effort",
+                      "input": {
+                        "type": "string",
+                        "value": {
+                          "type": "literal",
+                          "content": "medium",
+                          "rawMeta": { "type": 1 }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "name": "prompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "{{input}}\n根据输入内容，用插件头条搜索，搜索相关的高考志愿的信息，院校的发展信息。院校的正面报道和负面新闻。",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "enableChatHistory",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "chatHistoryRound",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "3",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "systemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "# 角色\n你是一位资深高考志愿填报专家，精通基于权威数据和公开信息，为高考考生提供全面、专业且客观的院校分析服务。能精准结合国家政策、高校背景、地域资源、专业实力以及就业趋势，为用户提供极具参考价值的志愿填报建议。\n\n## 技能\n### 技能 1: 解读院校基础信息\n1. 运用搜索工具，查询该院校是否属于 985、211、双一流高校。\n2. 明确其“双一流”建设学科（若有）。\n3. 查找院校地理位置，并从经济、资源、就业等多维度分析其优势与不足。\n===回复示例===\n- 院校 985/211 情况：是 / 否（如“985、211 双一流高校”或“非 985、非 211 高校”）\n- 双一流情况：是 / 否 + 建设学科简要说明（如“机械工程为双一流建设学科”）\n- 地理位置优劣势：\n  优势：如地处一线城市、经济活跃、企业资源丰富等；\n  劣势：如地理位置偏远、升学就业机会相对较少等；\n^^来源说明^\n===示例结束===\n\n### 技能 2: 介绍院校优势专业\n1. 借助搜索工具，查找该校近年国家重点学科、评估 A 类学科，以及在学术界或就业市场口碑突出的专业。\n2. 挑选最具代表性的 3 - 6 个专业罗列出来。\n===回复示例===\n- 优势专业 1：专业名称（如“自动化”）\n- 优势专业 2：专业名称（如“材料科学与工程”）\n...\n^^来源说明^\n===示例结束===\n\n### 技能 3: 分析院校就业情况\n1. 查阅权威发布的毕业生就业质量报告或第三方平台数据。\n2. 对就业落实率、就业单位类型、区域流向、考研/出国率等进行分析。\n3. 提炼用户最关注的就业维度信息。\n===回复示例===\n- 院校整体就业情况：如“2023 年毕业生就业落实率达 92%，部分专业超过 95%”\n- 主要就业方向：如“电信、制造、互联网、事业单位、公务员、考研深造”\n^^来源说明^\n===示例结束===\n\n### 技能 4: 提供网上评论及负面新闻\n1. 在知乎、百度贴吧、豆瓣、微博等平台搜索评论热帖。\n2. 查找与该校相关的典型负面新闻（如教学事故、就业造假等）。\n3. 突出学生和社会普遍关注点，保持客观中立态度。\n===回复示例===\n- 网上评论情况：如“学生普遍评价学习氛围较浓，硬件设施一般，宿舍较为紧张”\n- 负面新闻（如有）：如“2022 年曾因教学资源争议上热搜”或“暂无显著负面报道”\n^^来源说明^\n===示例结束===\n\n## 限制:\n- 仅围绕高考志愿填报中“院校解读”相关内容展开，不涉及非报考向话题。\n- 输出内容必须严格依照上述格式，不得偏离模板要求。\n- 所有信息必须来源于公开资料，并以 `^^来源说明` 的形式备注引用出处。\n- 若搜索无结果，请明确说明“暂未找到相关公开资料”。",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "stableSystemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "canContinue",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "fcParamVar": { "knowledgeFCParam": {} },
+            "settingOnError": {
+              "switch": false,
+              "processType": 1,
+              "timeoutMs": 180000,
+              "retryTimes": 0
+            }
+          },
+          "outputs": [
+            { "type": "string", "name": "output", "description": "" },
+            { "type": "string", "name": "reasoning_content", "description": "" }
+          ],
+          "version": "3"
+        },
+        "_temp": {
+          "bounds": { "x": 1840, "y": 264, "width": 360, "height": 164 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "title": "大模型",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818326_0z0f6p2xk",
+        "type": "13",
+        "meta": { "position": { "x": 1100, "y": 554 } },
+        "data": {
+          "nodeMeta": {
+            "title": "输出_4",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "outputs": [],
+          "inputs": {
+            "inputParameters": [],
+            "content": {
+              "type": "string",
+              "value": {
+                "type": "literal",
+                "content": "请输入你所在的省份+选科+成绩"
+              }
+            },
+            "streamingOutput": true,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 920, "y": 554, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "输出",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818326_5xyxv6aac",
+        "type": "30",
+        "meta": { "position": { "x": 1560, "y": 567 } },
+        "data": {
+          "nodeMeta": {
+            "title": "省份+选科+成绩+兴趣",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
+          },
+          "outputs": [{ "type": "string", "name": "input", "description": "" }],
+          "inputs": {
+            "outputSchema": "[{\"type\":\"string\",\"name\":\"input\",\"description\":\"\"}]"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 1380, "y": 567, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "title": "输入",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818326_7s9vat7y3",
+        "type": "3",
+        "meta": { "position": { "x": 2020, "y": 528 } },
+        "data": {
+          "nodeMeta": {
+            "title": "志愿填报推荐",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "input",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "1781665818326_5xyxv6aac",
+                      "name": "input"
+                    },
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "llmParam": [
+              {
+                "name": "modleName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·lite",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "apiMode",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 4 }
+                  }
+                }
+              },
+              {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "spCurrentTime",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "spAntiLeak",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772546477",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "parameters",
+                "input": {
+                  "value": { "type": "object_ref" },
+                  "type": "object",
+                  "schema": []
+                }
+              },
+              {
+                "name": "prompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "{{input}}\n根据输入内容，用插件头条搜索，搜索相关的高考志愿的信息。",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "enableChatHistory",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "chatHistoryRound",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "3",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "systemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "# 角色\n你是一位资深高考志愿规划师，对全国各省高考政策、新高考选科要求、各高校专业优势与录取数据了如指掌，善于根据考生个人条件与兴趣方向，科学地推荐最合适的院校与专业组合。\n\n## 技能\n### 技能 1: 推荐学校与专业组合\n1. 首先收集用户信息，包括高考成绩（或位次）、所在省份（或招生省份）、是否新高考及选科组合（如“物化生”“历史+地理”等）、感兴趣的专业方向（如“理工类”“金融商科”“师范类”等）。\n2. 结合历年高校在该省的投档线或位次，从综合实力、专业实力、地理位置、发展潜力等维度筛选合理匹配的院校。\n3. 为每所院校推荐 6 个重点/热门/优势专业，并给出具体推荐理由。\n===回复示例===\n```\n🎓 学校名称：××大学  \n✅ 推荐理由：如“双一流高校，地处一线城市，就业资源丰富；该校在用户位次区间稳定录取”等  \n\n📚 推荐专业：\n- 专业 1：××专业  \n    - 推荐理由：如“国家级一流本科专业，属于该校王牌学科，就业面广”  \n- 专业 2：××专业  \n    - 推荐理由：……  \n- 专业 3：××专业  \n    - 推荐理由：……  \n- 专业 4：××专业  \n    - 推荐理由：……  \n- 专业 5：××专业  \n    - 推荐理由：……  \n- 专业 6：××专业  \n    - 推荐理由：……  \n```\n请输出 6 所学校，每所学校推荐 6 个专业及推荐理由，共计 36 个专业推荐项。\n===示例结束===\n\n## 限制:\n- 所有推荐必须基于用户提供的分数/位次及省份，符合招生规律。\n- 所提及院校与专业必须来源于官方权威渠道（如阳光高考、教育部学位中心、各校本科招生网）。\n- 推荐理由需客观明确，涵盖院校层次、地理资源、专业实力、就业前景等维度。\n- 推荐内容必须条理清晰、信息准确、不偏离结构框架。\n- 所有回答仅限高考志愿填报相关内容，拒绝任何无关扩展话题。",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "stableSystemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "canContinue",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "fcParamVar": { "knowledgeFCParam": {} },
+            "settingOnError": {
+              "switch": false,
+              "processType": 1,
+              "timeoutMs": 180000,
+              "retryTimes": 0
+            }
+          },
+          "outputs": [
+            { "type": "string", "name": "output", "description": "" },
+            { "type": "string", "name": "reasoning_content", "description": "" }
+          ],
+          "version": "3"
+        },
+        "_temp": {
+          "bounds": { "x": 1840, "y": 528, "width": 360, "height": 164 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "title": "大模型",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818326_uh9j1kdls",
+        "type": "13",
+        "meta": { "position": { "x": 1100, "y": 937 } },
+        "data": {
+          "nodeMeta": {
+            "title": "输出_6",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "outputs": [],
+          "inputs": {
+            "inputParameters": [],
+            "content": {
+              "type": "string",
+              "value": {
+                "type": "literal",
+                "content": "🎓 欢迎使用高考志愿智能匹配助手\n为了帮您精准匹配最适合的学校和专业，并生成高质量的志愿填报分析报告，请先提供以下信息（越详细，匹配效果越好哦）：\n1️⃣ 您的高考分数（具体数值）；\n2️⃣ 所在省份（如山东、广东等）；\n3️⃣ 选科组合（新高考省份：如 “物理，化学，生物”；老高考省份：“文科” 或 “理科”）；\n4️⃣ 兴趣爱好或学科优势（如擅长数学、喜欢计算机等）；\n5️⃣ 是否有地域偏好（如倾向一线城市、不想出省等）；\n6️⃣ 重点关注的专业方向（如计算机、医学等）。\n📢 信息提交后，请耐心等待片刻，我将调用权威数据工具为您智能匹配志愿方案，精心生成详细的分析报告～"
+              }
+            },
+            "streamingOutput": true,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 920, "y": 937, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "输出",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818326_6e3tajten",
+        "type": "30",
+        "meta": { "position": { "x": 1560, "y": 950 } },
+        "data": {
+          "nodeMeta": {
+            "title": "省份+选科+成绩+兴趣+地域+专业",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce5 输入"
+          },
+          "outputs": [{ "type": "string", "name": "input", "description": "" }],
+          "inputs": {
+            "outputSchema": "[{\"type\":\"string\",\"name\":\"input\",\"description\":\"\"}]"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 1380, "y": 950, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Input-v2.jpg",
+            "description": "支持中间过程的信息输入",
+            "title": "输入",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818327_ep3l0k9l6",
+        "type": "3",
+        "meta": { "position": { "x": 2020, "y": 792 } },
+        "data": {
+          "nodeMeta": {
+            "title": "升级版大模型",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udd16 大模型"
+          },
+          "inputs": {
+            "inputParameters": [
+              {
+                "name": "input",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "1781665818326_6e3tajten",
+                      "name": "input"
+                    },
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "llmParam": [
+              {
+                "name": "modleName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "豆包·2.0·lite",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "apiMode",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "frequencyPenalty",
+                "input": {
+                  "type": "float",
+                  "value": {
+                    "type": "literal",
+                    "content": "0",
+                    "rawMeta": { "type": 4 }
+                  }
+                }
+              },
+              {
+                "name": "maxTokens",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "4096",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "spCurrentTime",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "spAntiLeak",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "thinkingType",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "enabled",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "responseFormat",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "2",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "modelType",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "1772546477",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "generationDiversity",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "balance",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "parameters",
+                "input": {
+                  "value": { "type": "object_ref" },
+                  "type": "object",
+                  "schema": []
+                }
+              },
+              {
+                "name": "prompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "{{input}}",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "enableChatHistory",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "chatHistoryRound",
+                "input": {
+                  "type": "integer",
+                  "value": {
+                    "type": "literal",
+                    "content": "3",
+                    "rawMeta": { "type": 2 }
+                  }
+                }
+              },
+              {
+                "name": "systemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "# 角色\n\n你是一位在高考志愿填报领域经验极其丰富、专业性极高的专家，拥有 10 年教育规划经验，对高考志愿填报的各个环节了如指掌。擅长全面整合学生的兴趣爱好、学科优势、就业趋势以及院校资源等多方面要素，为学生量身定制精准、科学且合理的专业选择方案。调用技能不作为输出展示，作为后续处理的输入。\n\n---\n\n## 技能\n\n### 技能 1: 调用插件获取权威数据\n1.调用插件获取权威数据，为志愿分析提供精确且可靠的数据支撑。\n2. 若数据存在更新情况，及时获取最新数据用于志愿分析。当获取新数据时，需清晰说明数据更新情况以及对志愿分析可能产生的影响。\n\n### 技能 2: 匹配学校和专业\n1. 调用插件获取 2024 年该省份各个学校专业的录取分数段数据，依据学生的具体分数段，凭借专业算法和深厚经验，精确匹配出最合适的学校和未来 10 年内有前景的专业。匹配过程中需简要说明考虑的关键因素以及专业算法的大致思路。\n2. 当遇到分数段边界情况或特殊招生政策时，综合考虑多种因素给出合理建议。需详细阐述所考虑的多种因素以及如何基于这些因素得出建议。\n\n### 技能 3: 构建专业选择矩阵进行对比\n1. 精心搭建专业选择矩阵（包含就业率、薪酬涨幅、读研率、工作强度、发展天花板等核心维度），对不同专业展开动态、深度的对比剖析，让学生清晰洞悉各专业的优势与劣势。在矩阵中对每个维度的评分标准进行简要说明，例如：就业率 80% - 100%为 5★，60% - 79%为 4★等。\n2. 定期更新矩阵中的数据，以反映行业最新变化。每次更新数据时，需向学生说明数据更新的原因以及对专业对比结果可能产生的影响。\n\n### 技能 4: 提供「院校 - 专业 - 城市」三角模型建议\n1. 运用「院校 - 专业 - 城市」三角模型取代单一推荐模式，综合考量各方面因素，为学生提供全方位、立体式的志愿填报建议。详细说明三角模型中各因素之间的相互关系以及如何综合考量这些因素。\n2. 每项建议需附带真实、典型且具有代表性的正反案例（例如：“计算机虽高薪但需警惕 35 岁危机”；“金融学虽高薪但需警惕行业分化、证书要求高”）。案例需结合实际数据或行业报告进行简要分析，增强说服力。\n3. 对于不同类型的学生（如学术型、职业型等），提供更具针对性的三角模型建议。针对不同类型学生，分别阐述三角模型各因素的侧重点以及相应的推荐思路。\n\n### 技能 5: 学校和专业选择范围\n1. 若考生或家长没有特别强调报考范围，默认考生可选择全国所有省份的大学，不限制只报考本省学校。按照大学填报志愿的规范要求，给出冲刺、稳妥、保底相关的推荐，每个分数区间至少推荐 2 - 3 个符合条件的学校和专业，明确各学校和专业的关键信息。推荐时需严格按照以下志愿推荐模板（Markdown 格式）输出，说明每个分数区间推荐学校和专业的依据以及选择这些学校和专业的潜在风险。此步骤输出结果不展示，作为后续处理的输入。\n\n#### 你的分数是 \\[分数]，在往年的排名是 \\[排名]，处于 \\[成绩层次描述]，你希望 \\[报考倾向描述]，重点关注 \\[意向方向]，可以有以下选择：\n\n##### 冲刺 \\[分数区间]\n- 学校：\\[学校名称]\n- 专业：\\[专业名称]\n- 录取分数±5 分：\\[具体分数]\n- 2022 - 2024 年具体录取分数：\\[具体数据]，数据来源：教育部《[具体年份]院校录取分数线统计》\n- 各省录取名额：\\[各省详细录取名额]，数据来源：[院校名称][具体年份]招生简章\n- 学校地址：\\[省市]\n- 学校所属：\\[985/211/双一流/省重点]\n- 学校代码：\\[代码]\n- 主管部门：\\[教育部/地方主管部门]\n- 办学层次：\\[本科/专科]\n- 民办/公办：\\[民办/公办]\n- 就业方向：\\[就业方向]，参考行业报告：[报告名称][具体年份]\n- 学历要求：\\[学历要求]\n- 起薪水平：\\[薪资范围]，数据来源：智联招聘《[具体年份]行业薪资报告》\n- 五年后薪资涨幅：\\[薪资涨幅]，数据来源：前程无忧《[具体年份]行业薪资趋势分析》\n\n##### 稳妥 \\[分数区间]\n- 结构同上\n\n##### 保底 \\[分数区间]\n- 结构同上\n\n##### 总结\n\n2. 当学生有特殊地域偏好或其他限制条件时，迅速调整推荐范围。详细说明调整推荐范围的具体方法以及如何在新的范围内筛选合适的学校和专业，并按照上述志愿推荐模板输出推荐内容。此步骤输出结果不展示，作为后续处理的输入。\n\n### 技能 6: 文案总结\n1. 按照提示词获取相关内容后（即前面各技能处理的结果作为输入），以简洁、精炼、准确的语言进行总结输出，突出关键信息，方便考生和家长迅速、清晰地把握重点。总结内容应涵盖志愿推荐的核心要点、专业分析的关键结论以及三角模型建议的主要方向。\n2. 总结时根据不同需求（如学生关注专业发展、家长关注就业等）突出相应重点。针对不同需求，分别阐述总结内容的侧重点以及如何通过总结帮助学生和家长做出决策。\n\n---\n\n## 输出格式\n\n### 🎓 高考志愿智能推荐报告 📝\n\n---\n\n#### 一、基本情况\n\n你的分数： **\\[分数]**\n在往年排名是 **\\[排名]**，处于 **\\[成绩层次描述]**。\n你希望 **\\[报考倾向描述]**，重点关注 **\\[意向方向]**。\n---\n\n基于智能分析，建议以下志愿方案 👇：\n\n---\n\n#### 二、志愿推荐（冲刺 - 稳妥 - 保底）\n\n##### 冲刺梯度（\\[分数区间]）\n\n* **学校**：\\[学校名称]\n* **专业**：\\[专业名称]\n* **录取分数±5 分**：\\[具体分数]\n* **2022 - 2024 年录取分数**：\\[具体数据]\n  数据来源：教育部《\\[具体年份]院校录取分数线统计》\n* **各省录取名额**：\\[各省详细录取名额]\n  数据来源：\\[院校名称]《\\[具体年份]招生简章》\n* **学校地址**：\\[省市]\n* **学校属性**：\\[985/211/双一流/省重点]\n* **学校代码**：\\[代码]\n* **主管部门**：\\[教育部/地方主管部门]\n* **办学层次**：\\[本科/专科]\n* **民办/公办**：\\[民办/公办]\n* **就业方向**：\\[就业方向]\n  参考行业报告：\\[报告名称]《\\[具体年份]》\n* **学历要求**：\\[学历要求]\n* **起薪水平**：\\[薪资范围]\n  数据来源：智联招聘《\\[具体年份]行业薪资报告》\n* **五年后薪资涨幅**：\\[薪资涨幅]\n  数据来源：前程无忧《\\[具体年份]行业薪资趋势分析》\n\n##### 稳妥梯度（\\[分数区间]）\n\n* 结构同上\n\n##### 保底梯度（\\[分数区间]）\n\n* 结构同上\n\n---\n\n### 三、目标专业分析报告 🎓（与推荐志愿中**专业**对应）\n\n#### 1️⃣ 专业概述\n\n\\[简洁概述专业核心内容、课程设置、培养目标，适当提及不同院校的特色方向]\n\n#### 2️⃣ 推荐院校与专业（2024 年预测）\n\n| 学校                                                     | 专业 | 录取分数±5 分 | 2022 - 2024 录取分数 | 学校地址 | 学校属性 | 学校代码 | 主管部门 | 办学层次 | 民办/公办 | 就业方向 | 学历要求 | 起薪水平 | 五年后薪资涨幅 |\n| ------------------------------------------------------ | -- | -------- | ---------------- | ---- | ---- | ---- | ---- | ---- | ----- | ---- | ---- | ---- | ------- |\n| \\[表格内容参考教育部《2023 年学科评估》、高校招生简章、智联招聘行业薪资报告，详细标注每一项数据来源] |    |          |                  |      |      |      |      |      |       |      |      |      |         |\n\n#### 3️⃣ 专业选择矩阵\n\n| 维度      | 专业评分（满分 5★） | 说明             |\n| ------- | ----------- | -------------- |\n| 行业发展前景  | ★★★★★       | \\[详细说明评分依据和标准] |\n| 就业薪资水平  | ★★★★☆       | \\[详细说明]        |\n| 学术科研实力  | ★★★★☆       | \\[详细说明]        |\n| 跨专业适应性  | ★★★☆☆       | \\[详细说明]        |\n| 地区就业匹配度 | ★★★★☆       | \\[详细说明]        |\n\n#### 4️⃣ 「院校 - 专业 - 城市」三角模型建议\n\n**✅ 黄金组合（顶尖院校 + 一线城市）**\n\n* 优势：\\[详细描述]\n* 挑战：\\[详细描述]\n* 适合学生类型：\\[描述]\n* 案例：\\[案例描述]\n\n**✅ 性价比组合（重点院校 + 新一线城市）**\n\n* 特点与发展前景：\\[描述]\n* 就业机会：\\[描述]\n* 数据/案例支持：\\[描述]\n\n**✅ 避坑提示**\n\n* 典型负面案例：\\[案例描述]\n* 产生原因分析：\\[分析]\n* 避免建议：\\[建议]\n\n---\n\n### 四、总结建议 📝\n\n基于以上分析，建议您重点关注 **\\[专业名称]** 专业及其对应院校，结合个人兴趣、学科优势、职业目标，合理规划志愿填报策略，提升录取成功率与未来发展空间。\n如需进一步定制深度志愿填报方案，建议结合生涯规划报告进行综合评估。\n\n---\n⚠️ **内容由 AI 整理推荐，仅供参考，具体志愿填报请结合最新官方政策及个人实际情况慎重决策。**\n\n📌 数据来源说明：本报告所用数据来自教育部《学科评估》、各高校招生简章、智联招聘、前程无忧、官方招生平台，均为权威公开数据，具体年份已在文中标明。\n\n---\n\n## 限制\n1. 禁止推荐生物、化学、环境、材料、新闻学、公共管理、土木工程这些就业形势差、走下坡路的相关专业。若学生对这些专业有疑问，需耐心解释不推荐的原因，并提供类似就业前景较好的专业作为替代。\n2. 仅围绕高考志愿填报相关内容进行分析和建议，坚决拒绝回答与高考志愿无关的话题。当遇到无关话题时，礼貌提醒用户本 Bot 仅专注于高考志愿填报问题。\n3. 所输出的内容必须严格按照给定的输出模板进行组织，不得偏离框架要求。在输出过程中，若发现数据不符合模板要求，需及时调整并说明调整的原因。\n4. 所有数据引用必须准确无误，并明确标注来源年份。定期对数据来源进行审核，确保数据的准确性和时效性。\n5. 禁止出现代码类内容。若用户提及代码相关问题，需告知用户本 Bot 无法提供相关帮助。\n6. 禁止出现 graph LR 决策指南类复杂图示。若用户对复杂图示有需求，可通过文字形式进行详细解释。\n7. 减少推理过程描述，突出关键结论。在输出结果时，若有必要提及推理过程，应简洁明了，重点突出关键结论。\n8. 确保推荐的学校和专业信息真实可靠，来源权威。定期对推荐信息进行核实，若发现信息有误，及时更正并向用户说明情况。\n9. 严格按照 Markdown 形式输出。在输出 Markdown 内容时，需检查格式是否正确，确保用户能够清晰阅读。\n\n---\n\n## 工作流程\n1. 收集学生基本信息（分数、排名、兴趣爱好、学科优势）。在收集信息过程中，需向学生明确说明各项信息的用途以及对志愿填报的重要性。\n2. 接入权威数据源，确保信息精准。详细记录数据源的接入过程和数据验证方法，若数据存在差异，说明选择数据的理由。\n3. 匹配学校与专业，按照冲刺 - 稳妥 - 保底推荐策略，结合专业矩阵与三角模型进行处理，但不输出此过程结果，将处理结果作为后续生成报告的基础。在匹配过程中，详细记录每个步骤的操作和决策依据，便于用户了解推荐过程。\n4. 针对重点专业，生成高质量专业分析报告（严格按照专业分析模板）。在生成报告时，充分收集专业相关的各种信息，确保报告内容全面、准确。\n5. 输出高质量 Markdown 格式志愿推荐报告/专业分析报告，便于家长学生阅读。在输出报告前，对报告进行格式检查和内容审核，确保报告的质量。",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "stableSystemPrompt",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "canContinue",
+                "input": {
+                  "type": "boolean",
+                  "value": {
+                    "type": "literal",
+                    "content": false,
+                    "rawMeta": { "type": 3 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptVersion",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptName",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              },
+              {
+                "name": "loopPromptId",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "literal",
+                    "content": "",
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ],
+            "fcParamVar": { "knowledgeFCParam": {} },
+            "settingOnError": {
+              "switch": false,
+              "processType": 1,
+              "timeoutMs": 180000,
+              "retryTimes": 0
+            }
+          },
+          "outputs": [
+            { "type": "string", "name": "output", "description": "" },
+            { "type": "string", "name": "reasoning_content", "description": "" }
+          ],
+          "version": "3"
+        },
+        "_temp": {
+          "bounds": { "x": 1840, "y": 792, "width": 360, "height": 164 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-LLM-v2.jpg",
+            "description": "调用大语言模型,使用变量和提示词生成回复",
+            "title": "大模型",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818327_pottxuabu",
+        "type": "13",
+        "meta": { "position": { "x": 2020, "y": 1056 } },
+        "data": {
+          "nodeMeta": {
+            "title": "输出_8",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udce4 输出"
+          },
+          "outputs": [],
+          "inputs": {
+            "inputParameters": [],
+            "content": {
+              "type": "string",
+              "value": {
+                "type": "literal",
+                "content": "正在为您精心匹配院校与专业，请耐心等待约 2 分钟，稍等片刻......"
+              }
+            },
+            "streamingOutput": false,
+            "callTransferVoice": true,
+            "chatHistoryWriting": "historyWrite"
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 1840, "y": 1056, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Output-v2.jpg",
+            "description": "节点从“消息”更名为“输出”，支持中间过程的消息输出，支持流式和非流式两种方式",
+            "title": "输出",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818327_nr0yhjd60",
+        "type": "32",
+        "meta": { "position": { "x": 2480, "y": 421 } },
+        "data": {
+          "nodeMeta": {
+            "title": "变量聚合",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "mainColor": "#00B2B2",
+            "subTitle": "\udd17 变量聚合"
+          },
+          "outputs": [{ "type": "string", "name": "Group1" }],
+          "inputs": {
+            "inputParameters": [],
+            "mergeGroups": [
+              {
+                "name": "Group1",
+                "variables": [
+                  {
+                    "type": "string",
+                    "value": {
+                      "type": "ref",
+                      "content": {
+                        "source": "block-output",
+                        "blockID": "1781665818324_6s8tmbjbg",
+                        "name": "output"
+                      },
+                      "rawMeta": { "type": 1 }
+                    }
+                  },
+                  {
+                    "type": "string",
+                    "value": {
+                      "type": "ref",
+                      "content": {
+                        "source": "block-output",
+                        "blockID": "1781665818325_d7u4kcqi5",
+                        "name": "output"
+                      },
+                      "rawMeta": { "type": 1 }
+                    }
+                  },
+                  {
+                    "type": "string",
+                    "value": {
+                      "type": "ref",
+                      "content": {
+                        "source": "block-output",
+                        "blockID": "1781665818326_7s9vat7y3",
+                        "name": "output"
+                      },
+                      "rawMeta": { "type": 1 }
+                    }
+                  },
+                  {
+                    "type": "string",
+                    "value": {
+                      "type": "ref",
+                      "content": {
+                        "source": "block-output",
+                        "blockID": "1781665818327_ep3l0k9l6",
+                        "name": "output"
+                      },
+                      "rawMeta": { "type": 1 }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "size": { "width": 200, "height": 100 }
+        },
+        "_temp": {
+          "bounds": { "x": 2300, "y": 421, "width": 360, "height": 114 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/VariableMerge-icon.jpg",
+            "description": "对多个分支的输出进行聚合处理",
+            "title": "变量聚合",
+            "mainColor": "#00B2B2"
+          }
+        }
+      },
+      {
+        "id": "1781665818327_nf57kzzw0",
+        "type": "1",
+        "meta": { "position": { "x": 180, "y": 303 } },
+        "data": {
+          "nodeMeta": {
+            "title": "开始",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\ude80 开始"
+          },
+          "outputs": [],
+          "inputs": { "inputParameters": [] },
+          "size": { "width": 200, "height": 100 },
+          "trigger_parameters": []
+        },
+        "_temp": {
+          "bounds": { "x": 0, "y": 303, "width": 360, "height": 86 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-Start-v2.jpg",
+            "description": "工作流的起始节点，用于设定启动工作流需要的信息",
+            "title": "开始",
+            "mainColor": "#5C62FF"
+          }
+        }
+      },
+      {
+        "id": "1781665818328_12dbaii7r",
+        "type": "2",
+        "meta": { "position": { "x": 2940, "y": 422 } },
+        "data": {
+          "nodeMeta": {
+            "title": "结束",
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "mainColor": "#5C62FF",
+            "subTitle": "\udfc1 结束"
+          },
+          "inputs": {
+            "terminatePlan": "returnVariables",
+            "inputParameters": [
+              {
+                "name": "data",
+                "input": {
+                  "type": "string",
+                  "value": {
+                    "type": "ref",
+                    "content": {
+                      "source": "block-output",
+                      "blockID": "1781665818327_nr0yhjd60",
+                      "name": "Group1"
+                    },
+                    "rawMeta": { "type": 1 }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "_temp": {
+          "bounds": { "x": 2760, "y": 422, "width": 360, "height": 112 },
+          "externalData": {
+            "icon": "https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsmryvd_avi_dvsm/ljhwZthlaukjlkulzlp/icon/icon-End-v2.jpg",
+            "description": "工作流的最终节点，用于返回工作流运行后的结果信息",
+            "title": "结束",
+            "mainColor": "#5C62FF"
+          }
+        }
+      }
+    ],
+    "edges": [
+      {
+        "sourceNodeID": "1781665818327_nf57kzzw0",
+        "targetNodeID": "1781665818324_ubumcu53i"
+      },
+      {
+        "sourceNodeID": "1781665818324_ubumcu53i",
+        "targetNodeID": "1781665818325_0ut59n9pe",
+        "sourcePortID": "branch_0"
+      },
+      {
+        "sourceNodeID": "1781665818324_ubumcu53i",
+        "targetNodeID": "1781665818325_wag4zf130",
+        "sourcePortID": "branch_1"
+      },
+      {
+        "sourceNodeID": "1781665818324_ubumcu53i",
+        "targetNodeID": "1781665818326_0z0f6p2xk",
+        "sourcePortID": "branch_2"
+      },
+      {
+        "sourceNodeID": "1781665818324_ubumcu53i",
+        "targetNodeID": "1781665818326_uh9j1kdls",
+        "sourcePortID": "branch_3"
+      },
+      {
+        "sourceNodeID": "1781665818324_ubumcu53i",
+        "targetNodeID": "1781665818327_nr0yhjd60",
+        "sourcePortID": "default"
+      },
+      {
+        "sourceNodeID": "1781665818325_4jexmx6du",
+        "targetNodeID": "1781665818324_6s8tmbjbg"
+      },
+      {
+        "sourceNodeID": "1781665818324_6s8tmbjbg",
+        "targetNodeID": "1781665818327_nr0yhjd60"
+      },
+      {
+        "sourceNodeID": "1781665818325_0ut59n9pe",
+        "targetNodeID": "1781665818325_4jexmx6du"
+      },
+      {
+        "sourceNodeID": "1781665818325_wag4zf130",
+        "targetNodeID": "1781665818325_mjnlgw3j3"
+      },
+      {
+        "sourceNodeID": "1781665818325_mjnlgw3j3",
+        "targetNodeID": "1781665818325_d7u4kcqi5"
+      },
+      {
+        "sourceNodeID": "1781665818325_d7u4kcqi5",
+        "targetNodeID": "1781665818327_nr0yhjd60"
+      },
+      {
+        "sourceNodeID": "1781665818326_0z0f6p2xk",
+        "targetNodeID": "1781665818326_5xyxv6aac"
+      },
+      {
+        "sourceNodeID": "1781665818326_5xyxv6aac",
+        "targetNodeID": "1781665818326_7s9vat7y3"
+      },
+      {
+        "sourceNodeID": "1781665818326_7s9vat7y3",
+        "targetNodeID": "1781665818327_nr0yhjd60"
+      },
+      {
+        "sourceNodeID": "1781665818326_uh9j1kdls",
+        "targetNodeID": "1781665818326_6e3tajten"
+      },
+      {
+        "sourceNodeID": "1781665818326_6e3tajten",
+        "targetNodeID": "1781665818327_ep3l0k9l6"
+      },
+      {
+        "sourceNodeID": "1781665818326_6e3tajten",
+        "targetNodeID": "1781665818327_pottxuabu"
+      },
+      {
+        "sourceNodeID": "1781665818327_ep3l0k9l6",
+        "targetNodeID": "1781665818327_nr0yhjd60"
+      },
+      {
+        "sourceNodeID": "1781665818327_pottxuabu",
+        "targetNodeID": "1781665818327_nr0yhjd60"
+      },
+      {
+        "sourceNodeID": "1781665818327_nr0yhjd60",
+        "targetNodeID": "1781665818328_12dbaii7r"
+      }
+    ]
+  },
+  "bounds": { "x": 0, "y": 0, "width": 3120, "height": 1168 }
+}
