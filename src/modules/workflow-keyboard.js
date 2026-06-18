@@ -35,7 +35,7 @@ export class WorkflowKeyboard {
      */
     handleKeydown(e) {
         const activeEl = document.activeElement;
-        const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA';
+        const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
         const isContentEditable = activeEl.isContentEditable;
         const isModalOpen = document.querySelector('.node-editor-modal') !== null;
 

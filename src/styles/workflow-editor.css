@@ -206,9 +206,16 @@ body {
 }
 
 .canvas-node.search-highlight {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
     z-index: 100;
+    box-shadow: 0 0 12px rgba(92, 98, 255, 0.5);
+    animation: searchPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes searchPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(92, 98, 255, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(92, 98, 255, 0.8); }
 }
 
 .container {

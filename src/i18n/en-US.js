@@ -304,7 +304,16 @@ export const enUS = {
         defaultFlow1Prompt: 'Please generate a friendly welcome message',
         defaultFlow2Name: 'Image Generation Flow',
         defaultFlow2Desc: 'Generate images from text descriptions',
-        defaultFlow2Prompt: 'A cute kitten playing on the grass'
+        defaultFlow2Prompt: 'A cute kitten playing on the grass',
+        searchPlaceholder: 'Search workflows...',
+        sortByUpdatedDesc: 'Recently Updated',
+        sortByUpdatedAsc: 'Oldest Updated',
+        sortByNameAsc: 'Name A-Z',
+        sortByNameDesc: 'Name Z-A',
+        sortByCreatedDesc: 'Recently Created',
+        sortByCreatedAsc: 'Oldest Created',
+        noSearchResults: 'No matching workflows',
+        tryDifferentSearch: 'Try a different search term'
     },
     history: {
         undoSuccess: 'Undo successful',
@@ -453,6 +462,8 @@ export const enUS = {
         savedWorkflowCleared: 'Saved workflow cleared',
         workflowExported: 'Workflow exported successfully',
         shareLinkCopied: 'Share link copied to clipboard',
+        shareLinkTooLong: 'Share link is {length} characters, which may exceed browser limits. Continue anyway?',
+        shareLinkTitle: 'Share Link Warning',
         canvasCleared: 'Canvas Cleared',
         clearCanvasConfirm: 'Are you sure you want to clear the canvas?',
         clearCanvasTitle: 'Clear Canvas',

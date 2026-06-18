@@ -125,6 +125,8 @@ export class WorkflowManager {
         this.elements.templateModalOverlay = document.getElementById('templateModalOverlay');
         this.elements.templateModalClose = document.getElementById('templateModalClose');
         this.elements.templateGrid = document.getElementById('templateGrid');
+        this.elements.workflowSearch = document.getElementById('workflowSearch');
+        this.elements.workflowSort = document.getElementById('workflowSort');
     }
 
     loadWorkflows() {
@@ -194,6 +196,14 @@ export class WorkflowManager {
         this.elements.btnTemplates.addEventListener('click', () => this.openTemplateModal());
         this.elements.templateModalClose.addEventListener('click', () => this.closeTemplateModal());
         this.elements.templateGrid.addEventListener('click', (e) => this.handleTemplateClick(e));
+        
+        // 搜索和排序
+        if (this.elements.workflowSearch) {
+            this.elements.workflowSearch.addEventListener('input', () => this.renderWorkflowList());
+        }
+        if (this.elements.workflowSort) {
+            this.elements.workflowSort.addEventListener('change', () => this.renderWorkflowList());
+        }
         
         // 导航按钮
         const navConverterBtn = document.getElementById('navConverterBtn');
@@ -359,12 +369,41 @@ export class WorkflowManager {
     }
 
     exportWorkflow(workflow) {
-        const dataStr = JSON.stringify(workflow, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
+        const exportData = {
+            schema_version: "1.0.0",
+            name: workflow.name || "my_workflow",
+            id: workflow.id || `workflow_${Date.now()}`,
+            description: workflow.description || "Created with workflow editor",
+            mode: "workflow",
+            icon: "plugin_icon/workflow.png",
+            nodes: (workflow.nodes || []).map(n => {
+                const node = {
+                    id: String(n.id).replace('node_', ''),
+                    type: n.type,
+                    title: n.title,
+                    description: n.description,
+                    position: { x: n.x, y: n.y },
+                    parameters: n.parameters
+                };
+                if (n.icon) node.icon = n.icon;
+                return node;
+            }),
+            edges: (workflow.edges || []).map(e => {
+                const edge = {
+                    source_node: String(e.source).replace('node_', ''),
+                    target_node: String(e.target).replace('node_', '')
+                };
+                if (e.sourcePort) edge.source_port = e.sourcePort;
+                return edge;
+            })
+        };
+        
+        const yamlStr = window.jsyaml.dump(exportData, { indent: 2, lineWidth: 120 });
+        const blob = new Blob([yamlStr], { type: 'application/x-yaml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${workflow.name}.json`;
+        a.download = `${workflow.name}.yaml`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -384,9 +423,43 @@ export class WorkflowManager {
             return;
         }
 
+        // 搜索过滤
+        const searchTerm = this.elements.workflowSearch?.value?.trim().toLowerCase() || '';
+        let filtered = this.workflows;
+        if (searchTerm) {
+            filtered = this.workflows.filter(w => {
+                const name = (w.name || '').toLowerCase();
+                const desc = (w.description || '').toLowerCase();
+                const id = (w.id || '').toLowerCase();
+                return name.includes(searchTerm) || desc.includes(searchTerm) || id.includes(searchTerm);
+            });
+        }
+
+        // 排序
+        const sortBy = this.elements.workflowSort?.value || 'updatedAt_desc';
+        const [field, order] = sortBy.split('_');
+        filtered = [...filtered].sort((a, b) => {
+            if (field === 'name') {
+                const cmp = String(a.name || '').localeCompare(String(b.name || ''));
+                return order === 'desc' ? -cmp : cmp;
+            }
+            const aVal = a[field] || 0;
+            const bVal = b[field] || 0;
+            return order === 'desc' ? bVal - aVal : aVal - bVal;
+        });
+
+        if (filtered.length === 0 && searchTerm) {
+            this.elements.emptyState.style.display = 'block';
+            const h3 = this.elements.emptyState.querySelector('h3');
+            const p = this.elements.emptyState.querySelector('p');
+            if (h3) h3.textContent = t('manager.noSearchResults');
+            if (p) p.textContent = t('manager.tryDifferentSearch');
+            return;
+        }
+
         this.elements.emptyState.style.display = 'none';
 
-        this.workflows.forEach(workflow => {
+        filtered.forEach(workflow => {
             const card = this.createWorkflowCard(workflow);
             this.elements.workflowList.appendChild(card);
         });

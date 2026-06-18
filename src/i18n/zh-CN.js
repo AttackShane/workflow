@@ -392,6 +392,8 @@ export const zhCN = {
         savedWorkflowCleared: '已清除保存的工作流',
         workflowExported: '工作流导出成功',
         shareLinkCopied: '分享链接已复制到剪贴板',
+        shareLinkTooLong: '分享链接长度为 {length} 字符，可能超出浏览器限制。是否继续？',
+        shareLinkTitle: '分享链接警告',
         canvasCleared: '画布已清空',
         clearCanvasConfirm: '确定要清空画布吗？',
         clearCanvasTitle: '清空确认',
@@ -474,7 +476,16 @@ export const zhCN = {
         defaultFlow1Prompt: '请生成一条友好的欢迎消息',
         defaultFlow2Name: '图片生成流程',
         defaultFlow2Desc: '使用文本描述生成图片',
-        defaultFlow2Prompt: '一只可爱的小猫在草地上玩耍'
+        defaultFlow2Prompt: '一只可爱的小猫在草地上玩耍',
+        searchPlaceholder: '搜索工作流...',
+        sortByUpdatedDesc: '最近更新',
+        sortByUpdatedAsc: '最早更新',
+        sortByNameAsc: '名称 A-Z',
+        sortByNameDesc: '名称 Z-A',
+        sortByCreatedDesc: '最近创建',
+        sortByCreatedAsc: '最早创建',
+        noSearchResults: '没有匹配的工作流',
+        tryDifferentSearch: '请尝试其他搜索词'
     },
     nodes: {
         node: '节点',

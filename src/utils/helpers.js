@@ -253,8 +253,8 @@ export const StringUtils = {
      */
     escapeHtml(str) {
         if (str == null || str === '') return '';
-        const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return String(str).replace(/[&<>"']/g, c => ESCAPE_MAP[c]);
+        const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+        return String(str).replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
     },
     
     /**

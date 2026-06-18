@@ -180,18 +180,23 @@ export class WorkflowCanvas {
     setContentSvgSize(rect, bounds) {
         // 添加边距（考虑连接线的弯曲和缩放）
         const padding = 400;
-        const contentWidth = bounds.maxX - bounds.minX;
-        const contentHeight = bounds.maxY - bounds.minY;
+        let contentWidth = bounds.maxX - bounds.minX;
+        let contentHeight = bounds.maxY - bounds.minY;
+        
+        // 防止负坐标导致过大的尺寸
+        contentWidth = Math.max(0, Math.min(contentWidth, 50000));
+        contentHeight = Math.max(0, Math.min(contentHeight, 50000));
         
         // 根据缩放比例调整尺寸：缩得越小，需要的 SVG 越大
         const scaleFactor = 1 / this.canvasScale;
         const scaledWidth = contentWidth * scaleFactor + padding * 2;
         const scaledHeight = contentHeight * scaleFactor + padding * 2;
         
-        // 确保最小尺寸
+        // 确保最小尺寸，同时设置最大上限防止溢出
         const minSize = Math.max(rect.width, rect.height) * 2;
-        const svgWidth = Math.max(scaledWidth, minSize, 2000);
-        const svgHeight = Math.max(scaledHeight, minSize, 2000);
+        const maxSize = 100000;
+        const svgWidth = Math.min(Math.max(scaledWidth, minSize, 2000), maxSize);
+        const svgHeight = Math.min(Math.max(scaledHeight, minSize, 2000), maxSize);
         
         this.setSvgSize(svgWidth, svgHeight);
     }

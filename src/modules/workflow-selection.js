@@ -152,6 +152,8 @@ export class WorkflowSelection {
             this.ui.node.delete(nodeId, false, false);
         });
 
+        this.core.selectedNode = null;
+        this.core.selectedEdge = null;
         this.core.saveHistory(t('messages.deleteSelection'));
         this.ui.showMessage(t('messages.deletedSelection'), 'success');
     }

@@ -61,6 +61,17 @@ export class WorkflowEdge {
                 } else {
                     labelText = '其他';
                 }
+            } else if (edge.sourcePort && source.type === 'condition' && source.parameters?.branches) {
+                const branches = Array.isArray(source.parameters.branches) ? source.parameters.branches : [];
+                const totalPorts = branches.length;
+                let portIndex = 0;
+                if (edge.sourcePort.startsWith('branch_')) {
+                    portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
+                    if (isNaN(portIndex) || portIndex >= branches.length) portIndex = 0;
+                }
+                y1 = source.y + height1 * (portIndex + 0.5) / totalPorts;
+                const branch = branches[portIndex];
+                labelText = (branch && branch.name) ? branch.name : (portIndex === 0 ? 'True' : (portIndex === 1 ? 'False' : `Branch ${portIndex}`));
             }
             
             const dx = Math.abs(x2 - x1);

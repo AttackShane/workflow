@@ -12,6 +12,10 @@ import { goToManager } from './navigator.js';
 import { SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
+import { mixinMessages } from './workflow-messages.js';
+import { mixinSearch } from './workflow-search.js';
+import { mixinAutoSave } from './workflow-autosave.js';
+import { mixinShare } from './workflow-share.js';
 
 export class WorkflowUI {
     constructor(core) {
@@ -24,6 +28,11 @@ export class WorkflowUI {
         this.isMultiSelectMode = false;
         this.connectingFrom = null;
         this.svgPath = null;
+        
+        mixinMessages(this);
+        mixinSearch(this);
+        mixinAutoSave(this);
+        mixinShare(this);
     }
     
     /**
@@ -145,156 +154,6 @@ export class WorkflowUI {
         this.renderNodePalette();
         this.updateSummary();
         this.history.updatePanel();
-    }
-
-    /**
-     * 创建消息容器 
-     */
-    createMessageContainer() {
-        this.messageContainer = DOM.create('div', {
-            className: 'workflow-message-container',
-            style: {
-                position: 'fixed',
-                top: '20px',
-                right: '20px',
-                zIndex: '10000',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-            }
-        });
-        document.body.appendChild(this.messageContainer);
-    }
-
-    /**
-     * 显示消息提示
-     * @param {string} text - 消息文本
-     * @param {string} type - 消息类型 ('success', 'error', 'info', 'warning')
-     */
-    showMessage(text, type = 'info') {
-        const icons = {
-            success: '✅',
-            error: '❌',
-            info: 'ℹ️',
-            warning: '⚠️'
-        };
-        
-        const colors = {
-            success: '#10b981',
-            error: '#ef4444',
-            info: '#3b82f6',
-            warning: '#f59e0b'
-        };
-        
-        const messageEl = DOM.create('div', {
-            className: `workflow-message workflow-message-${type}`,
-            style: {
-                padding: '12px 20px',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '500',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                transform: 'translateX(100%)',
-                animation: 'slideIn 0.3s ease-out forwards',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                maxWidth: '320px',
-                backgroundColor: colors[type] || colors.info
-            },
-            html: `<span>${icons[type] || icons.info}</span><span>${text}</span>`
-        });
-        
-        this.messageContainer.appendChild(messageEl);
-        
-        setTimeout(() => {
-            DOM.setStyle(messageEl, 'animation', 'slideOut 0.3s ease-out forwards');
-            setTimeout(() => {
-                messageEl.remove();
-            }, 300);
-        }, 3000);
-    }
-
-    /**
-     * 设置节点搜索处理器
-     */
-    setupSearchHandler() {
-        const searchInput = DOM.get('nodeSearchInput');
-        const searchCount = DOM.get('nodeSearchCount');
-        if (!searchInput) return;
-
-        DOM.on(searchInput, 'input', () => {
-            const term = searchInput.value.trim().toLowerCase();
-            this.performSearch(term);
-        });
-
-        DOM.on(searchInput, 'keydown', (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
-                this.performSearch('');
-                searchInput.blur();
-            }
-        });
-    }
-
-    /**
-     * 执行节点搜索筛选
-     * @param {string} term - 搜索关键词
-     */
-    performSearch(term) {
-        const searchCount = DOM.get('nodeSearchCount');
-        const nodeEls = document.querySelectorAll('.canvas-node');
-        let matchCount = 0;
-
-        if (!term) {
-            nodeEls.forEach(el => {
-                DOM.removeClass(el, 'search-dimmed');
-                DOM.removeClass(el, 'search-highlight');
-            });
-            if (searchCount) DOM.setStyle(searchCount, 'display', 'none');
-            return;
-        }
-
-        // 获取节点类型中文名映射
-        const typeNameMap = {
-            start: t('nodeTypes.start'), end: t('nodeTypes.end'), llm: t('nodeTypes.llm'),
-            plugin: t('nodeTypes.plugin'), code: t('nodeTypes.code'), condition: t('nodeTypes.condition'),
-            http: t('nodeTypes.http'), text: t('nodeTypes.text'),
-            image_generate: t('nodeTypes.image_generate'), knowledge: t('nodeTypes.knowledge'),
-            question: t('nodeTypes.question'), loop: t('nodeTypes.loop'),
-            async_task: t('nodeTypes.async_task'), comment: t('nodeTypes.comment'),
-            output: t('nodeTypes.output'), input: t('nodeTypes.input'),
-            variable_merge: t('nodeTypes.variable_merge'), intent: t('nodeTypes.intent'),
-            batch: t('nodeTypes.batch'), video_generation: t('nodeTypes.video_generation')
-        };
-
-        nodeEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
-            if (!node) return;
-
-            const name = (node.title || '').toLowerCase();
-            const type = (node.type || '').toLowerCase();
-            const typeName = (typeNameMap[type] || type).toLowerCase();
-            const id = (node.id || '').toLowerCase();
-
-            const matches = name.includes(term) || type.includes(term) || typeName.includes(term) || id.includes(term);
-
-            if (matches) {
-                DOM.removeClass(el, 'search-dimmed');
-                DOM.addClass(el, 'search-highlight');
-                matchCount++;
-            } else {
-                DOM.removeClass(el, 'search-highlight');
-                DOM.addClass(el, 'search-dimmed');
-            }
-        });
-
-        if (searchCount) {
-            DOM.setStyle(searchCount, 'display', 'inline');
-            DOM.setText(searchCount, `${matchCount}/${nodeEls.length}`);
-        }
     }
 
     /**
@@ -442,71 +301,6 @@ export class WorkflowUI {
     }
 
     /**
-     * 启动自动保存
-     */
-    startAutoSave() {
-        this.autoSaveTimer = setInterval(() => {
-            if (this.core.nodes.length > 0) {
-                this.core.saveToLocalStorage();
-            }
-        }, 5000); // 每5秒自动保存一次
-        
-        // 保存清理引用
-        this.beforeUnloadHandler = () => {
-            if (this.core.nodes.length > 0) {
-                this.core.saveToLocalStorage();
-            }
-        };
-        this.beforeUnloadCheckHandler = (e) => {
-            if (this.hasUnsavedChanges()) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-        window.addEventListener('beforeunload', this.beforeUnloadHandler);
-        window.addEventListener('beforeunload', this.beforeUnloadCheckHandler);
-    }
-
-    stopAutoSave() {
-        if (this.autoSaveTimer) {
-            clearInterval(this.autoSaveTimer);
-            this.autoSaveTimer = null;
-        }
-        if (this.beforeUnloadHandler) {
-            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
-            this.beforeUnloadHandler = null;
-        }
-        if (this.beforeUnloadCheckHandler) {
-            window.removeEventListener('beforeunload', this.beforeUnloadCheckHandler);
-            this.beforeUnloadCheckHandler = null;
-        }
-    }
-
-    destroy() {
-        this.stopAutoSave();
-    }
-    
-    /**
-     * 手动保存工作流
-     */
-    saveWorkflow() {
-        const success = this.core.saveToLocalStorage();
-        if (success) {
-            this.showMessage(t('messages.workflowSaved'), 'success');
-        } else {
-            this.showMessage(t('messages.saveFailed'), 'error');
-        }
-    }
-    
-    /**
-     * 清除保存的工作流
-     */
-    clearSavedWorkflow() {
-        this.core.clearSavedWorkflow();
-        this.showMessage(t('messages.savedWorkflowCleared'), 'success');
-    }
-
-    /**
      * 在画布上添加节点（供外部调用）
      * @param {string} type - 节点类型
      * @param {number} x - X 坐标
@@ -619,53 +413,9 @@ export class WorkflowUI {
     }
     
     /**
-     * 导出工作流（供外部调用）
-     */
-    exportWorkflow() {
-        const workflow = this.core.exportWorkflow();
-        const dataStr = JSON.stringify(workflow, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${workflow.name}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        this.showMessage(t('messages.workflowExported'), 'success');
-    }
-    
-    /**
-     * 生成分享链接
-     */
-    async shareLink() {
-        const workflow = this.core.exportWorkflow();
-        workflow.name = document.getElementById('workflowName')?.textContent || workflow.name;
-        
-        const json = JSON.stringify(workflow);
-        const encoded = btoa(unescape(encodeURIComponent(json)));
-        const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encoded}`;
-        
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            this.showMessage(t('messages.shareLinkCopied'), 'success');
-        } catch {
-            const textarea = document.createElement('textarea');
-            textarea.value = shareUrl;
-            textarea.style.position = 'fixed';
-            textarea.style.opacity = '0';
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            this.showMessage(t('messages.shareLinkCopied'), 'success');
-        }
-    }
-    
-    /**
      * 从分享链接加载工作流
      * @param {string} encoded - Base64编码的工作流数据
+     * @returns {boolean} 是否加载成功
      */
     static loadFromShareLink(encoded) {
         try {

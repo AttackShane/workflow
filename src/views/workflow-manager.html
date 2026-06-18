@@ -6,6 +6,7 @@
     <title data-i18n="manager.title">工作流管理</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-manager.css">
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <script type="module" src="/modules/app.js"></script>
 </head>
 <body>
@@ -25,6 +26,20 @@
         </header>
 
         <div class="main-content">
+            <div class="workflow-toolbar">
+                <div class="search-box">
+                    <input type="text" id="workflowSearch" placeholder="搜索工作流..." data-i18n-placeholder="manager.searchPlaceholder">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <select id="workflowSort" class="sort-select">
+                    <option value="updatedAt_desc" data-i18n="manager.sortByUpdatedDesc">最近更新</option>
+                    <option value="updatedAt_asc" data-i18n="manager.sortByUpdatedAsc">最早更新</option>
+                    <option value="name_asc" data-i18n="manager.sortByNameAsc">名称 A-Z</option>
+                    <option value="name_desc" data-i18n="manager.sortByNameDesc">名称 Z-A</option>
+                    <option value="createdAt_desc" data-i18n="manager.sortByCreatedDesc">最近创建</option>
+                    <option value="createdAt_asc" data-i18n="manager.sortByCreatedAsc">最早创建</option>
+                </select>
+            </div>
             <div class="workflow-list" id="workflowList">
                 <!-- 工作流列表将动态生成 -->
             </div>
