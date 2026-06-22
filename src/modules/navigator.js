@@ -14,7 +14,7 @@ let isNavigating = false;
 
 let tFn = null;
 
-function t(key, fallback) {
+function navT(key, fallback) {
     try {
         return (tFn && tFn(key)) || fallback;
     } catch {
@@ -24,6 +24,10 @@ function t(key, fallback) {
 
 async function loadI18n() {
     try {
+        if (typeof i18n !== 'undefined' && i18n.t) {
+            tFn = (key) => i18n.t(key);
+            return;
+        }
         const m = await import('../i18n/i18n.js');
         tFn = m.t || m.default?.t;
     } catch {
@@ -79,14 +83,14 @@ export function goBack() {
  * 导航到工作流管理页面
  */
 export function goToManager() {
-    navigateTo(PAGES.MANAGER, { message: t('navigator.goingManager', '正在返回工作流管理...') });
+    navigateTo(PAGES.MANAGER, { message: navT('navigator.goingManager', '正在返回工作流管理...') });
 }
 
 /**
  * 导航到转换器页面
  */
 export function goToConverter() {
-    navigateTo(PAGES.CONVERTER, { message: t('navigator.goingConverter', '正在打开转换器...') });
+    navigateTo(PAGES.CONVERTER, { message: navT('navigator.goingConverter', '正在打开转换器...') });
 }
 
 /**
@@ -101,7 +105,7 @@ export function goToEditor(options = {}) {
         sessionStorage.removeItem('editingWorkflow');
         localStorage.removeItem('workflow_current');
     }
-    navigateTo(PAGES.EDITOR, { message: t('navigator.goingEditor', '正在打开编辑器...') });
+    navigateTo(PAGES.EDITOR, { message: navT('navigator.goingEditor', '正在打开编辑器...') });
 }
 
 /**

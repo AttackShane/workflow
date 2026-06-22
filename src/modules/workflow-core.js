@@ -182,7 +182,7 @@ export class WorkflowCore {
             },
             loop: { 
                 title: t('nodeTypes.loop'), icon: '🔄', description: t('nodeTypes.description.loop'), 
-                hasInput: true, hasOutput: true,
+                hasInput: true, hasOutput: true, hasContainer: true, containerMinWidth: 300, containerMinHeight: 200,
                 parameters: [
                     { name: 'loopType', label: tl('loopType'), type: 'select', options: ['count', 'forEach'], defaultValue: 'count', required: true },
                     { name: 'count', label: tl('count'), type: 'number', min: 1, max: 100, defaultValue: 3, required: false },
@@ -229,7 +229,7 @@ export class WorkflowCore {
             },
             batch: { 
                 title: t('nodeTypes.batch'), icon: '📤', description: t('nodeTypes.description.batch'), 
-                hasInput: true, hasOutput: true,
+                hasInput: true, hasOutput: true, hasContainer: true, containerMinWidth: 300, containerMinHeight: 200,
                 parameters: [
                     { name: 'inputArray', label: tl('inputArray'), type: 'text', defaultValue: '', required: true },
                     { name: 'batchSize', label: tl('batchSize'), type: 'number', min: 1, max: 100, defaultValue: 10, required: false }
@@ -240,8 +240,13 @@ export class WorkflowCore {
                 hasInput: true, hasOutput: true,
                 parameters: [
                     { name: 'query', label: tl('query'), type: 'text', defaultValue: '', required: true },
-                    { name: 'knowledgeId', label: tl('knowledgeId'), type: 'text', defaultValue: '', required: true },
-                    { name: 'topK', label: tl('topK'), type: 'number', min: 1, max: 20, defaultValue: 5, required: false }
+                    { name: 'datasetList', label: tl('datasetList'), type: 'json', defaultValue: '[]', required: true },
+                    { name: 'topK', label: tl('topK'), type: 'number', min: 1, max: 20, defaultValue: 5, required: false },
+                    { name: 'useRerank', label: tl('useRerank'), type: 'boolean', defaultValue: true, required: false },
+                    { name: 'useRewrite', label: tl('useRewrite'), type: 'boolean', defaultValue: true, required: false },
+                    { name: 'isPersonalOnly', label: tl('isPersonalOnly'), type: 'boolean', defaultValue: true, required: false },
+                    { name: 'enableChatHistory', label: tl('enableChatHistory'), type: 'boolean', defaultValue: false, required: false },
+                    { name: 'chatHistoryRound', label: tl('chatHistoryRound'), type: 'number', min: 1, max: 20, defaultValue: 3, required: false }
                 ]
             },
             intent: { 
@@ -345,7 +350,8 @@ export class WorkflowCore {
             description: data?.description || info.description,
             parameters: data?.parameters || {},
             inputParams: data?.inputParams || [],
-            outputParams: data?.outputParams || []
+            outputParams: data?.outputParams || [],
+            parentId: data?.parentId || null
         };
         
         this.nodes.push(nodeData);
@@ -369,6 +375,8 @@ export class WorkflowCore {
      * @param {string} nodeId - 节点ID
      */
     deleteNode(nodeId) {
+        const childIds = this.getChildNodes(nodeId).map(n => n.id);
+        childIds.forEach(cid => this.deleteNode(cid));
         this.edges = this.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
         this.nodes = this.nodes.filter(n => n.id !== nodeId);
         
@@ -376,6 +384,27 @@ export class WorkflowCore {
             this.selectedNode = null;
         }
         this._emitChange('deleteNode', nodeId);
+    }
+
+    /**
+     * 获取指定节点的所有子节点
+     * @param {string} parentId - 父节点ID
+     * @returns {Array} 子节点数组
+     */
+    getChildNodes(parentId) {
+        return this.nodes.filter(n => n.parentId === parentId);
+    }
+
+    /**
+     * 检查节点是否为容器节点
+     * @param {string} nodeId - 节点ID
+     * @returns {boolean}
+     */
+    isContainerNode(nodeId) {
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (!node) return false;
+        const info = this.nodeTypeInfo[node.type];
+        return info?.hasContainer === true;
     }
     
     /**
@@ -412,10 +441,27 @@ export class WorkflowCore {
      * @param {string} sourcePort - 源端口ID（可选，用于分支节点）
      * @returns {object|null} 创建的边对象，如果已存在则返回null
      */
-    createEdge(sourceId, targetId, sourcePort = '') {
+    createEdge(sourceId, targetId, sourcePort = '', targetPort = '') {
         const existingEdge = this.edges.find(e => e.source === sourceId && e.target === targetId);
         if (existingEdge) return null;
-        
+
+        // 容器端口校验：外部端口只能连外部节点，内部端口只能连容器内子节点
+        const sourceIsContainer = this.isContainerNode(sourceId);
+        const targetIsContainer = this.isContainerNode(targetId);
+        const sourceIsChild = !!this.nodes.find(n => n.id === sourceId)?.parentId;
+        const targetIsChild = !!this.nodes.find(n => n.id === targetId)?.parentId;
+
+        if (sourceIsContainer) {
+            const isInternalPort = sourcePort === 'container_start';
+            if (isInternalPort && !targetIsChild) return null;
+            if (!isInternalPort && targetIsChild) return null;
+        }
+        if (targetIsContainer) {
+            const isInternalPort = targetPort === 'container_end';
+            if (isInternalPort && !sourceIsChild) return null;
+            if (!isInternalPort && sourceIsChild) return null;
+        }
+
         const edge = {
             id: `edge_${++this.edgeIdCounter}`,
             source: sourceId,
@@ -423,6 +469,9 @@ export class WorkflowCore {
         };
         if (sourcePort) {
             edge.sourcePort = sourcePort;
+        }
+        if (targetPort) {
+            edge.targetPort = targetPort;
         }
         
         this.edges.push(edge);

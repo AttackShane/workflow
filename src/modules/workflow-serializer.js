@@ -37,12 +37,13 @@ export function mixinSerializer(core) {
                 y: nodeData.position?.y || 0,
                 title: nodeData.title || '',
                 description: nodeData.description || '',
-                parameters: nodeData.parameters || {}
+                parameters: nodeData.parameters || {},
+                parentId: nodeData.parentId || null
             };
             if (nodeData.icon) node.icon = nodeData.icon;
 
             if (nodeData.nodes && Array.isArray(nodeData.nodes)) {
-                node.nodes = nodeData.nodes.map(childNodeData => {
+                nodeData.nodes.forEach(childNodeData => {
                     const childNodeId = `node_${childNodeData.id}`;
                     nodeIdMap.set(childNodeData.id, childNodeId);
                     let childType = childNodeData.type;
@@ -56,10 +57,11 @@ export function mixinSerializer(core) {
                         y: childNodeData.position?.y || 0,
                         title: childNodeData.title || '',
                         description: childNodeData.description || '',
-                        parameters: childNodeData.parameters || {}
+                        parameters: childNodeData.parameters || {},
+                        parentId: nodeId
                     };
                     if (childNodeData.icon) child.icon = childNodeData.icon;
-                    return child;
+                    this.nodes.push(child);
                 });
             }
 
@@ -102,7 +104,7 @@ export function mixinSerializer(core) {
             description: options.description || "Created with workflow editor",
             mode: "workflow",
             icon: "plugin_icon/workflow.png",
-            nodes: this.nodes.map(n => {
+            nodes: this.nodes.filter(n => !n.parentId).map(n => {
                 const node = {
                     id: n.id.replace('node_', ''),
                     type: n.type,
@@ -112,6 +114,21 @@ export function mixinSerializer(core) {
                     parameters: n.parameters
                 };
                 if (n.icon) node.icon = n.icon;
+                const blocks = this.nodes.filter(c => c.parentId === n.id);
+                if (blocks.length > 0) {
+                    node.nodes = blocks.map(b => {
+                        const child = {
+                            id: b.id.replace('node_', ''),
+                            type: b.type,
+                            title: b.title,
+                            description: b.description,
+                            position: { x: b.x, y: b.y },
+                            parameters: b.parameters
+                        };
+                        if (b.icon) child.icon = b.icon;
+                        return child;
+                    });
+                }
                 return node;
             }),
             edges: this.edges.map(e => {
@@ -142,7 +159,7 @@ export function mixinSerializer(core) {
         const reverseIdMap = {};
         const variableMergeEdgeMap = new Map();
 
-        const processNodeRecursive = (cozeNode) => {
+        const processNodeRecursive = (cozeNode, parentId = null) => {
             const originalId = String(cozeNode.id);
             const newNodeId = `node_${++this.nodeIdCounter}`;
             idMap[originalId] = newNodeId;
@@ -228,7 +245,7 @@ export function mixinSerializer(core) {
             if (Array.isArray(cozeNode.blocks) && cozeNode.blocks.length > 0) {
                 parameters.blocks = cozeNode.blocks;
                 cozeNode.blocks.forEach(block => {
-                    processNodeRecursive(block);
+                    processNodeRecursive(block, newNodeId);
                 });
             }
 
@@ -246,6 +263,8 @@ export function mixinSerializer(core) {
                 width: cozeNode._temp?.bounds?.width || cozeNode.width || 200,
                 height: cozeNode._temp?.bounds?.height || cozeNode.height || 100
             };
+
+            if (parentId) newNode.parentId = parentId;
 
             this.nodes.push(newNode);
         };

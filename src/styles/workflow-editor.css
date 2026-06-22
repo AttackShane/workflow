@@ -433,6 +433,7 @@ body {
     opacity: 0.8;
     cursor: grabbing;
     z-index: 100;
+    transition: none;
 }
 
 .canvas-node .node-header {
@@ -498,6 +499,118 @@ body {
     overflow: hidden;
 }
 
+/* 容器节点（循环/批处理） */
+.canvas-node.container {
+    display: flex;
+    flex-direction: column;
+    min-width: 280px;
+    min-height: 150px;
+    border-radius: 14px;
+    border: 2px solid rgba(0, 178, 178, 0.35);
+    background: rgba(0, 178, 178, 0.03);
+    padding: 0;
+    overflow: visible;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.canvas-node.container.loop {
+    border-color: rgba(0, 178, 178, 0.35);
+    background: rgba(0, 178, 178, 0.03);
+}
+
+.canvas-node.container.batch {
+    border-color: rgba(139, 92, 246, 0.35);
+    background: rgba(139, 92, 246, 0.03);
+}
+
+.canvas-node.container:hover {
+    border-color: rgba(0, 178, 178, 0.6);
+    box-shadow: 0 0 0 1px rgba(0, 178, 178, 0.15);
+}
+
+.canvas-node.container.batch:hover {
+    border-color: rgba(139, 92, 246, 0.6);
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.15);
+}
+
+.canvas-node.container.selected {
+    border-color: #F59E0B;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4), 0 4px 20px rgba(245, 158, 11, 0.2);
+}
+
+.canvas-node.container.drop-target {
+    border-color: #00B2B2;
+    background: rgba(0, 178, 178, 0.08);
+    box-shadow: 0 0 0 3px rgba(0, 178, 178, 0.35), 0 0 24px rgba(0, 178, 178, 0.12);
+}
+
+.canvas-node.container.batch.drop-target {
+    border-color: #8B5CF6;
+    background: rgba(139, 92, 246, 0.08);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35), 0 0 24px rgba(139, 92, 246, 0.12);
+}
+
+.canvas-node.container .node-header {
+    padding: 0.35rem 0.75rem;
+    margin: 0;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 12px 12px 0 0;
+    border-bottom: none;
+}
+
+.canvas-node.container .node-type {
+    display: none;
+}
+
+.canvas-node.container .node-description {
+    padding: 0.1rem 0.75rem 0.35rem;
+    margin: 0;
+    font-size: 0.65rem;
+    color: rgba(148, 163, 184, 0.55);
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0;
+}
+
+.canvas-node.container.loop .node-icon {
+    background: rgba(0, 178, 178, 0.2);
+    color: #00B2B2;
+}
+
+.canvas-node.container.batch .node-icon {
+    background: rgba(139, 92, 246, 0.2);
+    color: #8B5CF6;
+}
+
+.canvas-node.container .container-body {
+    flex: 1;
+    min-height: 60px;
+    margin: 0;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    background: rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: visible;
+    transition: background 0.2s;
+}
+
+.canvas-node.container .container-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(148, 163, 184, 0.35);
+    font-size: 0.7rem;
+    pointer-events: none;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+}
+
+.canvas-node.container .container-body .canvas-node {
+    position: absolute;
+}
+
 .connection-point {
     position: absolute;
     width: 12px;
@@ -527,6 +640,81 @@ body {
     right: -6px;
     top: 50%;
     transform: translateY(-50%);
+}
+
+/* 子画布两侧的连接点 */
+.canvas-node.container .container-body .connection-point.container-port {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.canvas-node.container .container-body .connection-point.output.container-port {
+    left: -6px;
+    right: auto;
+}
+
+.canvas-node.container.loop .container-body .connection-point.output.container-port::after {
+    content: '循环开始';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: rgba(148, 163, 184, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.canvas-node.container.batch .container-body .connection-point.output.container-port::after {
+    content: '批处理开始';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: rgba(148, 163, 184, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.canvas-node.container .container-body .connection-point.input.container-port {
+    left: auto;
+    right: -6px;
+}
+
+.canvas-node.container.loop .container-body .connection-point.input.container-port::after {
+    content: '循环结束';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: rgba(148, 163, 184, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.canvas-node.container.batch .container-body .connection-point.input.container-port::after {
+    content: '批处理结束';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: rgba(148, 163, 184, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+/* 容器节点自身两侧连接点：置于 header 区域 */
+.canvas-node.container > .connection-point.input {
+    top: 24px;
+    transform: none;
+}
+
+.canvas-node.container > .connection-point.output {
+    top: 24px;
+    transform: none;
 }
 
 .connection-point.branch-port {
@@ -596,7 +784,7 @@ body {
     width: auto;
     height: auto;
     pointer-events: none;
-    z-index: 2;
+    z-index: 15;
     transform-origin: 0 0;
 }
 

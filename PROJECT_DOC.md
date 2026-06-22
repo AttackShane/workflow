@@ -26,22 +26,35 @@ workflow/
 │   │   ├── app.js           # 应用入口
 │   │   ├── converter.js     # YAML转剪贴板格式转换器（核心）
 │   │   ├── reverse.js       # 反向转换器（Coze → YAML）
+│   │   ├── ui-controller.js # UI控制器（转换器页面）
 │   │   ├── workflow-core.js # 工作流核心逻辑（节点/连线管理、历史记录）
+│   │   ├── workflow-storage.js  # 工作流本地存储
+│   │   ├── workflow-serializer.js # 工作流序列化/反序列化
 │   │   ├── workflow-ui.js   # UI交互控制（编辑器总控）
-│   │   ├── workflow-node.js # 节点UI组件
+│   │   ├── workflow-messages.js # 消息提示
+│   │   ├── workflow-search.js   # 搜索功能
+│   │   ├── workflow-autosave.js # 自动保存
+│   │   ├── workflow-share.js    # 分享功能
+│   │   ├── workflow-node.js     # 节点入口（mixin组装）
+│   │   ├── workflow-node-render.js  # 节点渲染（DOM创建、拖拽、选择）
+│   │   ├── workflow-node-panel.js   # 节点属性面板（参数编辑）
+│   │   ├── workflow-node-selector.js # 变量选择器（引用管理）
 │   │   ├── workflow-edge.js # 连线UI组件
 │   │   ├── workflow-canvas.js # 画布管理
-│   │   ├── workflow-canvas-optimized.js # 优化画布（备用）
-│   │   ├── workflow-clipboard.js  # 编辑器剪贴板功能
+│   │   ├── workflow-canvas-optimized.js # 优化画布（节点剔除）
+│   │   ├── workflow-clipboard.js  # 编辑器剪贴板（复制）
+│   │   ├── workflow-clipboard-paste.js # 编辑器剪贴板（粘贴）
 │   │   ├── workflow-manager.js # 管理页面逻辑
 │   │   ├── workflow-history.js # 历史记录面板
+│   │   ├── workflow-keyboard.js # 编辑器快捷键
+│   │   ├── workflow-selection.js # 多选与框选
+│   │   ├── workflow-align.js # 节点对齐
 │   │   ├── dialog.js        # 模态对话框组件
 │   │   ├── navigator.js     # 页面导航管理
-│   │   ├── graph-view.js    # 图形视图（节点详情面板、复制功能）
-│   │   ├── stats-view.js    # 统计视图
+│   │   ├── graph-view.js    # 图形视图（SVG拓扑渲染）
+│   │   ├── stats-view.js    # 统计视图与历史面板
 │   │   ├── stats-renderer.js # 统计渲染器
-│   │   ├── ui-controller.js # UI控制器
-│   │   ├── keyboard-shortcuts.js # 键盘快捷键
+│   │   ├── keyboard-shortcuts.js # 键盘快捷键（转换器）
 │   │   ├── theme-controller.js # 主题控制器
 │   │   ├── i18n-controller.js # 国际化控制器
 │   │   ├── virtual-scroll.js # 虚拟滚动优化
@@ -104,11 +117,12 @@ workflow/
   4. 生成 YAML 字符串
 - **特性**: 保持节点类型、参数、连线关系的完整转换
 
-#### 3. 编辑器剪贴板（`modules/workflow-clipboard.js`）
+#### 3. 编辑器剪贴板（`modules/workflow-clipboard.js` + `workflow-clipboard-paste.js`）
 
 - **功能**: 支持多选节点复制，保留连线关系
 - **核心方法**: `copy()` - 将选中节点转换为 Coze 剪贴板格式
-- **粘贴支持**: 支持 `coze-workflow-clipboard-data` 格式和简单节点格式
+- **粘贴支持**: 支持 `coze-workflow-clipboard-data` 格式、简单节点格式、多节点格式
+- **ID映射**: 粘贴时自动重新映射节点ID和引用关系
 - **容错处理**: 剪贴板读取失败时使用内部缓存
 
 #### 4. 国际化支持（`i18n/`）
@@ -130,16 +144,12 @@ workflow/
 - **支持格式**: JSON、YAML、原始节点三种格式
 - **打开编辑器**: 支持一键打开工作流编辑器
 
-#### 6. 工作流核心（`modules/workflow-core.js`）
+#### 6. 工作流核心（`modules/workflow-core.js` + `workflow-storage.js` + `workflow-serializer.js`）
 
-- **功能**: 工作流数据管理核心
-- **主要能力**:
-  - 节点管理（创建、删除、更新位置/属性）
-  - 连线管理（创建、删除）
-  - 历史记录（撤销/重做，最多50步）
-  - 工作流验证（检查开始/结束节点、连接完整性）
-  - 导入/导出（支持 Coze 剪贴板格式和自定义格式）
-  - 本地存储（自动保存到 localStorage）
+- **功能**: 工作流数据管理核心，拆分为三个模块
+- **workflow-core.js**: 节点管理（创建、删除、更新位置/属性）、连线管理、历史记录、批量操作、工作流验证
+- **workflow-storage.js**: 本地存储（自动保存到 localStorage）
+- **workflow-serializer.js**: 导入/导出（支持 Coze 剪贴板格式和自定义格式）
 
 ### 二、性能优化
 

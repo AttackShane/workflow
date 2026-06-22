@@ -16,123 +16,226 @@ export class WorkflowEdge {
         return this.ui.canvas.svgHitLayer;
     }
 
-    update() {
-        const selectedEdges = new Set();
-        document.querySelectorAll('.workflow-edge.selected').forEach(e => {
-            selectedEdges.add(e.getAttribute('data-edge-id'));
-        });
-        
-        while (this.svgLayer.children.length > 0) {
-            this.svgLayer.removeChild(this.svgLayer.children[0]);
-        }
-        while (this.svgHitLayer.children.length > 0) {
-            this.svgHitLayer.removeChild(this.svgHitLayer.children[0]);
-        }
-        
-        this.core.edges.forEach(edge => {
-            const source = this.core.nodes.find(n => n.id === edge.source);
-            const target = this.core.nodes.find(n => n.id === edge.target);
-            
-            if (!source || !target) return;
-            
-            const width1 = source.width || 200;
-            const height1 = source.height || 100;
-            const width2 = target.width || 200;
-            const height2 = target.height || 100;
-            
-            const x1 = source.x + width1;
-            const x2 = target.x;
-            const y2 = target.y + height2 / 2;
-            
-            let y1 = source.y + height1 / 2;
-            let labelText = '';
-            
-            if (edge.sourcePort && source.type === 'question' && source.parameters?.options) {
-                const options = Array.isArray(source.parameters.options) ? source.parameters.options : [];
-                const totalPorts = options.length + 1;
-                let portIndex = options.length;
-                if (edge.sourcePort.startsWith('branch_')) {
-                    portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
-                    if (isNaN(portIndex) || portIndex >= options.length) portIndex = options.length;
+    /**
+     * 计算边的几何数据（纯函数，无副作用）
+     * @param {object} edge - 边数据
+     * @returns {object|null} 几何数据 { x1, y1, x2, y2, d, arrowPoints, labelText, labelX, labelY }
+     */
+    _computeEdgeGeometry(edge) {
+        const source = this.core.nodes.find(n => n.id === edge.source);
+        const target = this.core.nodes.find(n => n.id === edge.target);
+        if (!source || !target) return null;
+
+        const getAbsPos = (node) => {
+            let absX = node.x || 0;
+            let absY = node.y || 0;
+            if (node.parentId) {
+                const parent = this.core.nodes.find(n => n.id === node.parentId);
+                if (parent) {
+                    absX = (parent.x || 0) + absX;
+                    absY = (parent.y || 0) + 58 + absY;
                 }
-                y1 = source.y + height1 * (portIndex + 0.5) / totalPorts;
-                if (portIndex < options.length) {
-                    labelText = typeof options[portIndex] === 'string' ? options[portIndex] : (options[portIndex]?.name || '');
-                } else {
-                    labelText = '其他';
-                }
-            } else if (edge.sourcePort && source.type === 'condition' && source.parameters?.branches) {
-                const branches = Array.isArray(source.parameters.branches) ? source.parameters.branches : [];
-                const totalPorts = branches.length;
-                let portIndex = 0;
-                if (edge.sourcePort.startsWith('branch_')) {
-                    portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
-                    if (isNaN(portIndex) || portIndex >= branches.length) portIndex = 0;
-                }
-                y1 = source.y + height1 * (portIndex + 0.5) / totalPorts;
-                const branch = branches[portIndex];
-                labelText = (branch && branch.name) ? branch.name : (portIndex === 0 ? 'True' : (portIndex === 1 ? 'False' : `Branch ${portIndex}`));
             }
-            
-            const dx = Math.abs(x2 - x1);
-            const ctrl = Math.max(dx * 0.4, 50);
-            
-            const d = `M ${x1} ${y1} C ${x1 + ctrl} ${y1}, ${x2 - ctrl} ${y2}, ${x2} ${y2}`;
-            
-            const isSelected = selectedEdges.has(edge.id) || this.core.selectedEdge === edge.id;
-            
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', d);
+            return { x: absX, y: absY };
+        };
+
+        const sourcePos = getAbsPos(source);
+        const targetPos = getAbsPos(target);
+
+        const width1 = source.width || 200;
+        const height1 = source.height || 100;
+        const width2 = target.width || 200;
+        const height2 = target.height || 100;
+
+        let x1 = sourcePos.x + width1;
+        let x2 = targetPos.x;
+        let y2 = targetPos.y + height2 / 2;
+        let y1 = sourcePos.y + height1 / 2;
+        let labelText = '';
+
+        const sourceIsContainer = this.core.isContainerNode(source.id);
+        const targetIsContainer = this.core.isContainerNode(target.id);
+
+        if (sourceIsContainer) {
+            if (edge.sourcePort === 'container_start') {
+                x1 = sourcePos.x;
+                y1 = sourcePos.y + height1 / 2 + 28;
+            } else {
+                y1 = sourcePos.y + 30;
+            }
+        }
+
+        if (targetIsContainer) {
+            if (edge.targetPort === 'container_end') {
+                x2 = targetPos.x + width2;
+                y2 = targetPos.y + height2 / 2 + 28;
+            } else {
+                y2 = targetPos.y + 30;
+            }
+        }
+
+        if (edge.sourcePort && source.type === 'question' && source.parameters?.options) {
+            const options = Array.isArray(source.parameters.options) ? source.parameters.options : [];
+            const totalPorts = options.length + 1;
+            let portIndex = options.length;
+            if (edge.sourcePort.startsWith('branch_')) {
+                portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
+                if (isNaN(portIndex) || portIndex >= options.length) portIndex = options.length;
+            }
+            y1 = sourcePos.y + height1 * (portIndex + 0.5) / totalPorts;
+            if (portIndex < options.length) {
+                labelText = typeof options[portIndex] === 'string' ? options[portIndex] : (options[portIndex]?.name || '');
+            } else {
+                labelText = '其他';
+            }
+        } else if (edge.sourcePort && source.type === 'condition' && source.parameters?.branches) {
+            const branches = Array.isArray(source.parameters.branches) ? source.parameters.branches : [];
+            const totalPorts = branches.length;
+            let portIndex = 0;
+            if (edge.sourcePort.startsWith('branch_')) {
+                portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
+                if (isNaN(portIndex) || portIndex >= branches.length) portIndex = 0;
+            }
+            y1 = sourcePos.y + height1 * (portIndex + 0.5) / totalPorts;
+            const branch = branches[portIndex];
+            labelText = (branch && branch.name) ? branch.name : (portIndex === 0 ? 'True' : (portIndex === 1 ? 'False' : `Branch ${portIndex}`));
+        }
+
+        const dx = Math.abs(x2 - x1);
+        const ctrl = Math.max(dx * 0.4, 50);
+        const d = `M ${x1} ${y1} C ${x1 + ctrl} ${y1}, ${x2 - ctrl} ${y2}, ${x2} ${y2}`;
+
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const arrowSize = 8;
+        const ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
+        const ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
+        const ax2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
+        const ay2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
+        const arrowPoints = `${x2},${y2} ${ax1},${ay1} ${ax2},${ay2}`;
+
+        const labelX = x1 + (x2 - x1) * 0.15;
+        const labelY = y1 - 8;
+
+        return { x1, y1, x2, y2, ctrl, d, arrowPoints, labelText, labelX, labelY };
+    }
+
+    /**
+     * 创建或更新边的 DOM 元素（增量更新核心）
+     * @param {object} edge - 边数据
+     * @param {object} geom - 几何数据（来自 _computeEdgeGeometry）
+     */
+    _upsertEdgeElements(edge, geom) {
+        const isSelected = document.querySelector(`path[data-edge-id="${edge.id}"].selected`) !== null
+            || this.core.selectedEdge === edge.id;
+
+        let path = this.svgLayer.querySelector(`path[data-edge-id="${edge.id}"]`);
+        let arrow = this.svgLayer.querySelector(`polygon[data-edge-id="${edge.id}"]`);
+        let hitPath = this.svgHitLayer.querySelector(`path[data-edge-id="${edge.id}"]`);
+        let label = this.svgLayer.querySelector(`text[data-edge-id="${edge.id}"]`);
+
+        if (path) {
+            path.setAttribute('d', geom.d);
+            path.setAttribute('stroke', isSelected ? '#F59E0B' : '#5C62FF');
+            path.setAttribute('stroke-width', isSelected ? '3' : '2');
+            if (isSelected) {
+                path.classList.add('selected');
+            } else {
+                path.classList.remove('selected');
+            }
+        } else {
+            path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', geom.d);
             path.setAttribute('stroke', isSelected ? '#F59E0B' : '#5C62FF');
             path.setAttribute('stroke-width', isSelected ? '3' : '2');
             path.setAttribute('fill', 'none');
             path.setAttribute('data-edge-id', edge.id);
             path.classList.add('workflow-edge');
-            
-            if (isSelected) {
-                path.classList.add('selected');
-            }
-            
-            const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            hitPath.setAttribute('d', d);
+            if (isSelected) path.classList.add('selected');
+            this.svgLayer.appendChild(path);
+        }
+
+        if (arrow) {
+            arrow.setAttribute('points', geom.arrowPoints);
+            arrow.setAttribute('fill', isSelected ? '#F59E0B' : '#5C62FF');
+        } else {
+            arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            arrow.setAttribute('points', geom.arrowPoints);
+            arrow.setAttribute('fill', isSelected ? '#F59E0B' : '#5C62FF');
+            arrow.setAttribute('data-edge-id', edge.id);
+            this.svgLayer.appendChild(arrow);
+        }
+
+        if (hitPath) {
+            hitPath.setAttribute('d', geom.d);
+        } else {
+            hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            hitPath.setAttribute('d', geom.d);
             hitPath.setAttribute('stroke', '#5C62FF');
             hitPath.setAttribute('stroke-width', '20');
             hitPath.setAttribute('fill', 'none');
             hitPath.setAttribute('stroke-opacity', '0.01');
             hitPath.setAttribute('data-edge-id', edge.id);
-            
             hitPath.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.select(edge.id, e.ctrlKey || e.metaKey);
             });
-            
-            const angle = Math.atan2(y2 - y1, x2 - x1);
-            const arrowSize = 8;
-            const ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
-            const ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
-            const ax2 = x2 - arrowSize * Math.cos(angle + Math.PI / 6);
-            const ay2 = y2 - arrowSize * Math.sin(angle + Math.PI / 6);
-            
-            const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            arrow.setAttribute('points', `${x2},${y2} ${ax1},${ay1} ${ax2},${ay2}`);
-            arrow.setAttribute('fill', isSelected ? '#F59E0B' : '#5C62FF');
-            
-            this.svgLayer.appendChild(path);
-            this.svgLayer.appendChild(arrow);
             this.svgHitLayer.appendChild(hitPath);
-            
-            if (labelText) {
-                const labelX = x1 + (x2 - x1) * 0.15;
-                const labelY = y1 - 8;
-                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                label.setAttribute('x', labelX);
-                label.setAttribute('y', labelY);
+        }
+
+        if (geom.labelText) {
+            if (label) {
+                label.setAttribute('x', geom.labelX);
+                label.setAttribute('y', geom.labelY);
+                label.textContent = geom.labelText;
+            } else {
+                label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', geom.labelX);
+                label.setAttribute('y', geom.labelY);
                 label.setAttribute('fill', '#94a3b8');
                 label.setAttribute('font-size', '11');
                 label.setAttribute('font-family', 'sans-serif');
-                label.textContent = labelText;
+                label.setAttribute('data-edge-id', edge.id);
+                label.textContent = geom.labelText;
                 this.svgLayer.appendChild(label);
             }
+        } else if (label) {
+            label.remove();
+        }
+    }
+
+    /**
+     * 增量更新：只更新与指定节点相连的边
+     * @param {string[]} nodeIds - 发生变化的节点 ID 列表
+     */
+    updateAffectedEdges(nodeIds) {
+        const affectedSet = new Set(nodeIds);
+        const affectedEdges = this.core.edges.filter(e => affectedSet.has(e.source) || affectedSet.has(e.target));
+        for (const edge of affectedEdges) {
+            const geom = this._computeEdgeGeometry(edge);
+            if (!geom) continue;
+            this._upsertEdgeElements(edge, geom);
+        }
+    }
+
+    update() {
+        const currentIds = new Set(this.core.edges.map(e => e.id));
+
+        const ns = 'http://www.w3.org/2000/svg';
+        const removeOrphaned = (layer) => {
+            const all = layer.querySelectorAll('[data-edge-id]');
+            all.forEach(el => {
+                if (!currentIds.has(el.getAttribute('data-edge-id'))) {
+                    el.remove();
+                }
+            });
+        };
+        removeOrphaned(this.svgLayer);
+        removeOrphaned(this.svgHitLayer);
+
+        this.core.edges.forEach(edge => {
+            const geom = this._computeEdgeGeometry(edge);
+            if (!geom) return;
+            this._upsertEdgeElements(edge, geom);
         });
     }
 

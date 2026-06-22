@@ -98,10 +98,16 @@ export class WorkflowUI {
         
         // 如果有已加载的节点，渲染它们
         if (this.core.nodes.length > 0) {
-            this.core.nodes.forEach(node => {
+            const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
+            topLevelNodes.forEach(node => {
                 const nodeCopy = JSON.parse(JSON.stringify(node));
                 const el = this.node.createElement(nodeCopy);
                 this.canvas.canvasContent.appendChild(el);
+            });
+            this.core.nodes.forEach(node => {
+                if (node.parentId) {
+                    this.node.renderContainerChildren(node.parentId);
+                }
             });
             this.canvas.setEmptyState(false);
             this.updateEdges();
@@ -326,19 +332,23 @@ export class WorkflowUI {
             this.canvas.canvasContent.removeChild(this.canvas.canvasContent.firstChild);
         }
         
-        // 重新渲染所有节点（使用深拷贝避免污染历史记录）
+        // 只渲染顶层节点（子节点由容器内部 renderContainerChildren 负责渲染）
         this.core.nodes.forEach(node => {
+            if (node.parentId) return;
             const nodeCopy = JSON.parse(JSON.stringify(node));
             const el = this.node.createElement(nodeCopy);
             this.canvas.canvasContent.appendChild(el);
         });
         
-        // 更新边和 SVG 大小
-        this.updateEdges();
         this.canvas.updateSvgSize();
         
         // 更新摘要
         this.updateSummary();
+        
+        // 等容器子节点渲染完后再更新边，确保连线坐标正确
+        requestAnimationFrame(() => {
+            this.updateEdges();
+        });
         
         // 检查是否需要显示空状态
         if (this.core.nodes.length === 0) {

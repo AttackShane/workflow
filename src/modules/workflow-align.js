@@ -119,7 +119,9 @@ export class WorkflowAlign {
         const minX = Math.min(...nodes.map(n => n.x));
         nodes.forEach(n => {
             this.core.updateNodePosition(n.node.id, minX, n.y);
-            DOM.setStyle(n.el, 'left', minX + 'px');
+            n.el.dataset.x = minX;
+            n.el.dataset.y = n.y;
+            n.el.style.transform = `translate(${minX}px, ${n.y}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -130,7 +132,9 @@ export class WorkflowAlign {
         nodes.forEach(n => {
             const newX = centerX - n.width / 2;
             this.core.updateNodePosition(n.node.id, newX, n.y);
-            DOM.setStyle(n.el, 'left', newX + 'px');
+            n.el.dataset.x = newX;
+            n.el.dataset.y = n.y;
+            n.el.style.transform = `translate(${newX}px, ${n.y}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -141,7 +145,9 @@ export class WorkflowAlign {
         nodes.forEach(n => {
             const newX = maxX - n.width;
             this.core.updateNodePosition(n.node.id, newX, n.y);
-            DOM.setStyle(n.el, 'left', newX + 'px');
+            n.el.dataset.x = newX;
+            n.el.dataset.y = n.y;
+            n.el.style.transform = `translate(${newX}px, ${n.y}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -151,7 +157,9 @@ export class WorkflowAlign {
         const minY = Math.min(...nodes.map(n => n.y));
         nodes.forEach(n => {
             this.core.updateNodePosition(n.node.id, n.x, minY);
-            DOM.setStyle(n.el, 'top', minY + 'px');
+            n.el.dataset.x = n.x;
+            n.el.dataset.y = minY;
+            n.el.style.transform = `translate(${n.x}px, ${minY}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -162,7 +170,9 @@ export class WorkflowAlign {
         nodes.forEach(n => {
             const newY = centerY - n.height / 2;
             this.core.updateNodePosition(n.node.id, n.x, newY);
-            DOM.setStyle(n.el, 'top', newY + 'px');
+            n.el.dataset.x = n.x;
+            n.el.dataset.y = newY;
+            n.el.style.transform = `translate(${n.x}px, ${newY}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -173,7 +183,9 @@ export class WorkflowAlign {
         nodes.forEach(n => {
             const newY = maxY - n.height;
             this.core.updateNodePosition(n.node.id, n.x, newY);
-            DOM.setStyle(n.el, 'top', newY + 'px');
+            n.el.dataset.x = n.x;
+            n.el.dataset.y = newY;
+            n.el.style.transform = `translate(${n.x}px, ${newY}px)`;
         });
         this.ui.updateEdges();
         this.updateAlignToolbar();
@@ -190,7 +202,9 @@ export class WorkflowAlign {
         let curX = sorted[0].x;
         sorted.forEach(n => {
             this.core.updateNodePosition(n.node.id, curX, n.y);
-            DOM.setStyle(n.el, 'left', curX + 'px');
+            n.el.dataset.x = curX;
+            n.el.dataset.y = n.y;
+            n.el.style.transform = `translate(${curX}px, ${n.y}px)`;
             curX += n.width + gap;
         });
         this.core.saveHistory(t('messages.distributeHorizontal'));
@@ -209,7 +223,9 @@ export class WorkflowAlign {
         let curY = sorted[0].y;
         sorted.forEach(n => {
             this.core.updateNodePosition(n.node.id, n.x, curY);
-            DOM.setStyle(n.el, 'top', curY + 'px');
+            n.el.dataset.x = n.x;
+            n.el.dataset.y = curY;
+            n.el.style.transform = `translate(${n.x}px, ${curY}px)`;
             curY += n.height + gap;
         });
         this.core.saveHistory(t('messages.distributeVertical'));

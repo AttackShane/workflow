@@ -284,9 +284,9 @@ export class WorkflowCanvasOptimized {
         let minX = Infinity, minY = Infinity;
         let maxX = -Infinity, maxY = -Infinity;
         
-        // 只考虑可见节点来计算边界
+        // 只考虑顶层节点来计算边界，子节点坐标是相对于容器的
         this.core.nodes.forEach(node => {
-            // 如果节点被标记为可见或者我们需要完整的边界计算
+            if (node.parentId) return;
             const x = node.x || 0;
             const y = node.y || 0;
             const width = node.width || 200;
@@ -584,71 +584,139 @@ export class WorkflowCanvasOptimized {
             return;
         }
 
-        const nodes = this.core.nodes;
-        const nodeWidth = 200;
-        const nodeHeight = 100;
         const hGap = 100;
         const vGap = 60;
+        const PADDING = 20;
+        const CONTAINER_H_GAP = 60;
+        const CONTAINER_V_GAP = 40;
+        const HEADER_H = 36;
+        const DESC_H = 20;
+        const BORDER = 4;
 
-        const adj = new Map();
-        const inDegree = new Map();
-        const predecessors = new Map();
-        nodes.forEach(n => {
-            adj.set(n.id, []);
-            inDegree.set(n.id, 0);
-            predecessors.set(n.id, []);
-        });
+        const defaultW = 200;
+        const defaultH = 100;
 
-        this.core.edges.forEach(edge => {
-            const s = edge.source;
-            const t = edge.target;
-            if (s && t && adj.has(s) && adj.has(t)) {
-                adj.get(s).push(t);
-                inDegree.set(t, (inDegree.get(t) || 0) + 1);
-                predecessors.get(t).push(s);
-            }
-        });
+        const getNodeSize = (node) => {
+            const info = this.core.nodeTypeInfo[node.type] || {};
+            const isContainer = info.hasContainer === true;
+            const w = node.width || (isContainer ? (info.containerMinWidth || 300) : 200);
+            const h = node.height || (isContainer ? (info.containerMinHeight || 200) : 100);
+            return { w, h };
+        };
 
-        const nodeLevel = new Map();
-        const sources = nodes.filter(n => inDegree.get(n.id) === 0);
-        const queue = sources.map(n => n.id);
-        sources.forEach(n => nodeLevel.set(n.id, 0));
+        const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, centerY = true) => {
+            if (groupNodes.length === 0) return;
+            const groupSizes = new Map();
+            const groupIds = new Set(groupNodes.map(n => n.id));
+            groupNodes.forEach(n => groupSizes.set(n.id, getNodeSize(n)));
 
-        while (queue.length > 0) {
-            const id = queue.shift();
-            adj.get(id).forEach(nextId => {
-                const predMax = Math.max(...predecessors.get(nextId).map(pid => nodeLevel.get(pid) ?? -1));
-                const newLevel = predMax + 1;
-                if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
-                    nodeLevel.set(nextId, newLevel);
-                    if (!queue.includes(nextId)) queue.push(nextId);
+            const adj = new Map();
+            const inDeg = new Map();
+            const preds = new Map();
+            groupNodes.forEach(n => {
+                adj.set(n.id, []);
+                inDeg.set(n.id, 0);
+                preds.set(n.id, []);
+            });
+
+            this.core.edges.forEach(edge => {
+                const s = edge.source;
+                const t = edge.target;
+                if (groupIds.has(s) && groupIds.has(t)) {
+                    adj.get(s).push(t);
+                    inDeg.set(t, (inDeg.get(t) || 0) + 1);
+                    preds.get(t).push(s);
                 }
             });
-        }
 
-        nodes.forEach(n => {
-            if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
-        });
+            const nodeLevel = new Map();
+            const sources = groupNodes.filter(n => inDeg.get(n.id) === 0);
+            const queue = sources.map(n => n.id);
+            sources.forEach(n => nodeLevel.set(n.id, 0));
 
-        const levels = [];
-        nodeLevel.forEach((level, id) => {
-            if (!levels[level]) levels[level] = [];
-            const node = nodes.find(n => n.id === id);
-            if (node) levels[level].push(node);
-        });
+            while (queue.length > 0) {
+                const id = queue.shift();
+                adj.get(id).forEach(nextId => {
+                    const predMax = Math.max(...preds.get(nextId).map(pid => nodeLevel.get(pid) ?? -1));
+                    const newLevel = predMax + 1;
+                    if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
+                        nodeLevel.set(nextId, newLevel);
+                        if (!queue.includes(nextId)) queue.push(nextId);
+                    }
+                });
+            }
 
-        // 横向排列：层级决定 X，层内垂直居中
-        levels.forEach((level, col) => {
-            const totalH = level.length * nodeHeight + (level.length - 1) * vGap;
-            level.forEach((node, i) => {
-                node.x = col * (nodeWidth + hGap);
-                node.y = i * (nodeHeight + vGap) - totalH / 2 + nodeHeight / 2;
-                node.width = nodeWidth;
-                node.height = nodeHeight;
+            groupNodes.forEach(n => {
+                if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
             });
+
+            const levels = [];
+            const levelMaxW = [];
+            nodeLevel.forEach((level, id) => {
+                if (!levels[level]) levels[level] = [];
+                const node = groupNodes.find(n => n.id === id);
+                if (node) {
+                    levels[level].push(node);
+                    const sz = groupSizes.get(id) || { w: defaultW, h: defaultH };
+                    levelMaxW[level] = Math.max(levelMaxW[level] || 0, sz.w);
+                }
+            });
+
+            let xOff = startX;
+            levels.forEach((level, col) => {
+                const maxW = levelMaxW[col] || defaultW;
+                const totalH = level.reduce((sum, node) => {
+                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                    return sum + sz.h;
+                }, 0) + (level.length - 1) * gapV;
+
+                let yOff = centerY ? (startY - totalH / 2) : startY;
+                level.forEach((node) => {
+                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                    node.x = xOff;
+                    node.y = yOff;
+                    node.width = sz.w;
+                    node.height = sz.h;
+                    yOff += sz.h + gapV;
+                });
+
+                xOff += maxW + gapH;
+            });
+        };
+
+        // 1. 先布局容器内部子节点，确定容器真实尺寸
+        this.core.nodes.forEach(container => {
+            const info = this.core.nodeTypeInfo[container.type] || {};
+            if (!info.hasContainer) return;
+            const children = this.core.getChildNodes(container.id);
+            if (children.length === 0) return;
+
+            layoutNodeGroup(children, PADDING, PADDING, CONTAINER_H_GAP, CONTAINER_V_GAP, false);
+
+            const minW = info.containerMinWidth || 300;
+            const minH = info.containerMinHeight || 200;
+            let maxRight = 0;
+            let maxBottom = 0;
+            let minX = 0;
+            let minY = 0;
+            children.forEach(child => {
+                const sz = getNodeSize(child);
+                minX = Math.min(minX, child.x);
+                minY = Math.min(minY, child.y);
+                maxRight = Math.max(maxRight, child.x + sz.w);
+                maxBottom = Math.max(maxBottom, child.y + sz.h);
+            });
+            const bodyW = Math.max(minW - BORDER, maxRight - minX + PADDING * 2);
+            const bodyH = Math.max(minH - HEADER_H - DESC_H - BORDER, maxBottom - minY + PADDING * 2);
+            container.width = Math.max(minW, bodyW + BORDER);
+            container.height = HEADER_H + DESC_H + bodyH + BORDER;
         });
 
-        // 整体平移到正象限，避免 SVG 裁切负坐标内容
+        // 2. 顶层节点布局（此时容器尺寸已确定）
+        const nodes = this.core.nodes.filter(n => !n.parentId);
+        layoutNodeGroup(nodes, 0, 0, hGap, vGap);
+
+        // 3. 整体平移到正象限
         const bounds = this.calculateNodesBounds();
         const offsetX = -Math.min(0, bounds.minX);
         const offsetY = -Math.min(0, bounds.minY);
@@ -657,7 +725,6 @@ export class WorkflowCanvasOptimized {
             node.y += offsetY;
         });
 
-        // 保存到历史记录
         this.core.saveHistory(t('messages.viewReset'));
 
         this.ui.refreshCanvas();

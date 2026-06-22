@@ -29,7 +29,7 @@ export const WORKFLOW_TEMPLATES = [
             { id: 'node_200001', type: 'start', x: 400, y: 80, title: '用户提问', description: '接收用户问题' },
             { id: 'node_200002', type: 'llm', x: 400, y: 200, title: '意图识别', description: '分析用户意图', parameters: { prompt: '分析用户的问题意图，返回意图标签' } },
             { id: 'node_200003', type: 'condition', x: 300, y: 320, title: '意图分支', description: '根据意图分流' },
-            { id: 'node_200004', type: 'knowledge', x: 150, y: 440, title: '知识库问答', description: '从知识库检索答案' },
+            { id: 'node_200004', type: 'knowledge', x: 150, y: 440, title: '知识库检索', description: '从知识库检索匹配的答案', parameters: { query: '{{用户问题}}', topK: 5, useRerank: true, useRewrite: true, isPersonalOnly: true, enableChatHistory: false, chatHistoryRound: 3 } },
             { id: 'node_200005', type: 'llm', x: 350, y: 440, title: '闲聊回复', description: '生成闲聊回复' },
             { id: 'node_200006', type: 'end', x: 250, y: 560, title: '回复用户', description: '输出最终回复' }
         ],
@@ -83,19 +83,37 @@ export const WORKFLOW_TEMPLATES = [
     {
         id: 'tpl_loop',
         name: '循环处理',
-        description: '循环节点+条件分支的批处理流程',
+        description: '循环节点内包含子节点，逐条处理数据',
         icon: '🔄',
         category: '进阶',
         nodes: [
             { id: 'node_500001', type: 'start', x: 400, y: 80, title: '开始', description: '接收批量数据' },
-            { id: 'node_500002', type: 'loop', x: 400, y: 200, title: '循环处理', description: '逐条处理数据' },
-            { id: 'node_500003', type: 'llm', x: 400, y: 320, title: '处理单条', description: '处理循环中的每条数据', parameters: { prompt: '请处理这条数据：{item}' } },
-            { id: 'node_500004', type: 'end', x: 400, y: 440, title: '汇总输出', description: '输出处理结果汇总' }
+            { id: 'node_500002', type: 'loop', x: 340, y: 200, title: '循环处理', description: '逐条处理数据', parameters: { loopType: 'forEach', arrayVar: '{{items}}', count: 3 } },
+            { id: 'node_500003', type: 'llm', x: 420, y: 280, title: '处理单条', description: '大模型处理每条数据', parameters: { prompt: '请处理这条数据：{item}', modelName: '豆包·2.0·lite' }, parentId: 'node_500002' },
+            { id: 'node_500004', type: 'code', x: 420, y: 380, title: '结果格式化', description: '格式化单条处理结果', parameters: { code: 'return { result: input, processed: true }', language: 'javascript' }, parentId: 'node_500002' },
+            { id: 'node_500005', type: 'end', x: 340, y: 500, title: '汇总输出', description: '输出汇总结果' }
         ],
         edges: [
             { id: 'edge_16', source: 'node_500001', target: 'node_500002' },
-            { id: 'edge_17', source: 'node_500002', target: 'node_500003' },
-            { id: 'edge_18', source: 'node_500003', target: 'node_500004' }
+            { id: 'edge_17', source: 'node_500002', target: 'node_500005' }
+        ]
+    },
+    {
+        id: 'tpl_batch',
+        name: '批处理',
+        description: '批量处理数据，每批独立执行子工作流',
+        icon: '📤',
+        category: '进阶',
+        nodes: [
+            { id: 'node_600001', type: 'start', x: 400, y: 80, title: '开始', description: '接收大批量数据' },
+            { id: 'node_600002', type: 'batch', x: 340, y: 200, title: '批处理', description: '分批处理数据', parameters: { inputArray: '{{dataList}}', batchSize: 10 } },
+            { id: 'node_600003', type: 'http', x: 420, y: 280, title: '调用API', description: '对每批数据调用外部API', parameters: { url: 'https://api.example.com/process', method: 'POST' }, parentId: 'node_600002' },
+            { id: 'node_600004', type: 'llm', x: 420, y: 380, title: '结果分析', description: '分析每批处理结果', parameters: { prompt: '分析这批数据处理结果', modelName: '豆包·2.0·lite' }, parentId: 'node_600002' },
+            { id: 'node_600005', type: 'end', x: 340, y: 500, title: '汇总输出', description: '输出全部结果' }
+        ],
+        edges: [
+            { id: 'edge_19', source: 'node_600001', target: 'node_600002' },
+            { id: 'edge_20', source: 'node_600002', target: 'node_600005' }
         ]
     }
 ];
