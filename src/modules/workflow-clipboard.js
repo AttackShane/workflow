@@ -129,19 +129,22 @@ export class WorkflowClipboard {
 
             // 写入动态入参
             if (node.inputParams && Array.isArray(node.inputParams)) {
-                cozeNode.data.inputs.inputParameters = node.inputParams.map(p => ({
-                    name: p.name,
-                    input: { 
-                        type: p.type || 'string', 
-                        value: { 
-                            type: p.valueType || 'literal', 
-                            content: (p.valueType === 'ref' && p.value && typeof p.value === 'object')
-                                ? (p.value.content || '')
-                                : (p.value || ''),
-                            ...(p.rawMeta && { rawMeta: p.rawMeta })
-                        } 
-                    }
-                }));
+                cozeNode.data.inputs.inputParameters = node.inputParams.map(p => {
+                    const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+                    return {
+                        name: p.name,
+                        input: {
+                            type: p.type || 'string',
+                            value: isRef
+                                ? p.value
+                                : {
+                                    type: 'literal',
+                                    content: p.value || '',
+                                    ...(p.rawMeta && { rawMeta: p.rawMeta })
+                                }
+                        }
+                    };
+                });
             }
 
             // 写入动态出参

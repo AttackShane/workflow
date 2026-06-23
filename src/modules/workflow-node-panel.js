@@ -118,7 +118,7 @@ export function mixinNodePanel(node) {
                     <button class="btn btn-sm" onclick="workflowUI.node.addInputParam('${StringUtils.escapeHtml(targetNode.id)}')">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="inputParamsList">
-                    ${this.renderInputOutputParams(targetNode.inputParams || [], 'input')}
+                    ${this.renderInputOutputParams(targetNode.inputParams || [], 'input', targetNode.id)}
                 </div>
 
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
@@ -127,7 +127,7 @@ export function mixinNodePanel(node) {
                     <button class="btn btn-sm" onclick="workflowUI.node.addOutputParam('${StringUtils.escapeHtml(targetNode.id)}')">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="outputParamsList">
-                    ${this.renderInputOutputParams(targetNode.outputParams || [], 'output')}
+                    ${this.renderInputOutputParams(targetNode.outputParams || [], 'output', targetNode.id)}
                 </div>
 
                 <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
@@ -330,7 +330,7 @@ export function mixinNodePanel(node) {
         this.core.saveHistory(t('actions.editNode'));
     };
 
-    node.renderInputOutputParams = function(paramsList, prefix) {
+    node.renderInputOutputParams = function(paramsList, prefix, nodeId) {
         if (!paramsList || paramsList.length === 0) {
             return `<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">${t('properties.noParams')}</p>`;
         }
@@ -383,7 +383,7 @@ export function mixinNodePanel(node) {
             return `<div class="param-card" id="${prefix}Card_${i}">
                 <div class="param-card-header">
                     <span class="param-card-title">${t('nodes.parameter', { index: i + 1 })}</span>
-                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${prefix}', ${i})">${t('nodes.remove')}</button>
+                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${StringUtils.escapeHtml(nodeId)}', '${prefix}', ${i})">${t('nodes.remove')}</button>
                 </div>
                 <div class="param-card-row">
                     <div class="param-field">
@@ -526,11 +526,9 @@ export function mixinNodePanel(node) {
         } catch (e) {}
     };
 
-    node.removeParam = function(prefix, index) {
+    node.removeParam = function(nodeId, prefix, index) {
         try {
-            const selectedNode = this.core.selectedNode;
-            if (!selectedNode) return;
-            const targetNode = this.core.nodes.find(n => n.id === selectedNode);
+            const targetNode = this.core.nodes.find(n => n.id === nodeId);
             if (!targetNode) return;
             if (prefix === 'input' && targetNode.inputParams) {
                 targetNode.inputParams.splice(index, 1);
@@ -633,9 +631,13 @@ export function mixinNodePanel(node) {
             };
             if (p.valueType !== undefined) {
                 result.valueType = p.valueType;
+            } else if (value && typeof value === 'object' && value.type === 'ref') {
+                result.valueType = 'ref';
             }
             if (p.rawMeta !== undefined) {
                 result.rawMeta = p.rawMeta;
+            } else if (value && typeof value === 'object' && value.type === 'ref' && value.rawMeta) {
+                result.rawMeta = value.rawMeta;
             }
             if (prefix === 'input' && reqEl) {
                 result.required = reqEl.checked;

@@ -482,6 +482,14 @@ export class WorkflowUI {
             sessionStorage.setItem('savedWorkflowDesc', result.description);
         } else {
             workflow.id = editingId;
+            const nameEl = document.getElementById('workflowName');
+            if (nameEl) {
+                workflow.name = nameEl.textContent.trim();
+            }
+            const descEl = document.getElementById('workflowDescription');
+            if (descEl) {
+                workflow.description = descEl.textContent.trim();
+            }
         }
         
         // 保存到 sessionStorage，供工作流管理页面读取
@@ -508,7 +516,10 @@ export class WorkflowUI {
     async confirmExit() {
         // 如果没有未保存的变更，直接退出不提问
         if (!this.hasUnsavedChanges()) {
-            sessionStorage.removeItem('editingWorkflowId');
+            // 如果有 pending 的 quickSave 数据，保留 editingWorkflowId 供管理页面更新
+            if (!sessionStorage.getItem('savedWorkflow')) {
+                sessionStorage.removeItem('editingWorkflowId');
+            }
             goToManager();
             return;
         }
@@ -521,6 +532,9 @@ export class WorkflowUI {
         } else {
             // 用户选择不保存，直接返回
             sessionStorage.removeItem('editingWorkflowId');
+            sessionStorage.removeItem('savedWorkflow');
+            sessionStorage.removeItem('savedWorkflowName');
+            sessionStorage.removeItem('savedWorkflowDesc');
             goToManager();
         }
     }
@@ -552,6 +566,14 @@ export class WorkflowUI {
                 sessionStorage.setItem('savedWorkflowDesc', result.description);
             } else {
                 workflow.id = editingId;
+                const nameEl = document.getElementById('workflowName');
+                if (nameEl) {
+                    workflow.name = nameEl.textContent.trim();
+                }
+                const descEl = document.getElementById('workflowDescription');
+                if (descEl) {
+                    workflow.description = descEl.textContent.trim();
+                }
             }
             
             sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));

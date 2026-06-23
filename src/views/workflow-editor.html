@@ -147,16 +147,16 @@
             sessionStorage.setItem('editingWorkflowId', workflow.id);
             sessionStorage.removeItem('editingWorkflow');
             
-            // 清除 localStorage，避免与从管理器加载的工作流冲突
-            core.clearSavedWorkflow();
-            
             if (workflow.nodes && workflow.nodes.length > 0) {
                 core.nodes = JSON.parse(JSON.stringify(workflow.nodes));
                 core.edges = JSON.parse(JSON.stringify(workflow.edges || []));
                 core.selectedNode = workflow.selectedNode || null;
                 core.selectedEdge = workflow.selectedEdge || null;
             }
-            
+
+            // 清除旧的 localStorage 快照，避免刷新时恢复成上一个工作流
+            core.clearSavedWorkflow();
+            core.syncIdCounters();
             core.resetHistory('从工作流管理器加载');
             
             // 更新工作流信息显示

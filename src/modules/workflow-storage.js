@@ -67,4 +67,32 @@ export function mixinStorage(core) {
     core.clearSavedWorkflow = function(key = 'workflow_current') {
         Storage.remove(key);
     };
+
+    /**
+     * 根据已有节点/边同步 ID 计数器，避免编号冲突
+     * 在从外部数据源加载节点后调用（如 sessionStorage 的 editingWorkflow）
+     */
+    core.syncIdCounters = function() {
+        let maxNode = this.nodeIdCounter;
+        let maxEdge = this.edgeIdCounter;
+
+        for (const node of this.nodes) {
+            const match = node.id && node.id.match(/^node_(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxNode) maxNode = num;
+            }
+        }
+
+        for (const edge of this.edges) {
+            const match = edge.id && edge.id.match(/^edge_(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num > maxEdge) maxEdge = num;
+            }
+        }
+
+        this.nodeIdCounter = maxNode;
+        this.edgeIdCounter = maxEdge;
+    };
 }
