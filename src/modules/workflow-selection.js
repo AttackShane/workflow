@@ -18,8 +18,21 @@ export class WorkflowSelection {
      * 全选节点和边
      */
     selectAll() {
-        document.querySelectorAll('.canvas-node').forEach(n => DOM.addClass(n, 'selected'));
-        document.querySelectorAll('.workflow-edge').forEach(e => DOM.addClass(e, 'selected'));
+        document.querySelectorAll('.canvas-node').forEach(n => {
+            const nodeId = n.getAttribute('data-node-id');
+            const node = this.core.nodes.find(nd => nd.id === nodeId);
+            if (node && node.parentId) return;
+            DOM.addClass(n, 'selected');
+        });
+        document.querySelectorAll('.workflow-edge').forEach(e => {
+            const edgeId = e.getAttribute('data-edge-id');
+            const edge = this.core.edges.find(ed => ed.id === edgeId);
+            if (!edge) return;
+            const sourceNode = this.core.nodes.find(n => n.id === edge.source);
+            const targetNode = this.core.nodes.find(n => n.id === edge.target);
+            if ((sourceNode && sourceNode.parentId) || (targetNode && targetNode.parentId)) return;
+            DOM.addClass(e, 'selected');
+        });
 
         if (this.core.edges.length > 0) {
             this.core.selectEdge(this.core.edges[0].id);
@@ -89,7 +102,7 @@ export class WorkflowSelection {
      * @param {number} width - 宽度
      * @param {number} height - 高度
      */
-    selectNodesInRect(left, top, width, height, accumulate = false) {
+    selectNodesInRect(left, top, width, height, accumulate = false, containerId = null) {
         if (!accumulate) {
             this.deselectAll();
         }
@@ -97,6 +110,16 @@ export class WorkflowSelection {
         const selectedNodeIds = new Set();
 
         document.querySelectorAll('.canvas-node').forEach(nodeEl => {
+            const nodeId = nodeEl.getAttribute('data-node-id');
+            const node = this.core.nodes.find(nd => nd.id === nodeId);
+            if (!node) return;
+
+            if (containerId) {
+                if (node.parentId !== containerId) return;
+            } else {
+                if (node.parentId) return;
+            }
+
             const rect = nodeEl.getBoundingClientRect();
             const nodeLeft = rect.left;
             const nodeTop = rect.top;

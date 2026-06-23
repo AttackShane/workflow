@@ -10,6 +10,10 @@ import { t } from '../i18n/i18n.js';
  * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodeRender(node) {
+    if (!node._elMap) {
+        node._elMap = new Map();
+    }
+
     node.createElement = function(nodeData) {
         const info = this.core.nodeTypeInfo[nodeData.type] || { title: t('messages.unknownNode'), icon: '📦', description: '', hasInput: true, hasOutput: true };
         const el = document.createElement('div');
@@ -117,6 +121,8 @@ export function mixinNodeRender(node) {
             });
         }
 
+        this._elMap.set(nodeData.id, el);
+
         return el;
     };
 
@@ -171,7 +177,7 @@ export function mixinNodeRender(node) {
      * 渲染容器节点的子节点
      */
     node.renderContainerChildren = function(containerId) {
-        const containerEl = document.querySelector(`[data-node-id="${containerId}"]`);
+        const containerEl = this._elMap.get(containerId);
         if (!containerEl) return;
         const containerBody = containerEl.querySelector('.container-body');
         if (!containerBody) return;
@@ -207,17 +213,17 @@ export function mixinNodeRender(node) {
      */
     node.CONTAINER_HEADER_H = 36;
     node.CONTAINER_DESC_H = 20;
-    node.CONTAINER_BORDER = 4;
+    node.CONTAINER_BORDER = 1;
     node.CONNECTION_POINT_EXT = 6;
 
     /**
      * 根据子节点自动调整容器大小
      */
     node.updateContainerSize = function(containerId) {
-        const containerEl = document.querySelector(`[data-node-id="${containerId}"]`);
-        if (!containerEl) return;
         const containerNode = this.core.nodes.find(n => n.id === containerId);
         if (!containerNode) return;
+        const containerEl = this._elMap.get(containerId);
+        if (!containerEl) return;
         const info = this.core.nodeTypeInfo[containerNode.type] || {};
         const minW = info.containerMinWidth || 300;
         const minH = info.containerMinHeight || 200;
@@ -251,6 +257,7 @@ export function mixinNodeRender(node) {
         children.forEach(child => {
             const left = parseFloat(child.dataset.x) || 0;
             const top = parseFloat(child.dataset.y) || 0;
+            child.getBoundingClientRect();
             const childW = child.offsetWidth;
             const childH = child.offsetHeight;
             childData.push({ el: child, left, top, w: childW, h: childH });
@@ -349,6 +356,10 @@ export function mixinNodeRender(node) {
 
     node.onMouseDown = function(e, el) {
         if (e.target.classList.contains('connection-point')) return;
+
+        if (el.classList.contains('container') && e.target.closest('.container-body')) {
+            return;
+        }
 
         e.preventDefault();
         e.stopPropagation();
@@ -463,7 +474,10 @@ export function mixinNodeRender(node) {
                 const moveDx = (e.clientX - this.ui.dragStartX) / this.ui.canvas.canvasScale;
                 const moveDy = (e.clientY - this.ui.dragStartY) / this.ui.canvas.canvasScale;
 
-                const parentContainers = new Set();
+                if (!this.ui._pendingContainers) {
+                    this.ui._pendingContainers = new Set();
+                }
+                const parentContainers = this.ui._pendingContainers;
                 const detachedSet = this.ui._ctrlDetached || (this.ui._ctrlDetached = new Set());
 
                 for (const nodeEl of selectedNodeEls) {
@@ -519,8 +533,6 @@ export function mixinNodeRender(node) {
                         parentContainers.add(nodeData.parentId);
                     }
                 }
-
-                this.ui._pendingContainers = parentContainers;
             });
         };
 
@@ -555,7 +567,7 @@ export function mixinNodeRender(node) {
                         if (nodeData.parentId) {
                             nodeData.parentId = null;
                         }
-                        const containerEl = document.querySelector(`[data-node-id="${containerId}"]`);
+                        const containerEl = this._elMap.get(containerId);
                         const body = containerEl.querySelector('.container-body');
                         const headerH = 36;
                         const descH = 20;
@@ -735,12 +747,17 @@ export function mixinNodeRender(node) {
         const childNodes = this.core.getChildNodes(nodeId);
         childNodes.forEach(child => {
             document.querySelector(`[data-node-id="${child.id}"]`)?.remove();
+            this._elMap.delete(child.id);
         });
         this.core.deleteNode(nodeId);
         document.querySelector(`[data-node-id="${nodeId}"]`)?.remove();
+        this._elMap.delete(nodeId);
 
         if (parentId) {
             this.updateContainerSize(parentId);
+            if (this.ui && this.ui.edge) {
+                this.ui.edge.updateAffectedEdges([parentId]);
+            }
         }
 
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');

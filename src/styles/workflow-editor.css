@@ -369,7 +369,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 3;
+    z-index: 20;
     pointer-events: none;
 }
 
@@ -427,6 +427,10 @@ body {
 .canvas-node.selected {
     box-shadow: 0 0 0 2px #F59E0B, 0 4px 20px rgba(245, 158, 11, 0.3);
     z-index: 20;
+}
+
+.canvas-node.selected:hover {
+    box-shadow: 0 0 0 2px #F59E0B, 0 4px 20px rgba(245, 158, 11, 0.3);
 }
 
 .canvas-node.dragging {
@@ -511,6 +515,7 @@ body {
     padding: 0;
     overflow: visible;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    will-change: transform, width, height;
 }
 
 .canvas-node.container.loop {
@@ -534,6 +539,11 @@ body {
 }
 
 .canvas-node.container.selected {
+    border-color: #F59E0B;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4), 0 4px 20px rgba(245, 158, 11, 0.2);
+}
+
+.canvas-node.container.selected:hover {
     border-color: #F59E0B;
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4), 0 4px 20px rgba(245, 158, 11, 0.2);
 }
@@ -593,6 +603,7 @@ body {
     position: relative;
     overflow: visible;
     transition: background 0.2s;
+    box-sizing: border-box;
 }
 
 .canvas-node.container .container-placeholder {
@@ -798,7 +809,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 3;
+    z-index: 20;
     pointer-events: none;
 }
 

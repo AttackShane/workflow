@@ -105,7 +105,7 @@ export class WorkflowEdge {
         const ctrl = Math.max(dx * 0.4, 50);
         const d = `M ${x1} ${y1} C ${x1 + ctrl} ${y1}, ${x2 - ctrl} ${y2}, ${x2} ${y2}`;
 
-        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const angle = Math.atan2(y2 - y2, x2 - (x2 - ctrl));
         const arrowSize = 8;
         const ax1 = x2 - arrowSize * Math.cos(angle - Math.PI / 6);
         const ay1 = y2 - arrowSize * Math.sin(angle - Math.PI / 6);
@@ -210,6 +210,19 @@ export class WorkflowEdge {
     updateAffectedEdges(nodeIds) {
         const affectedSet = new Set(nodeIds);
         const affectedEdges = this.core.edges.filter(e => affectedSet.has(e.source) || affectedSet.has(e.target));
+
+        const currentIds = new Set(this.core.edges.map(e => e.id));
+        const removeOrphaned = (layer) => {
+            const all = layer.querySelectorAll('[data-edge-id]');
+            all.forEach(el => {
+                if (!currentIds.has(el.getAttribute('data-edge-id'))) {
+                    el.remove();
+                }
+            });
+        };
+        removeOrphaned(this.svgLayer);
+        removeOrphaned(this.svgHitLayer);
+
         for (const edge of affectedEdges) {
             const geom = this._computeEdgeGeometry(edge);
             if (!geom) continue;

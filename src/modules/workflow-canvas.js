@@ -221,7 +221,24 @@ export class WorkflowCanvas {
     onCanvasMouseDown(e) {
         const isNode = e.target.closest('.canvas-node');
         const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');
-        
+        const isContainerBody = e.target.closest('.container-body');
+
+        let containerId = null;
+        if (isContainerBody) {
+            const containerNodeEl = isContainerBody.closest('.canvas-node.container');
+            if (containerNodeEl) {
+                containerId = containerNodeEl.dataset.nodeId;
+            }
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const isMarqueeMode = e.ctrlKey || e.metaKey;
+
+            if (isMarqueeMode) {
+                this.handleMarqueeSelection(startX, startY, true, containerId);
+            }
+            return;
+        }
+
         if (isNode || isEdge) return;
         
         const startX = e.clientX;
@@ -240,7 +257,7 @@ export class WorkflowCanvas {
      * @param {number} startX - 起始 X 坐标
      * @param {number} startY - 起始 Y 坐标
      */
-    handleMarqueeSelection(startX, startY, accumulate = false) {
+    handleMarqueeSelection(startX, startY, accumulate = false, containerId = null) {
         this.isMarqueeSelectionActive = true;
         DOM.setStyle(this.canvas, 'cursor', 'crosshair');
         
@@ -279,7 +296,7 @@ export class WorkflowCanvas {
                 const left = Math.min(startX, e.clientX);
                 const top = Math.min(startY, e.clientY);
                 
-                this.ui.selection.selectNodesInRect(left, top, width, height, accumulate);
+                this.ui.selection.selectNodesInRect(left, top, width, height, accumulate, containerId);
             }
             
             document.body.removeChild(marquee);
