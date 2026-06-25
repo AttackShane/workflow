@@ -242,13 +242,6 @@ export function mixinSerializer(core) {
                 });
             }
 
-            if (Array.isArray(cozeNode.blocks) && cozeNode.blocks.length > 0) {
-                parameters.blocks = cozeNode.blocks;
-                cozeNode.blocks.forEach(block => {
-                    processNodeRecursive(block, newNodeId);
-                });
-            }
-
             const title = cozeNode.data?.nodeMeta?.title || cozeNode.title || t('messages.unknownNode');
             const description = cozeNode.data?.nodeMeta?.description || cozeNode.description || '';
 
@@ -260,13 +253,25 @@ export function mixinSerializer(core) {
                 title: title,
                 description: description,
                 parameters: parameters,
-                width: cozeNode._temp?.bounds?.width || cozeNode.width || 200,
-                height: cozeNode._temp?.bounds?.height || cozeNode.height || 100
+                width: 200,
+                height: 100
             };
 
-            if (parentId) newNode.parentId = parentId;
+            if (parentId) {
+                newNode.parentId = parentId;
+                newNode.x = (cozeNode.meta?.position?.x || 0);
+                newNode.y = (cozeNode.meta?.position?.y || 0);
+            }
 
             this.nodes.push(newNode);
+
+            if (Array.isArray(cozeNode.blocks) && cozeNode.blocks.length > 0) {
+                parameters.blocks = cozeNode.blocks;
+                newNode._skipLayout = true;
+                cozeNode.blocks.forEach(block => {
+                    processNodeRecursive(block, newNodeId);
+                });
+            }
         };
 
         data.json.nodes.forEach(cozeNode => {

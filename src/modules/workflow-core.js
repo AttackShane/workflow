@@ -6,6 +6,7 @@
  */
 import { TYPE_MAP, REV_TYPE_MAP } from '../utils/types.js';
 import { t, i18n } from '../i18n/i18n.js';
+import { Logger } from '../utils/logger.js';
 import { mixinStorage } from './workflow-storage.js';
 import { mixinSerializer } from './workflow-serializer.js';
 
@@ -485,7 +486,12 @@ export class WorkflowCore {
      * @returns {object|null} 添加的边对象，如果已存在则返回null
      */
     addEdge(edgeData) {
-        const existingEdge = this.edges.find(e => e.source === edgeData.source && e.target === edgeData.target);
+        const existingEdge = this.edges.find(e =>
+            e.source === edgeData.source &&
+            e.target === edgeData.target &&
+            (e.sourcePort || '') === (edgeData.sourcePort || '') &&
+            (e.targetPort || '') === (edgeData.targetPort || '')
+        );
         if (existingEdge) {
             Logger.warn('边已存在:', edgeData.source, '→', edgeData.target);
             return null;

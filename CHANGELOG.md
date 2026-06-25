@@ -1,5 +1,43 @@
 # Changelog
 
+## v1.3.0 - 2026-06-25
+
+### 功能修复
+
+#### 剪贴板导入/导出
+- 修复剪贴板粘贴时参数引用嵌套处理问题，支持 `note` 字段的 Slate 富文本提取
+- 修复 `llmParam` 参数解析兼容对象和数组两种格式
+- 优化剪贴板导入逻辑，增加参数类型安全校验，防止异常数据导致崩溃
+- 增强剪贴板导出数据完整性，确保所有节点参数正确序列化
+
+#### 参数引用与保存
+- 修复参数引用嵌套保存后丢失问题，改进 JSON 序列化逻辑
+- 修复参数删除后引用未清理导致的残留问题
+- 修复 ID 计数器在多次操作后可能重复的问题
+
+#### 保存逻辑
+- 修复保存时属性面板数据与节点数据不同步问题
+- 优化存储模块的保存时机判断
+
+#### 示例文件清理
+- 清理 `src/example/` 目录下不再使用的示例工作流文件
+
+### 测试
+- 新增剪贴板模块测试用例（+241 行），覆盖粘贴、导出、参数解析等场景
+
+### 修改文件
+- `workflow-clipboard-paste.js` - 重构粘贴逻辑，增强参数解析
+- `workflow-clipboard.js` - 优化导出逻辑
+- `workflow-core.js` - 修复 ID 计数器
+- `workflow-serializer.js` - 改进序列化逻辑
+- `workflow-storage.js` - 修复保存逻辑
+- `workflow-manager.js` - 同步属性面板与节点数据
+- `workflow-node-render.js` - 修复参数引用渲染
+- `workflow-canvas.js` / `workflow-keyboard.js` / `workflow-ui.js` - 细节修复
+- `tests/clipboard.test.js` - 新增测试
+
+---
+
 ## v1.2.0 - 2026-06-17
 
 ### 新增功能

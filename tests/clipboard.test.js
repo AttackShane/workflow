@@ -401,4 +401,245 @@ describe('WorkflowClipboard', () => {
             });
         });
     });
+
+    describe('container node copy-paste round-trip', () => {
+        beforeEach(() => {
+            core = new WorkflowCore();
+            const mockUI = {
+                core,
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {}
+                },
+                node: {
+                    createElement: (node) => {
+                        const el = { style: {}, dataset: {} };
+                        el.dataset.nodeId = node.id;
+                        return el;
+                    }
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: () => {}
+            };
+            clipboard = new WorkflowClipboard(mockUI);
+        });
+
+        it('should include child nodes in blocks when copying a container node', async () => {
+            const containerNode = core.createNode('loop', 200, 300, { title: 'Loop' });
+            const childNode = core.createNode('code', 50, 80, { title: 'Code' });
+            childNode.parentId = containerNode.id;
+
+            const edge = core.createEdge('container_start', containerNode.id, childNode.id);
+            core.selectNode(containerNode.id);
+
+            let capturedText = '';
+            document.querySelectorAll = () => [
+                { dataset: { nodeId: containerNode.id }, getAttribute: (attr) => attr === 'selected' ? 'selected' : null }
+            ];
+            global.navigator.clipboard.writeText = async (text) => { capturedText = text; };
+
+            await clipboard.copy();
+
+            const copyData = JSON.parse(capturedText);
+            const topNode = copyData.json.nodes[0];
+
+            expect(topNode.blocks).toBeDefined();
+            expect(topNode.blocks.length).toBe(1);
+            expect(topNode.blocks[0].type).toBe('5');
+        });
+
+        it('should include internal edges in container edges when copying', async () => {
+            const containerNode = core.createNode('loop', 200, 300, { title: 'Loop' });
+            const childNode = core.createNode('code', 50, 80, { title: 'Code' });
+            childNode.parentId = containerNode.id;
+
+            const edge = core.createEdge(containerNode.id, childNode.id, 'container_start', 'container_end');
+            core.selectNode(containerNode.id);
+
+            let capturedText = '';
+            document.querySelectorAll = () => [
+                { dataset: { nodeId: containerNode.id }, getAttribute: (attr) => attr === 'selected' ? 'selected' : null }
+            ];
+            global.navigator.clipboard.writeText = async (text) => { capturedText = text; };
+
+            await clipboard.copy();
+
+            const copyData = JSON.parse(capturedText);
+
+            expect(copyData.json.edges.length).toBe(0);
+            const topNode = copyData.json.nodes[0];
+            expect(topNode.edges).toBeDefined();
+            expect(topNode.edges.length).toBe(1);
+        });
+
+        it('should paste container node with child nodes and proper parentId', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '21',
+                        meta: { position: { x: 200, y: 300 } },
+                        data: {
+                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: [],
+                            size: { width: 300, height: 200 }
+                        },
+                        _temp: {
+                            bounds: { x: 200, y: 300, width: 300, height: 200 },
+                            externalData: {}
+                        },
+                        blocks: [{
+                            id: '2',
+                            type: '5',
+                            meta: { position: { x: 50, y: 80 } },
+                            data: {
+                                nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], code: 'print(1)' },
+                                outputs: [],
+                                size: { width: 200, height: 100 }
+                            },
+                            _temp: {
+                                bounds: { x: 50, y: 80, width: 200, height: 100 },
+                                externalData: {}
+                            }
+                        }],
+                        edges: [{
+                            sourceNodeID: '1',
+                            targetNodeID: '2',
+                            sourcePortID: 'loop-function-inline-output',
+                            targetPortID: 'loop-function-inline-input'
+                        }]
+                    }],
+                    edges: []
+                }
+            };
+
+            clipboard.pasteFromCozeFormat(cozeData);
+
+            expect(core.nodes.length).toBe(2);
+            const containerNode = core.nodes[0];
+            const childNode = core.nodes[1];
+
+            expect(containerNode.type).toBe('loop');
+            expect(childNode.type).toBe('code');
+            expect(childNode.parentId).toBe(containerNode.id);
+            expect(core.edges.length).toBe(1);
+        });
+
+        it('should handle container port mapping correctly', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '21',
+                        meta: { position: { x: 200, y: 300 } },
+                        data: {
+                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: [],
+                            size: { width: 300, height: 200 }
+                        },
+                        _temp: {
+                            bounds: { x: 200, y: 300, width: 300, height: 200 },
+                            externalData: {}
+                        },
+                        blocks: [{
+                            id: '2',
+                            type: '5',
+                            meta: { position: { x: 50, y: 80 } },
+                            data: {
+                                nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], code: 'print(1)' },
+                                outputs: [],
+                                size: { width: 200, height: 100 }
+                            },
+                            _temp: {
+                                bounds: { x: 50, y: 80, width: 200, height: 100 },
+                                externalData: {}
+                            }
+                        }],
+                        edges: [{
+                            sourceNodeID: '1',
+                            targetNodeID: '2',
+                            sourcePortID: 'loop-function-inline-output',
+                            targetPortID: 'loop-function-inline-input'
+                        }]
+                    }],
+                    edges: []
+                }
+            };
+
+            clipboard.pasteFromCozeFormat(cozeData);
+
+            const edge = core.edges[0];
+            expect(edge.sourcePort).toBe('container_start');
+            expect(edge.targetPort).toBe('container_end');
+        });
+
+        it('should handle batch container node with child nodes', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '28',
+                        meta: { position: { x: 200, y: 300 } },
+                        data: {
+                            nodeMeta: { title: 'Batch', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: [],
+                            size: { width: 300, height: 200 }
+                        },
+                        _temp: {
+                            bounds: { x: 200, y: 300, width: 300, height: 200 },
+                            externalData: {}
+                        },
+                        blocks: [{
+                            id: '2',
+                            type: '3',
+                            meta: { position: { x: 50, y: 80 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], llmParam: [] },
+                                outputs: [],
+                                size: { width: 200, height: 100 }
+                            },
+                            _temp: {
+                                bounds: { x: 50, y: 80, width: 200, height: 100 },
+                                externalData: {}
+                            }
+                        }],
+                        edges: [{
+                            sourceNodeID: '1',
+                            targetNodeID: '2',
+                            sourcePortID: 'batch-function-inline-output',
+                            targetPortID: 'batch-function-inline-input'
+                        }]
+                    }],
+                    edges: []
+                }
+            };
+
+            clipboard.pasteFromCozeFormat(cozeData);
+
+            expect(core.nodes.length).toBe(2);
+            const containerNode = core.nodes[0];
+            const childNode = core.nodes[1];
+
+            expect(containerNode.type).toBe('batch');
+            expect(childNode.type).toBe('llm');
+            expect(childNode.parentId).toBe(containerNode.id);
+
+            const edge = core.edges[0];
+            expect(edge.sourcePort).toBe('container_start');
+            expect(edge.targetPort).toBe('container_end');
+        });
+    });
 });

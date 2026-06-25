@@ -105,7 +105,16 @@ export function mixinNodeRender(node) {
             });
         });
 
-        const rect = el.getBoundingClientRect();
+        const rect = (() => {
+            el.style.visibility = 'hidden';
+            el.style.position = 'absolute';
+            document.body.appendChild(el);
+            const r = el.getBoundingClientRect();
+            document.body.removeChild(el);
+            el.style.visibility = '';
+            el.style.position = '';
+            return r;
+        })();
         if (rect.width > 0) {
             nodeData.width = rect.width;
             nodeData.height = rect.height;
@@ -162,10 +171,12 @@ export function mixinNodeRender(node) {
         if (info.hasContainer) {
             const minW = info.containerMinWidth || 300;
             const minH = info.containerMinHeight || 200;
-            el.style.width = `${minW}px`;
-            el.style.height = `${minH}px`;
-            nodeData.width = minW;
-            nodeData.height = minH;
+            const w = nodeData.width || minW;
+            const h = nodeData.height || minH;
+            el.style.width = `${w}px`;
+            el.style.height = `${h}px`;
+            nodeData.width = w;
+            nodeData.height = h;
         }
 
         this.core.saveHistory(t('actions.addNode', { type }));
@@ -225,8 +236,8 @@ export function mixinNodeRender(node) {
         const containerEl = this._elMap.get(containerId);
         if (!containerEl) return;
         const info = this.core.nodeTypeInfo[containerNode.type] || {};
-        const minW = info.containerMinWidth || 300;
-        const minH = info.containerMinHeight || 200;
+        const minW = containerNode.width || info.containerMinWidth || 300;
+        const minH = containerNode.height || info.containerMinHeight || 200;
 
         const HEADER_H = this.CONTAINER_HEADER_H;
         const DESC_H = this.CONTAINER_DESC_H;
@@ -269,7 +280,7 @@ export function mixinNodeRender(node) {
 
         const alignX = minX - PADDING;
         const alignY = minY - PADDING;
-        if (alignX !== 0 || alignY !== 0) {
+        if (!containerNode._skipLayout && (alignX !== 0 || alignY !== 0)) {
             childData.forEach(cd => {
                 cd.left -= alignX;
                 cd.top -= alignY;
@@ -301,11 +312,13 @@ export function mixinNodeRender(node) {
         let extraW = bodyW - neededBodyW;
         let extraH = bodyH - neededBodyH;
         let offsetX = 0, offsetY = 0;
-        if (extraW > 0) {
-            offsetX = extraW / 2;
-        }
-        if (extraH > 0) {
-            offsetY = extraH / 2;
+        if (!containerNode._skipLayout) {
+            if (extraW > 0) {
+                offsetX = extraW / 2;
+            }
+            if (extraH > 0) {
+                offsetY = extraH / 2;
+            }
         }
         if (offsetX !== 0 || offsetY !== 0) {
             childData.forEach(cd => {

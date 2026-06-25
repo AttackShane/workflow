@@ -84,16 +84,28 @@ export class WorkflowManager {
                     sessionStorage.removeItem('savedWorkflowName');
                     sessionStorage.removeItem('savedWorkflowDesc');
                     
-                    const newWorkflow = {
-                        id: workflow.id,
-                        name: name,
-                        description: description,
-                        nodes: workflow.nodes || [],
-                        edges: workflow.edges || [],
-                        createdAt: workflow.createdAt || Date.now(),
-                        updatedAt: workflow.updatedAt || Date.now()
-                    };
-                    this.workflows.push(newWorkflow);
+                    const existingIndex = this.workflows.findIndex(w => w.id === workflow.id);
+                    if (existingIndex !== -1) {
+                        this.workflows[existingIndex] = {
+                            ...this.workflows[existingIndex],
+                            nodes: workflow.nodes || [],
+                            edges: workflow.edges || [],
+                            selectedNode: workflow.selectedNode,
+                            selectedEdge: workflow.selectedEdge,
+                            updatedAt: workflow.updatedAt || Date.now()
+                        };
+                    } else {
+                        const newWorkflow = {
+                            id: workflow.id,
+                            name: name,
+                            description: description,
+                            nodes: workflow.nodes || [],
+                            edges: workflow.edges || [],
+                            createdAt: workflow.createdAt || Date.now(),
+                            updatedAt: workflow.updatedAt || Date.now()
+                        };
+                        this.workflows.push(newWorkflow);
+                    }
                     this.saveWorkflows();
                     this.renderWorkflowList();
                 }

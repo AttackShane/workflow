@@ -31,13 +31,24 @@ export class WorkflowClipboard {
         if (selectedNodeElements.length === 0) return;
         
         const selectedNodeIds = Array.from(selectedNodeElements).map(el => el.dataset.nodeId);
-        const selectedNodes = this.core.nodes.filter(n => selectedNodeIds.includes(n.id));
+        
+        const expandedNodeIds = new Set(selectedNodeIds);
+        for (const nodeId of selectedNodeIds) {
+            if (this.core.isContainerNode(nodeId)) {
+                const childNodes = this.core.getChildNodes(nodeId);
+                for (const child of childNodes) {
+                    expandedNodeIds.add(child.id);
+                }
+            }
+        }
+        
+        const selectedNodes = this.core.nodes.filter(n => expandedNodeIds.has(n.id));
         
         if (selectedNodes.length === 0) return;
         
         const cozeNodes = [];
         const selectedEdges = this.core.edges.filter(e => 
-            selectedNodeIds.includes(e.source) && selectedNodeIds.includes(e.target)
+            expandedNodeIds.has(e.source) && expandedNodeIds.has(e.target)
         );
         
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -68,18 +79,14 @@ export class WorkflowClipboard {
                     outputs: [],
                     inputs: {
                         inputParameters: []
-                    },
-                    size: {
-                        width: node.width || 200,
-                        height: node.height || 100
                     }
                 },
                 _temp: {
                     bounds: {
-                        x: node.x - 100,
-                        y: node.y - 50,
-                        width: node.width || 200,
-                        height: node.height || 100
+                        x: node.x - 180,
+                        y: node.y,
+                        width: 360,
+                        height: 112
                     },
                     externalData: {
                         icon: node.icon || '',
@@ -90,8 +97,8 @@ export class WorkflowClipboard {
                 }
             };
             
-            if (node.node_outputs && typeof node.node_outputs === 'object') {
-                Object.entries(node.node_outputs).forEach(([name, output]) => {
+            if (node.parameters?.node_outputs && typeof node.parameters.node_outputs === 'object') {
+                Object.entries(node.parameters.node_outputs).forEach(([name, output]) => {
                     const outEntry = {
                         name: name,
                         type: output.type || 'string',
@@ -104,13 +111,21 @@ export class WorkflowClipboard {
                     if (output.rawMeta) {
                         outEntry.rawMeta = output.rawMeta;
                     }
-                    if (output.properties) {
+                    if (output.assistType !== undefined) {
+                        outEntry.assistType = output.assistType;
+                    }
+                    if (output.schema && typeof output.schema === 'object') {
+                        outEntry.schema = output.schema;
+                    } else if (output.properties) {
                         outEntry.schema = Object.entries(output.properties).map(([propName, prop]) => ({
                             name: propName,
                             type: prop.type || 'string',
                             required: prop.required === true,
                             description: prop.description || ''
                         }));
+                    }
+                    if (output.input && typeof output.input === 'object') {
+                        outEntry.input = output.input;
                     }
                     cozeNode.data.outputs.push(outEntry);
                 });
@@ -128,7 +143,7 @@ export class WorkflowClipboard {
             }
 
             // 写入动态入参
-            if (node.inputParams && Array.isArray(node.inputParams)) {
+            if (node.inputParams && Array.isArray(node.inputParams) && node.inputParams.length > 0) {
                 cozeNode.data.inputs.inputParameters = node.inputParams.map(p => {
                     const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
                     return {
@@ -136,12 +151,13 @@ export class WorkflowClipboard {
                         input: {
                             type: p.type || 'string',
                             value: isRef
-                                ? p.value
+                                ? { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
                                 : {
                                     type: 'literal',
                                     content: p.value || '',
                                     ...(p.rawMeta && { rawMeta: p.rawMeta })
-                                }
+                                },
+                            ...(p.schema && { schema: p.schema })
                         }
                     };
                 });
@@ -151,7 +167,11 @@ export class WorkflowClipboard {
             if (node.outputParams && Array.isArray(node.outputParams)) {
                 node.outputParams.forEach(p => {
                     const exists = cozeNode.data.outputs.find(o => o.name === p.name);
-                    if (!exists) {
+                    if (exists) {
+                        if (p.value && p.value !== '') {
+                            exists.defaultValue = p.value;
+                        }
+                    } else {
                         const outEntry = {
                             name: p.name,
                             type: p.type || 'string',
@@ -206,7 +226,7 @@ export class WorkflowClipboard {
                             metaMap[key] = {
                                 inputType: p.input?.type || 'string',
                                 valueType: p.input?.value?.type || 'literal',
-                                rawMeta: p.input?.value?.rawMeta || { type: 1 }
+                                rawMeta: p.input?.value?.rawMeta
                             };
                         });
                     }
@@ -215,16 +235,22 @@ export class WorkflowClipboard {
                     // modelName 优先处理，输出为 modleName
                     const modelValue = flatParams.modelName || flatParams.modleName;
                     if (modelValue !== undefined) {
-                        const meta = metaMap.modelName || metaMap.modleName || { inputType: 'string', valueType: 'literal', rawMeta: { type: 1 } };
-                        llmParams.push({ name: 'modleName', input: { type: meta.inputType, value: { type: meta.valueType, content: modelValue, rawMeta: meta.rawMeta } } });
+                        const meta = metaMap.modelName || metaMap.modleName || { inputType: 'string', valueType: 'literal' };
+                        const valObj = meta.rawMeta
+                            ? { type: meta.valueType, content: modelValue, rawMeta: meta.rawMeta }
+                            : { type: meta.valueType, content: modelValue };
+                        llmParams.push({ name: 'modleName', input: { type: meta.inputType, value: valObj } });
                     }
                     const handledKeys = new Set(['modelName', 'modleName']);
 
                     // 遍历 flatParams 输出所有参数（保留空字符串值，Coze 需要这些字段）
                     Object.entries(flatParams).forEach(([key, value]) => {
                         if (structuralKeys.includes(key) || handledKeys.has(key) || value === undefined) return;
-                        const meta = metaMap[key] || { inputType: 'string', valueType: 'literal', rawMeta: { type: 1 } };
-                        llmParams.push({ name: key, input: { type: meta.inputType, value: { type: meta.valueType, content: value, rawMeta: meta.rawMeta } } });
+                        const meta = metaMap[key] || { inputType: 'string', valueType: 'literal' };
+                        const valObj = meta.rawMeta
+                            ? { type: meta.valueType, content: value, rawMeta: meta.rawMeta }
+                            : { type: meta.valueType, content: value };
+                        llmParams.push({ name: key, input: { type: meta.inputType, value: valObj } });
                         handledKeys.add(key);
                     });
 
@@ -326,13 +352,29 @@ export class WorkflowClipboard {
                     cozeNode.data.inputs.llmParam = llmParams;
                     cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
                     cozeNode.data.inputs.settingOnError = flatParams.settingOnError || { switch: false, processType: 1, timeoutMs: 600000, retryTimes: 0 };
+                } else if (type === 'end') {
+                    if (node.parameters._contentRaw) {
+                        cozeNode.data.inputs.content = node.parameters._contentRaw;
+                    } else if (node.parameters.content !== undefined) {
+                        cozeNode.data.inputs.content = {
+                            type: 'string',
+                            value: { type: 'literal', content: node.parameters.content }
+                        };
+                    }
+                    cozeNode.data.inputs.streamingOutput = node.parameters.streamingOutput === true;
+                    cozeNode.data.inputs.terminatePlan = node.parameters.terminatePlan || 'returnVariables';
                 } else {
+                    const outputKeys = new Set(Object.keys(node.parameters?.node_outputs || {}));
                     Object.entries(node.parameters).forEach(([key, value]) => {
-                        if (key !== 'node_outputs' && key !== 'node_inputs') {
+                        if (key !== 'node_outputs' && key !== 'node_inputs' && key !== '_contentRaw' && !outputKeys.has(key)) {
                             cozeNode.data.inputs[key] = value;
                         }
                     });
                 }
+            }
+
+            if (type === 'code') {
+                cozeNode.data.version = 'v2';
             }
             
             if (node.inputParameters && Array.isArray(node.inputParameters)) {
@@ -372,12 +414,131 @@ export class WorkflowClipboard {
             
             const nodeWidth = node.width || 200;
             const nodeHeight = node.height || 100;
-            minX = Math.min(minX, node.x);
-            minY = Math.min(minY, node.y);
-            maxX = Math.max(maxX, node.x + nodeWidth);
-            maxY = Math.max(maxY, node.y + nodeHeight);
+            if (!node.parentId) {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + nodeWidth);
+                maxY = Math.max(maxY, node.y + nodeHeight);
+            }
         });
         
+        // 容器节点处理：将子节点移入 blocks，内部边移入容器 edges
+        const containerPortMap = {
+            'container_start': 'loop-function-inline-output',
+            'container_end': 'loop-function-inline-input'
+        };
+        const containerNodeIds = new Set();
+        const childNodeIds = new Set();
+        
+        for (const node of selectedNodes) {
+            if (this.core.isContainerNode(node.id)) {
+                containerNodeIds.add(node.id);
+                const children = this.core.getChildNodes(node.id);
+                for (const child of children) {
+                    childNodeIds.add(child.id);
+                }
+            }
+        }
+        
+        const globalEdges = [];
+        const containerEdges = {};
+        
+        for (const e of selectedEdges) {
+            const sourceInContainer = containerNodeIds.has(e.source);
+            const targetInContainer = containerNodeIds.has(e.target);
+            const sourceIsChild = childNodeIds.has(e.source);
+            const targetIsChild = childNodeIds.has(e.target);
+            
+            if ((sourceInContainer && targetIsChild) || (sourceIsChild && targetInContainer) || (sourceIsChild && targetIsChild)) {
+                let containerId = null;
+                if (sourceInContainer) containerId = e.source;
+                else if (targetInContainer) containerId = e.target;
+                else {
+                    const childNode = this.core.nodes.find(n => n.id === e.source);
+                    containerId = childNode ? childNode.parentId : null;
+                }
+                
+                if (containerId) {
+                    if (!containerEdges[containerId]) containerEdges[containerId] = [];
+                    const edgeData = {
+                        sourceNodeID: e.source.replace('node_', ''),
+                        targetNodeID: e.target.replace('node_', ''),
+                        ...(e.sourcePort && { sourcePortID: containerPortMap[e.sourcePort] || e.sourcePort }),
+                        ...(e.targetPort && { targetPortID: containerPortMap[e.targetPort] || e.targetPort })
+                    };
+                    containerEdges[containerId].push(edgeData);
+                }
+            } else {
+                globalEdges.push(e);
+            }
+        }
+        
+        const topLevelCozeNodes = [];
+        for (const cn of cozeNodes) {
+            const originalId = 'node_' + cn.id;
+            if (childNodeIds.has(originalId)) continue;
+            if (containerNodeIds.has(originalId)) {
+                if (containerEdges[originalId]) {
+                    cn.edges = containerEdges[originalId];
+                }
+                cn.blocks = [];
+                for (const childCn of cozeNodes) {
+                    const childOriginalId = 'node_' + childCn.id;
+                    if (this.core.nodes.find(n => n.id === childOriginalId && n.parentId === originalId)) {
+                        cn.blocks.push(childCn);
+                    }
+                }
+            }
+            topLevelCozeNodes.push(cn);
+        }
+
+        for (const cn of topLevelCozeNodes) {
+            // 移除 canvasPosition (Coze 原始格式不包含这个字段)
+            delete cn.meta.canvasPosition;
+            
+            if (cn.blocks && cn.blocks.length > 0) {
+                cn.blocks.forEach(block => {
+                    delete block.meta.canvasPosition;
+                });
+            }
+        }
+
+        for (const cn of topLevelCozeNodes) {
+            if (cn.type === '21' || cn.type === '22') {
+                const containerId = 'node_' + cn.id;
+                const containerEdgeList = containerEdges[containerId] || cn.edges || [];
+
+                const fromContainerEdge = containerEdgeList.find(
+                    e => e.sourcePortID === 'loop-function-inline-output' || e.sourcePortID === 'batch-function-inline-output'
+                );
+                const toContainerEdge = containerEdgeList.find(
+                    e => e.targetPortID === 'loop-function-inline-input' || e.targetPortID === 'batch-function-inline-input'
+                );
+
+                if (fromContainerEdge && toContainerEdge) {
+                    const childBlockId = fromContainerEdge.targetNodeID;
+                    const childBlock = cn.blocks?.find(b => b.id === childBlockId);
+                    if (childBlock && childBlock.data?.outputs?.length > 0) {
+                        const outputName = childBlock.data.outputs[0].name;
+                        cn.data.outputs = cn.data.outputs.map(o => ({
+                            ...o,
+                            input: {
+                                type: o.type || 'list',
+                                value: {
+                                    type: 'ref',
+                                    content: {
+                                        source: 'block-output',
+                                        blockID: childBlockId,
+                                        name: outputName
+                                    }
+                                }
+                            }
+                        }));
+                    }
+                }
+            }
+        }
+
         const copyData = {
             type: 'coze-workflow-clipboard-data',
             source: {
@@ -388,8 +549,8 @@ export class WorkflowClipboard {
                 host: 'www.coze.cn'
             },
             json: {
-                nodes: cozeNodes,
-                edges: selectedEdges.map(e => ({
+                nodes: topLevelCozeNodes,
+                edges: globalEdges.map(e => ({
                     sourceNodeID: e.source.replace('node_', ''),
                     targetNodeID: e.target.replace('node_', ''),
                     ...(e.sourcePort && { sourcePortID: e.sourcePort }),

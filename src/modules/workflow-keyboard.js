@@ -21,10 +21,15 @@ export class WorkflowKeyboard {
 
         DOM.on(DOM.get('navConverterBtn'), 'click', () => {
             sessionStorage.removeItem('editingWorkflowId');
+            sessionStorage.removeItem('savedWorkflow');
+            sessionStorage.removeItem('savedWorkflowName');
+            sessionStorage.removeItem('savedWorkflowDesc');
             goToConverter();
         });
         DOM.on(DOM.get('navManagerBtn'), 'click', () => {
-            sessionStorage.removeItem('editingWorkflowId');
+            if (!sessionStorage.getItem('savedWorkflow')) {
+                sessionStorage.removeItem('editingWorkflowId');
+            }
             goToManager();
         });
     }

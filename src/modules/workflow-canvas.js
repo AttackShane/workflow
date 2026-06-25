@@ -475,8 +475,8 @@ export class WorkflowCanvas {
             return;
         }
 
-        const hGap = 100;
-        const vGap = 60;
+        const hGap = 60;
+        const vGap = 40;
         const PADDING = 20;
         const CONTAINER_H_GAP = 60;
         const CONTAINER_V_GAP = 40;

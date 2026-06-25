@@ -52,6 +52,13 @@ coverage/
 # Test output files
 test_output.txt
 test_results.json
+jest_output.txt
+jest_result.txt
+
+# Temporary / scratch files
+_*
+run_test.mjs
+test_result.txt
 
 # Example data
 src/example/

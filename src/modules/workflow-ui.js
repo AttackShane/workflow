@@ -461,8 +461,8 @@ export class WorkflowUI {
      */
     async saveAndReturn() {
         const workflow = {
-            nodes: this.core.nodes,
-            edges: this.core.edges,
+            nodes: JSON.parse(JSON.stringify(this.core.nodes)),
+            edges: JSON.parse(JSON.stringify(this.core.edges)),
             selectedNode: this.core.selectedNode,
             selectedEdge: this.core.selectedEdge,
             updatedAt: Date.now()

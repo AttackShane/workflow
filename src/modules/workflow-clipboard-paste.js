@@ -30,9 +30,28 @@ export function mixinClipboardPaste(clipboard) {
         }
 
         const idMap = {};
+        const portReverseMap = {
+            'loop-function-inline-output': 'container_start',
+            'loop-function-inline-input': 'container_end',
+            'batch-function-inline-output': 'container_start',
+            'batch-function-inline-input': 'container_end'
+        };
         let nodeCount = 0;
         let edgeCount = 0;
         let skippedEdges = 0;
+
+        const collectAllNodeIds = (nodes) => {
+            for (const cozeNode of nodes) {
+                if (!cozeNode || !cozeNode.id) continue;
+                const originalId = String(cozeNode.id);
+                const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                idMap[originalId] = newNodeId;
+                if (cozeNode.blocks && Array.isArray(cozeNode.blocks)) {
+                    collectAllNodeIds(cozeNode.blocks);
+                }
+            }
+        };
+        collectAllNodeIds(data.json.nodes);
 
         let minX = 0, minY = 0;
         if (Array.isArray(data.json.nodes) && data.json.nodes.length > 0) {
@@ -51,132 +70,186 @@ export function mixinClipboardPaste(clipboard) {
             this.ui.canvas.lastMouseY || 100
         );
 
+        const createNodeFromCoze = (cozeNode, parentId = null, offsetX = 0, offsetY = 0) => {
+            if (!cozeNode || !cozeNode.id) return null;
+            const originalId = String(cozeNode.id);
+            const newNodeId = idMap[originalId];
+            if (!newNodeId) return null;
+
+            let type = 'plugin';
+            try {
+                type = this.core.getTypeFromNumber(cozeNode.type);
+            } catch (err) {
+                type = 'plugin';
+            }
+
+            const nodeX = (cozeNode.meta?.position?.x ?? cozeNode.x ?? 0) || 0;
+            const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
+
+            const isChild = parentId !== null;
+            const x = isChild ? nodeX : (pasteX + (nodeX - minX) + offsetX);
+            const y = isChild ? nodeY : (pasteY + (nodeY - minY) + offsetY);
+
+            const parameters = {};
+            if (cozeNode.data?.outputs) {
+                cozeNode.data.outputs.forEach(output => {
+                    if (output.defaultValue !== undefined) {
+                        parameters[output.name] = output.defaultValue;
+                    }
+                });
+                const nodeOutputs = {};
+                cozeNode.data.outputs.forEach(output => {
+                    nodeOutputs[output.name] = {
+                        type: output.type || 'string',
+                        description: output.description || '',
+                        required: output.required || false
+                    };
+                    if (output.schema) {
+                        if (Array.isArray(output.schema)) {
+                            nodeOutputs[output.name].properties = output.schema;
+                        } else {
+                            nodeOutputs[output.name].schema = output.schema;
+                        }
+                    }
+                    if (output.rawMeta) {
+                        nodeOutputs[output.name].rawMeta = output.rawMeta;
+                    }
+                    if (output.assistType !== undefined) {
+                        nodeOutputs[output.name].assistType = output.assistType;
+                    }
+                    if (output.input && typeof output.input === 'object') {
+                        nodeOutputs[output.name].input = output.input;
+                    }
+                });
+                if (Object.keys(nodeOutputs).length > 0) {
+                    parameters.node_outputs = nodeOutputs;
+                }
+            }
+            if (cozeNode.data?.inputs && typeof cozeNode.data.inputs === 'object') {
+                Object.entries(cozeNode.data.inputs).forEach(([key, value]) => {
+                    if (key !== 'inputParameters' && key !== 'schemaType') {
+                        if (key === 'note' && typeof value === 'string') {
+                            try {
+                                const slate = JSON.parse(value);
+                                const text = extractSlateText(slate);
+                                parameters.content = text;
+                            } catch (e) {
+                                parameters.content = value;
+                            }
+                        } else if (key === 'llmParam' && Array.isArray(value)) {
+                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            value.forEach(p => {
+                                const v = p.input?.value?.content;
+                                if (p.name && v !== undefined) {
+                                    const keyName = p.name === 'modleName' ? 'modelName' : p.name;
+                                    parameters[keyName] = v;
+                                }
+                            });
+                        } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
+                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            Object.entries(value).forEach(([k, v]) => {
+                                if (typeof v === 'object' && v !== null && v.name) {
+                                    const content = v.input?.value?.content;
+                                    if (content !== undefined) {
+                                        const keyName = v.name === 'modleName' ? 'modelName' : v.name;
+                                        parameters[keyName] = content;
+                                    }
+                                } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
+                                    parameters[k] = v;
+                                }
+                            });
+                        } else if (key === 'code') {
+                            parameters.code = value;
+                        } else if (key === 'url' || key === 'method') {
+                            parameters[key] = value;
+                        } else if (key === 'headers' || key === 'body') {
+                            parameters[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                        } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'literal') {
+                            parameters.content = value.value.content ?? '';
+                            parameters._contentRaw = value;
+                        } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'ref') {
+                            parameters.content = JSON.stringify(value);
+                            parameters._contentRaw = value;
+                        } else if (key === 'content') {
+                            parameters.content = value;
+                        } else {
+                            parameters[key] = value;
+                        }
+                    }
+                });
+            }
+
+            const nodeMeta = cozeNode.data?.nodeMeta || cozeNode._temp?.externalData || {};
+            const title = nodeMeta.title || cozeNode.title || t('nodeTypes.plugin');
+            const description = nodeMeta.description || cozeNode.description || '';
+            const icon = nodeMeta.icon || cozeNode.icon || '';
+
+            const newNode = {
+                id: newNodeId,
+                type: type,
+                x: x,
+                y: y,
+                title: title,
+                description: description,
+                icon: icon,
+                parameters: parameters,
+                parentId: parentId,
+                inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => ({
+                    name: p.name || '',
+                    type: p.type || p.input?.type || 'string',
+                    value: p.input?.value?.type === 'ref'
+                        ? { type: 'ref', content: p.input.value.content }
+                        : (p.input?.value?.content ?? p.defaultValue ?? ''),
+                    valueType: p.input?.value?.type || 'literal',
+                    rawMeta: p.input?.value?.rawMeta || null,
+                    schema: p.input?.schema || null,
+                    required: p.required === true,
+                    description: p.description || ''
+                })),
+                outputParams: (cozeNode.data?.outputs || []).map(o => ({
+                    name: o.name || '',
+                    type: o.type || 'string',
+                    value: o.defaultValue || '',
+                    description: o.description || ''
+                })),
+                width: 200,
+                height: 100
+            };
+
+            return newNode;
+        };
+
         try {
             this.core.batchChanges(() => {
+                const containerNodes = [];
+
                 data.json.nodes.forEach(cozeNode => {
                     if (!cozeNode || !cozeNode.id) return;
-                    const originalId = String(cozeNode.id);
-                    const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                    idMap[originalId] = newNodeId;
-
-                    let type = 'plugin';
-                    try {
-                        type = this.core.getTypeFromNumber(cozeNode.type);
-                    } catch (err) {
-                        type = 'plugin';
-                    }
-
-                    const nodeX = (cozeNode.meta?.position?.x ?? cozeNode.x ?? 0) || 0;
-                    const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
-
-                    const x = pasteX + (nodeX - minX);
-                    const y = pasteY + (nodeY - minY);
-
-                    const parameters = {};
-                    if (cozeNode.data?.outputs) {
-                        cozeNode.data.outputs.forEach(output => {
-                            if (output.defaultValue !== undefined) {
-                                parameters[output.name] = output.defaultValue;
-                            }
-                        });
-                    }
-                    if (cozeNode.data?.inputs && typeof cozeNode.data.inputs === 'object') {
-                        Object.entries(cozeNode.data.inputs).forEach(([key, value]) => {
-                            if (key !== 'inputParameters' && key !== 'schemaType') {
-                                if (key === 'note' && typeof value === 'string') {
-                                    try {
-                                        const slate = JSON.parse(value);
-                                        const text = extractSlateText(slate);
-                                        parameters.content = text;
-                                    } catch (e) {
-                                        parameters.content = value;
-                                    }
-                                } else if (key === 'llmParam' && Array.isArray(value)) {
-                                    parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
-                                    value.forEach(p => {
-                                        const v = p.input?.value?.content;
-                                        if (p.name && v !== undefined) {
-                                            const keyName = p.name === 'modleName' ? 'modelName' : p.name;
-                                            parameters[keyName] = v;
-                                        }
-                                    });
-                                } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
-                                    parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
-                                    Object.entries(value).forEach(([k, v]) => {
-                                        if (typeof v === 'object' && v !== null && v.name) {
-                                            const content = v.input?.value?.content;
-                                            if (content !== undefined) {
-                                                const keyName = v.name === 'modleName' ? 'modelName' : v.name;
-                                                parameters[keyName] = content;
-                                            }
-                                        } else if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-                                            parameters[k] = v;
-                                        }
-                                    });
-                                } else if (key === 'code') {
-                                    parameters.code = value;
-                                } else if (key === 'url' || key === 'method') {
-                                    parameters[key] = value;
-                                } else if (key === 'headers' || key === 'body') {
-                                    parameters[key] = typeof value === 'object' ? JSON.stringify(value) : String(value);
-                                } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'literal') {
-                                    parameters.content = value.value.content ?? '';
-                                    parameters._contentRaw = value;
-                                } else if (key === 'content' && typeof value === 'object' && value.value?.type === 'ref') {
-                                    parameters.content = JSON.stringify(value);
-                                    parameters._contentRaw = value;
-                                } else if (key === 'content') {
-                                    parameters.content = value;
-                                } else {
-                                    parameters[key] = value;
-                                }
-                            }
-                        });
-                    }
-
-                    const nodeMeta = cozeNode.data?.nodeMeta || cozeNode._temp?.externalData || {};
-                    const title = nodeMeta.title || cozeNode.title || t('nodeTypes.plugin');
-                    const description = nodeMeta.description || cozeNode.description || '';
-                    const icon = nodeMeta.icon || cozeNode.icon || '';
-
-                    const newNode = {
-                        id: newNodeId,
-                        type: type,
-                        x: x,
-                        y: y,
-                        title: title,
-                        description: description,
-                        icon: icon,
-                        parameters: parameters,
-                        inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => ({
-                            name: p.name || '',
-                            type: p.type || p.input?.type || 'string',
-                            value: p.input?.value?.type === 'ref'
-                                ? { type: 'ref', content: p.input.value.content }
-                                : (p.input?.value?.content ?? p.defaultValue ?? ''),
-                            valueType: p.input?.value?.type || 'literal',
-                            rawMeta: p.input?.value?.rawMeta || null,
-                            required: p.required === true,
-                            description: p.description || ''
-                        })),
-                        outputParams: (cozeNode.data?.outputs || []).map(o => ({
-                            name: o.name || '',
-                            type: o.type || 'string',
-                            value: o.defaultValue || '',
-                            description: o.description || ''
-                        })),
-                        width: cozeNode.data?.size?.width || cozeNode._temp?.bounds?.width || cozeNode.width || 200,
-                        height: cozeNode.data?.size?.height || cozeNode._temp?.bounds?.height || cozeNode.height || 100
-                    };
+                    const newNode = createNodeFromCoze(cozeNode);
+                    if (!newNode) return;
 
                     this.core.addNode(newNode);
-                    const el = this.ui.node.createElement(newNode);
-                    this.ui.canvas.canvasContent.appendChild(el);
-                    this.ui.canvas.setEmptyState(false);
                     nodeCount++;
+
+                    if (cozeNode.blocks && Array.isArray(cozeNode.blocks) && cozeNode.blocks.length > 0) {
+                        containerNodes.push({ containerId: newNode.id, cozeNode: cozeNode });
+                        newNode.width = newNode.width || 300;
+                        newNode.height = newNode.height || 200;
+                        newNode._skipLayout = true;
+
+                        cozeNode.blocks.forEach(blockNode => {
+                            if (!blockNode || !blockNode.id) return;
+                            const childNode = createNodeFromCoze(blockNode, newNode.id);
+                            if (!childNode) return;
+                            // 子节点在容器体内的位置需要相对容器体左上角，加上默认padding
+                            childNode.x = (blockNode.meta?.position?.x || 0);
+                            childNode.y = (blockNode.meta?.position?.y || 0);
+                            this.core.addNode(childNode);
+                            nodeCount++;
+                        });
+                    }
                 });
 
-                // 更新所有 ref 引用中的 blockID（节点 ID 映射）
                 Object.values(this.core.nodes).forEach(node => {
                     if (node.inputParams && Array.isArray(node.inputParams)) {
                         node.inputParams.forEach(param => {
@@ -220,6 +293,36 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         });
                     }
+                    if (node.parameters && node.parameters.node_outputs && typeof node.parameters.node_outputs === 'object') {
+                        Object.values(node.parameters.node_outputs).forEach(output => {
+                            if (output.input && typeof output.input === 'object'
+                                && output.input.value?.type === 'ref'
+                                && output.input.value.content?.blockID) {
+                                const newBlockId = idMap[String(output.input.value.content.blockID)];
+                                if (newBlockId) {
+                                    output.input.value.content.blockID = newBlockId;
+                                }
+                            }
+                        });
+                    }
+                    if (node.parameters && node.parameters.branches && Array.isArray(node.parameters.branches)) {
+                        const updateBlockIds = (obj) => {
+                            if (!obj || typeof obj !== 'object') return;
+                            if (Array.isArray(obj)) {
+                                obj.forEach(item => updateBlockIds(item));
+                                return;
+                            }
+                            for (const key of Object.keys(obj)) {
+                                if (key === 'blockID' && typeof obj[key] === 'string') {
+                                    const newId = idMap[obj[key]];
+                                    if (newId) obj[key] = newId;
+                                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                                    updateBlockIds(obj[key]);
+                                }
+                            }
+                        };
+                        updateBlockIds(node.parameters.branches);
+                    }
                 });
 
                 if (data.json.edges) {
@@ -244,7 +347,32 @@ export function mixinClipboardPaste(clipboard) {
                         }
                     });
                 }
-            }); // end batchChanges
+
+                containerNodes.forEach(({ cozeNode }) => {
+                    if (cozeNode.edges && Array.isArray(cozeNode.edges)) {
+                        cozeNode.edges.forEach(edge => {
+                            const sourceId = idMap[String(edge.sourceNodeID)];
+                            const targetId = idMap[String(edge.targetNodeID)];
+
+                            if (sourceId && targetId) {
+                                const newEdge = {
+                                    id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                    source: sourceId,
+                                    target: targetId,
+                                    ...(edge.sourcePortID && { sourcePort: portReverseMap[edge.sourcePortID] || edge.sourcePortID }),
+                                    ...(edge.targetPortID && { targetPort: portReverseMap[edge.targetPortID] || edge.targetPortID })
+                                };
+                                const result = this.core.addEdge(newEdge);
+                                if (result) {
+                                    edgeCount++;
+                                } else {
+                                    skippedEdges++;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
 
             let message;
             if (edgeCount > 0 && skippedEdges > 0) {

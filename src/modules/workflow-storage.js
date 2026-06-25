@@ -44,8 +44,8 @@ export function mixinStorage(core) {
         this.edges = data.edges || [];
         this.nodeIdCounter = data.nodeIdCounter || 100000;
         this.edgeIdCounter = data.edgeIdCounter || 100000;
-        this.selectedNode = data.selectedNode || null;
-        this.selectedEdge = data.selectedEdge || null;
+        this.selectedNode = null;
+        this.selectedEdge = null;
 
         this.resetHistory(t('messages.loadFromLocalStorage'));
         return true;
