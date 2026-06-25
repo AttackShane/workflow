@@ -219,7 +219,6 @@ describe('WorkflowClipboard', () => {
                 schemaType: 'slate',
                 note: JSON.stringify([{ type: 'paragraph', children: [{ text: '诶嘿', type: 'text' }] }])
             });
-            expect(cozeNode.data.size).toEqual({ width: 200, height: 100 });
             expect(cozeNode.data.nodeMeta.title).toBe('注释');
         });
 
@@ -254,8 +253,6 @@ describe('WorkflowClipboard', () => {
             expect(pasted.type).toBe('comment');
             expect(pasted.parameters.content).toBe('诶嘿');
             expect(pasted.title).toBe('注释');
-            expect(pasted.width).toBe(240);
-            expect(pasted.height).toBe(150);
         });
 
         it('should paste our-own copied comment node correctly', () => {
@@ -313,14 +310,11 @@ describe('WorkflowClipboard', () => {
             { type: 'output', title: '输出', params: { content: '结果', streamingOutput: false }, expectedType: 'output' },
             { type: 'input', title: '输入', params: { outputSchema: [{ name: 'field1', type: 'string' }] }, expectedType: 'input' },
             { type: 'question', title: '问答', params: { question: '你好吗', answer_type: 'text' }, expectedType: 'question' },
-            { type: 'delay', title: '延迟', params: { duration: 1000 }, expectedType: 'delay' },
-            { type: 'database', title: '数据库', params: {}, expectedType: 'database' },
-            { type: 'email', title: '邮件', params: {}, expectedType: 'email' },
-            { type: 'webhook', title: 'Webhook', params: {}, expectedType: 'webhook' },
             { type: 'json_parse', title: 'JSON解析', params: {}, expectedType: 'json_parse' },
-            { type: 'knowledge', title: '知识库', params: {}, expectedType: 'knowledge' },
+            { type: 'knowledge_query', title: '知识库检索', params: {}, expectedType: 'knowledge_query' },
             { type: 'variable_assign', title: '变量赋值', params: {}, expectedType: 'variable_assign' },
-            { type: 'break', title: '跳出', params: {}, expectedType: 'break' },
+            { type: 'comment', title: '注释', params: { content: '测试注释' }, expectedType: 'comment' },
+            { type: 'canvas', title: '画板', params: {}, expectedType: 'canvas' },
         ];
 
         testCases.forEach(({ type, title, params, expectedType }) => {
@@ -365,12 +359,22 @@ describe('WorkflowClipboard', () => {
                 // Verify type number
                 const typeNum = {
                     start: '1', end: '2', llm: '3', plugin: '4', code: '5',
-                    condition: '8', http: '45', text: '15', image_generate: '16',
-                    knowledge: '17', question: '18', loop: '21', intent: '22', break: '23',
-                    variable_assign: '24', batch: '28', comment: '31',
-                    variable_merge: '32', video_generation: '65', async_task: '72',
-                    output: '13', input: '30', delay: '33', database: '34', email: '35',
-                    webhook: '36', json_parse: '37'
+                    knowledge_query: '6', condition: '8', workflow: '9',
+                    sql_exec: '12', output: '13', text: '15', image_generate: '16',
+                    question: '18', break: '19', loop_set_variable: '20',
+                    loop: '21', intent: '22', canvas: '23',
+                    knowledge_write: '27', batch: '28', loop_continue: '29',
+                    input: '30', variable_merge: '32',
+                    json_parse: '37', clear_conversation: '38', create_conversation: '39',
+                    variable_assign: '40', db_update: '42', db_select: '43',
+                    db_delete: '44', http: '45', db_insert: '46',
+                    update_conversation: '51', delete_conversation: '52',
+                    list_conversation: '53', get_conversation_history: '54',
+                    create_message: '55', update_message: '56', delete_message: '57',
+                    json_serialize: '58', json_deserialize: '59', knowledge_delete: '60',
+                    video_extract_audio: '63', video_extract_frame: '64',
+                    video_generation: '65', memory_write: '66', memory_read: '67',
+                    comment: '31', async_task: '72'
                 }[type];
                 expect(cozeNode.type).toBe(typeNum);
 

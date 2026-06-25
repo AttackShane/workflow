@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (h1Text && (h1Text.includes('转换器') || h1Text.includes('converter'))) {
         // 转换器页面
         import('./ui-controller.js').then(m => m.initUI());
-        import('./keyboard-shortcuts.js').then(m => m.initKeyboardShortcuts());
+        import('./converter-keyboard.js').then(m => m.initKeyboardShortcuts());
         import('./stats-view.js').then(m => m.initHistoryPanel());
         import('./graph-view.js').then(m => m.initGraphModal());
     } else if (h1Text && (h1Text.includes('工作流管理') || h1Text.includes('workflow manager'))) {

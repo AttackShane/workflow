@@ -130,9 +130,22 @@ export class I18nManager {
     }
 
     /**
+     * 检查 localStorage 是否可用（兼容 Node.js 测试环境）
+     * @returns {boolean}
+     */
+    _isStorageAvailable() {
+        try {
+            return typeof localStorage !== 'undefined' && localStorage !== null;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * 从本地存储加载语言设置
      */
     loadFromStorage() {
+        if (!this._isStorageAvailable()) return;
         try {
             const stored = localStorage.getItem('workflow_language');
             if (stored && LOCALES[stored]) {
@@ -147,6 +160,7 @@ export class I18nManager {
      * 保存语言设置到本地存储
      */
     saveToStorage() {
+        if (!this._isStorageAvailable()) return;
         try {
             localStorage.setItem('workflow_language', this.language);
         } catch (e) {

@@ -1,5 +1,6 @@
 import { REV_TYPE_MAP } from '../utils/types.js';
 import { validateClipboardInput, convertEdgesReverse } from '../utils/utils.js';
+import { Logger } from '../utils/logger.js';
 
 const TYPE_PARAMS_MAP = {
     code: ['code', 'language'],
@@ -15,7 +16,7 @@ const TYPE_PARAMS_MAP = {
     variable_merge: ['mergeGroups'],
     variable_assign: ['variableName', 'variableValue'],
     http: ['url', 'method', 'headers', 'body', 'authType', 'authParams'],
-    knowledge: ['knowledgeBaseId', 'query', 'topK'],
+    knowledge_query: ['knowledgeBaseId', 'query', 'topK'],
     intent: ['intentConfig'],
     async_task: ['taskConfig'],
     question: ['llmParam', 'extra_output', 'answer_type', 'option_type', 'dynamic_option', 'options', 'limit'],
@@ -118,7 +119,11 @@ function buildOutputDefinition(o) {
 
 function revNode(node) {
     const id = String(node.id);
-    const type = REV_TYPE_MAP[node.type] || `unknown_${node.type}`;
+    const mappedType = REV_TYPE_MAP[node.type];
+    if (!mappedType) {
+        Logger.warn(`Unknown node type "${node.type}" in reverse conversion, falling back to plugin`);
+    }
+    const type = mappedType || 'plugin';
     
     const pos = node.meta?.position || { x: 0, y: 0 };
     const yNode = {

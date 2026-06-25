@@ -3,6 +3,7 @@
  * 负责从 Coze 格式、简单格式、简单节点格式粘贴工作流
  */
 import { t } from '../i18n/i18n.js';
+import { deepClone } from '../utils/helpers.js';
 
 /**
  * Slate 格式文本提取（与 clipboard.js 共享）
@@ -137,7 +138,7 @@ export function mixinClipboardPaste(clipboard) {
                                 parameters.content = value;
                             }
                         } else if (key === 'llmParam' && Array.isArray(value)) {
-                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            parameters._llmParamRaw = deepClone(value);
                             value.forEach(p => {
                                 const v = p.input?.value?.content;
                                 if (p.name && v !== undefined) {
@@ -146,7 +147,7 @@ export function mixinClipboardPaste(clipboard) {
                                 }
                             });
                         } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
-                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            parameters._llmParamRaw = deepClone(value);
                             Object.entries(value).forEach(([k, v]) => {
                                 if (typeof v === 'object' && v !== null && v.name) {
                                     const content = v.input?.value?.content;
@@ -413,9 +414,10 @@ export function mixinClipboardPaste(clipboard) {
             y: y
         };
 
+        let el;
         this.core.batchChanges(() => {
             this.core.addNode(newNode);
-            const el = this.ui.node.createElement(newNode);
+            el = this.ui.node.createElement(newNode);
             this.ui.canvas.canvasContent.appendChild(el);
             this.ui.canvas.setEmptyState(false);
 

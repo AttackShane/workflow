@@ -361,5 +361,17 @@ export const nodeHandlers = {
     default: (data, params, ctx) => {
         data.inputs = { inputParameters: ctx.inputParams };
         data.outputs = convertOutputs(params.node_outputs, true);
+    },
+
+    break: (data, params, ctx) => {
+        data.inputs = { inputParameters: ctx.inputParams };
+    },
+
+    loop_set_variable: (data, params, ctx) => {
+        data.inputs = { inputParameters: ctx.inputParams };
+    },
+
+    loop_continue: (data, params, ctx) => {
+        data.inputs = { inputParameters: ctx.inputParams };
     }
 };

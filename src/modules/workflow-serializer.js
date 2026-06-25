@@ -4,6 +4,7 @@
  */
 import { t } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
+import { deepClone } from '../utils/helpers.js';
 
 /**
  * 序列化相关的 mixin 方法
@@ -200,7 +201,7 @@ export function mixinSerializer(core) {
                 Object.entries(cozeNode.data.inputs).forEach(([key, value]) => {
                     if (key !== 'inputParameters' && key !== 'schemaType') {
                         if (key === 'llmParam' && Array.isArray(value)) {
-                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            parameters._llmParamRaw = deepClone(value);
                             value.forEach(p => {
                                 const v = p.input?.value?.content;
                                 if (p.name && v !== undefined) {
@@ -209,7 +210,7 @@ export function mixinSerializer(core) {
                                 }
                             });
                         } else if (key === 'llmParam' && typeof value === 'object' && value !== null) {
-                            parameters._llmParamRaw = JSON.parse(JSON.stringify(value));
+                            parameters._llmParamRaw = deepClone(value);
                             Object.entries(value).forEach(([k, v]) => {
                                 if (typeof v === 'object' && v !== null && v.name) {
                                     const content = v.input?.value?.content;

@@ -1,5 +1,51 @@
 # Changelog
 
+## v1.4.0 - 2026-06-25
+
+### 架构重构 - 模块化拆分
+
+#### 转换器模块拆分
+- `converter.js` 拆分出 `converter-renderer.js` - 语法高亮渲染、虚拟滚动、异步渲染
+- `history-manager.js` → 重命名为 `converter-history.js`
+- `keyboard-shortcuts.js` → 重命名为 `converter-keyboard.js`
+
+#### 编辑器模块拆分
+- `workflow-node.js` 拆分出以下子模块:
+  - `workflow-container-render.js` - 容器节点（loop/batch）子节点管理与自动布局
+  - `workflow-node-detail-modal.js` - 节点详情模态框（JSON/YAML 复制、编辑器跳转）
+  - `workflow-node-types.js` - 节点类型定义（20+ 种节点类型配置）
+  - `workflow-param-editor.js` - 参数编辑器（输入输出参数、合并组变量编辑）
+- 移除 `workflow-canvas-optimized.js`（功能合并到 canvas 模块）
+
+### 工程化建设
+
+#### 代码质量
+- 新增 `.eslintrc.json` ESLint 配置
+- 新增 `eslint` 依赖（^8.57.1）
+- 新增 `husky` 依赖（^9.1.7）+ `.husky/pre-commit` Git hooks
+- 配置 `lint-staged` 自动修复 + 关联测试
+
+#### CI/CD
+- 新增 `.github/workflows/ci.yml` - GitHub Actions 自动运行 ESLint + Jest
+
+### 测试
+- 新增 `tests/canvas.test.js` - 画布模块测试
+- 新增 `tests/edge.test.js` - 连线模块测试
+- 新增 `tests/keyboard.test.js` - 键盘快捷键测试
+
+### 文档
+- 更新 `PROJECT_DOC.md` - 精简项目结构文档，移除冗余文件树
+- 更新 `README.md` - 修正文件引用（history-manager → converter-history, keyboard-shortcuts → converter-keyboard）
+
+### 修改文件
+- `package.json` - 新增 eslint、husky 依赖
+- `src/modules/converter.js` - 拆分渲染逻辑
+- `src/modules/workflow-node.js` - 拆分节点模块
+- `src/modules/ui-controller.js` - 适配模块拆分
+- 其他 30+ 文件 - 适配模块重命名和导入路径调整
+
+---
+
 ## v1.3.0 - 2026-06-25
 
 ### 功能修复

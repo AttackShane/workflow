@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
+const SRC_DIR = path.resolve(path.dirname(import.meta.url).replace('file:///', ''), '..');
 const OUTPUT_DIR = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../../dist');
 
-const converterModules = [
+const BASE_MODULES = [
   'src/config/constants.js',
   'src/utils/types.js',
   'src/utils/utils.js',
@@ -13,108 +14,72 @@ const converterModules = [
   'src/i18n/zh-CN.js',
   'src/i18n/en-US.js',
   'src/i18n/i18n.js',
-  'src/components/outputMapper.js',
-  'src/components/inputMapper.js',
-  'src/components/containerHandler.js',
-  'src/components/nodeHandlers.js',
-  'src/modules/converter.js',
-  'src/modules/reverse.js',
-  'src/modules/highlighter.js',
-  'src/modules/highlighter-worker.js',
-  'src/modules/stats-view.js',
-  'src/modules/stats-renderer.js',
-  'src/modules/ui-controller.js',
-  'src/modules/theme-controller.js',
-  'src/modules/i18n-controller.js',
-  'src/modules/keyboard-shortcuts.js',
-  'src/modules/graph-view.js',
-  'src/modules/dialog.js',
-  'src/modules/navigator.js',
-  'src/modules/virtual-scroll.js',
-  'src/modules/history-manager.js',
-  'src/modules/workflow-storage.js',
-  'src/modules/workflow-serializer.js',
-  'src/modules/workflow-core.js',
-  'src/modules/workflow-canvas.js',
-  'src/modules/workflow-canvas-optimized.js',
-  'src/modules/workflow-node-render.js',
-  'src/modules/workflow-node-panel.js',
-  'src/modules/workflow-node-selector.js',
-  'src/modules/workflow-node.js',
-  'src/modules/workflow-edge.js',
-  'src/modules/workflow-history.js',
-  'src/modules/workflow-clipboard-paste.js',
-  'src/modules/workflow-clipboard.js',
-  'src/modules/workflow-messages.js',
-  'src/modules/workflow-search.js',
-  'src/modules/workflow-autosave.js',
-  'src/modules/workflow-share.js',
-  'src/modules/workflow-keyboard.js',
-  'src/modules/workflow-selection.js',
-  'src/modules/workflow-align.js',
-  'src/modules/workflow-ui.js',
-  'src/modules/templates.js',
-  'src/modules/workflow-manager.js',
-  'src/modules/app.js'
 ];
 
-const editorModules = [
-  'src/config/constants.js',
-  'src/utils/types.js',
-  'src/utils/utils.js',
-  'src/utils/helpers.js',
-  'src/utils/logger.js',
-  'src/utils/refCache.js',
-  'src/i18n/zh-CN.js',
-  'src/i18n/en-US.js',
-  'src/i18n/i18n.js',
+const COMPONENT_MODULES = [
   'src/components/outputMapper.js',
   'src/components/inputMapper.js',
   'src/components/containerHandler.js',
   'src/components/nodeHandlers.js',
-  'src/modules/workflow-storage.js',
-  'src/modules/workflow-serializer.js',
-  'src/modules/workflow-core.js',
-  'src/modules/workflow-canvas.js',
-  'src/modules/workflow-canvas-optimized.js',
-  'src/modules/workflow-node-render.js',
-  'src/modules/workflow-node-panel.js',
-  'src/modules/workflow-node-selector.js',
-  'src/modules/workflow-node.js',
-  'src/modules/workflow-edge.js',
-  'src/modules/workflow-history.js',
-  'src/modules/workflow-clipboard-paste.js',
-  'src/modules/workflow-clipboard.js',
-  'src/modules/workflow-messages.js',
-  'src/modules/workflow-search.js',
-  'src/modules/workflow-autosave.js',
-  'src/modules/workflow-share.js',
-  'src/modules/workflow-keyboard.js',
-  'src/modules/workflow-selection.js',
-  'src/modules/workflow-align.js',
-  'src/modules/workflow-ui.js',
-  'src/modules/templates.js',
-  'src/modules/theme-controller.js',
-  'src/modules/i18n-controller.js',
-  'src/modules/dialog.js',
-  'src/modules/navigator.js',
-  'src/modules/app.js'
+];
+
+function scanDependencies(entryFile) {
+  const visited = new Set();
+  const ordered = [];
+
+  function visit(relativePath) {
+    if (visited.has(relativePath)) return;
+    visited.add(relativePath);
+
+    const fullPath = path.join(SRC_DIR, relativePath);
+    if (!fs.existsSync(fullPath)) return;
+
+    const code = fs.readFileSync(fullPath, 'utf8');
+
+    const patterns = [
+      /import\s+(?:.+\s+from\s+)?['"](\.\/[^'"]+|\.\.\/[^'"]+)['"]/g,
+      /import\(['"](\.\/[^'"]+|\.\.\/[^'"]+)['"]\)/g,
+    ];
+
+    for (const regex of patterns) {
+      let match;
+      while ((match = regex.exec(code)) !== null) {
+        const importPath = match[1];
+        const resolved = path.resolve(path.dirname(fullPath), importPath);
+        if (!resolved.endsWith('.js')) continue;
+        const relative = path.relative(SRC_DIR, resolved).replace(/\\/g, '/');
+        visit(relative);
+      }
+    }
+
+    ordered.push(relativePath);
+  }
+
+  visit(entryFile);
+  return ordered;
+}
+
+const converterModules = [
+  ...BASE_MODULES,
+  ...COMPONENT_MODULES,
+  ...scanDependencies('src/modules/app.js'),
+];
+
+const EDITOR_EXCLUDE = new Set([
+  'converter.js', 'reverse.js', 'highlighter.js', 'highlighter-worker.js',
+  'stats-view.js', 'stats-renderer.js', 'ui-controller.js',
+  'converter-keyboard.js', 'graph-view.js', 'virtual-scroll.js', 'converter-history.js',
+]);
+
+const editorModules = [
+  ...BASE_MODULES,
+  ...COMPONENT_MODULES,
+  ...scanDependencies('src/modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m))),
 ];
 
 const managerModules = [
-  'src/config/constants.js',
-  'src/utils/types.js',
-  'src/utils/utils.js',
-  'src/utils/helpers.js',
-  'src/utils/logger.js',
-  'src/utils/refCache.js',
-  'src/i18n/zh-CN.js',
-  'src/i18n/en-US.js',
-  'src/i18n/i18n.js',
-  'src/modules/templates.js',
-  'src/modules/workflow-manager.js',
-  'src/modules/dialog.js',
-  'src/modules/navigator.js'
+  ...BASE_MODULES,
+  ...scanDependencies('src/modules/workflow-manager.js'),
 ];
 
 function stripMultilineImports(code) {
@@ -148,7 +113,7 @@ function stripMultilineImports(code) {
 
 function processDynamicImports(code) {
   code = code.replace(/import\('\.\/ui-controller\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
-  code = code.replace(/import\('\.\/keyboard-shortcuts\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
+  code = code.replace(/import\('\.\/converter-keyboard\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
   code = code.replace(/import\('\.\/stats-view\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
   code = code.replace(/import\('\.\/graph-view\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
 
@@ -167,7 +132,7 @@ function processDynamicImports(code) {
   while (i < lines.length) {
     const line = lines[i];
 
-    const importMatch = line.match(/import\(['"]\.\/(ui-controller|stats-view|graph-view|keyboard-shortcuts)\.js['"]\)\.then\(\(\{ [^}]+\}\) => \{/);
+    const importMatch = line.match(/import\(['"]\.\/(ui-controller|stats-view|graph-view|converter-keyboard)\.js['"]\)\.then\(\(\{ [^}]+\}\) => \{/);
     const jsYamlMatch = line.match(/import\(['"]js-yaml['"]\)\.then\(\(\{ load \}\) => \{/);
 
     if (importMatch || jsYamlMatch) {
@@ -350,7 +315,7 @@ let editorHtml = fs.readFileSync(editorHtmlPath, 'utf8');
 
 editorHtml = editorHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
 editorHtml = editorHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/workflow-editor\.css">/, `<style>${editorCssContent}</style>`);
-editorHtml = editorHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${editorScript}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {\n        core.nodes = JSON.parse(JSON.stringify(workflow.nodes));\n        core.edges = JSON.parse(JSON.stringify(workflow.edges || []));\n        core.selectedNode = workflow.selectedNode || null;\n        core.selectedEdge = workflow.selectedEdge || null;\n    }\n    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name; document.getElementById('workflowName').removeAttribute('data-i18n');\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                document.getElementById('workflowName').removeAttribute('data-i18n');\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`);
+editorHtml = editorHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${editorScript}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {\n        core.nodes = deepClone(workflow.nodes);\n        core.edges = deepClone(workflow.edges || []);\n        core.selectedNode = workflow.selectedNode || null;\n        core.selectedEdge = workflow.selectedEdge || null;\n    }\n    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name; document.getElementById('workflowName').removeAttribute('data-i18n');\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                document.getElementById('workflowName').removeAttribute('data-i18n');\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`);
 
 editorHtml = editorHtml.replace(/<script type="module">[\s\S]*?<\/script>/, '');
 

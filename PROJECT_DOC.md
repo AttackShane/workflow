@@ -4,92 +4,7 @@
 
 本项目是一个工作流转换器，主要用于将自定义 YAML 格式的工作流数据转换为 Coze 平台可识别的剪贴板格式（JSON）。项目包含三个核心页面：工作流管理、转换器和编辑器。
 
-## 项目结构
-
-```text
-workflow/
-├── src/
-│   ├── assets/              # 静态资源
-│   │   └── favicon.svg      # 网站图标
-│   ├── components/          # 组件模块
-│   │   ├── nodeHandlers.js  # 节点处理器（处理不同类型节点的转换逻辑）
-│   │   ├── inputMapper.js   # 输入参数映射
-│   │   ├── outputMapper.js  # 输出参数映射
-│   │   └── containerHandler.js  # 容器节点处理（循环、批处理）
-│   ├── config/              # 配置文件
-│   │   └── constants.js     # 常量定义
-│   ├── i18n/                # 国际化支持
-│   │   ├── i18n.js          # 国际化核心模块
-│   │   ├── zh-CN.js         # 中文语言包
-│   │   └── en-US.js         # 英文语言包
-│   ├── modules/             # 核心模块
-│   │   ├── app.js           # 应用入口
-│   │   ├── converter.js     # YAML转剪贴板格式转换器（核心）
-│   │   ├── reverse.js       # 反向转换器（Coze → YAML）
-│   │   ├── ui-controller.js # UI控制器（转换器页面）
-│   │   ├── workflow-core.js # 工作流核心逻辑（节点/连线管理、历史记录）
-│   │   ├── workflow-storage.js  # 工作流本地存储
-│   │   ├── workflow-serializer.js # 工作流序列化/反序列化
-│   │   ├── workflow-ui.js   # UI交互控制（编辑器总控）
-│   │   ├── workflow-messages.js # 消息提示
-│   │   ├── workflow-search.js   # 搜索功能
-│   │   ├── workflow-autosave.js # 自动保存
-│   │   ├── workflow-share.js    # 分享功能
-│   │   ├── workflow-node.js     # 节点入口（mixin组装）
-│   │   ├── workflow-node-render.js  # 节点渲染（DOM创建、拖拽、选择）
-│   │   ├── workflow-node-panel.js   # 节点属性面板（参数编辑）
-│   │   ├── workflow-node-selector.js # 变量选择器（引用管理）
-│   │   ├── workflow-edge.js # 连线UI组件
-│   │   ├── workflow-canvas.js # 画布管理
-│   │   ├── workflow-canvas-optimized.js # 优化画布（节点剔除）
-│   │   ├── workflow-clipboard.js  # 编辑器剪贴板（复制）
-│   │   ├── workflow-clipboard-paste.js # 编辑器剪贴板（粘贴）
-│   │   ├── workflow-manager.js # 管理页面逻辑
-│   │   ├── workflow-history.js # 历史记录面板
-│   │   ├── workflow-keyboard.js # 编辑器快捷键
-│   │   ├── workflow-selection.js # 多选与框选
-│   │   ├── workflow-align.js # 节点对齐
-│   │   ├── dialog.js        # 模态对话框组件
-│   │   ├── navigator.js     # 页面导航管理
-│   │   ├── graph-view.js    # 图形视图（SVG拓扑渲染）
-│   │   ├── stats-view.js    # 统计视图与历史面板
-│   │   ├── stats-renderer.js # 统计渲染器
-│   │   ├── keyboard-shortcuts.js # 键盘快捷键（转换器）
-│   │   ├── theme-controller.js # 主题控制器
-│   │   ├── i18n-controller.js # 国际化控制器
-│   │   ├── virtual-scroll.js # 虚拟滚动优化
-│   │   ├── highlighter.js   # 语法高亮
-│   │   ├── highlighter-worker.js # 语法高亮Worker
-│   │   └── history-manager.js # 历史记录管理器
-│   ├── utils/               # 工具函数
-│   │   ├── types.js         # 类型定义和工具函数
-│   │   ├── utils.js         # 通用工具函数
-│   │   ├── helpers.js       # 辅助工具函数
-│   │   ├── logger.js        # 日志工具
-│   │   └── refCache.js      # 引用缓存管理
-│   ├── views/               # 页面视图
-│   │   ├── workflow-manager.html   # 工作流管理页面
-│   │   ├── workflow-converter.html # 转换器页面
-│   │   └── workflow-editor.html    # 编辑器页面
-│   ├── styles/              # 样式文件
-│   │   ├── style.css        # 通用样式
-│   │   ├── workflow-manager.css # 管理页面样式
-│   │   └── workflow-editor.css   # 编辑器样式
-│   ├── scripts/             # 脚本
-│   │   ├── server.js        # 开发服务器
-│   │   ├── build.js         # 构建脚本
-│   │   ├── batch-convert.js # 批量转换脚本（CommonJS）
-│   │   └── batch-convert.mjs # 批量转换脚本（ESM）
-│   └── example/             # 示例数据（13个测试用例）
-│       └── Workflow-*/      # 各工作流示例目录
-├── dist/                    # 构建产物（三个独立 HTML 文件）
-│   ├── workflow-converter.html  # 转换器独立版本
-│   ├── workflow-editor.html     # 编辑器独立版本
-│   └── workflow-manager.html    # 管理器独立版本
-├── package.json
-├── PROJECT_DOC.md           # 详细项目文档
-└── README.md
-```
+> 项目结构、快速开始等信息请参见 [README.md](./README.md)。
 
 ## 已实现功能清单
 
@@ -174,7 +89,7 @@ workflow/
 
 ### 三、用户体验
 
-#### 1. 键盘快捷键（`modules/keyboard-shortcuts.js`）
+#### 1. 键盘快捷键（`modules/converter-keyboard.js`）
 
 - **支持快捷键**:
   - `Ctrl+C`: 复制选中节点
@@ -288,7 +203,7 @@ workflow/
 - **功能**: 处理节点输入输出参数的映射转换
 - **特性**: 支持复杂类型的参数映射
 
-### 七、服务器配置（`scripts/server.js`）
+### 六、服务器配置（`scripts/server.js`）
 
 - **功能**: 开发服务器
 - **特性**:
@@ -298,15 +213,6 @@ workflow/
   - 严格缓存控制（禁用缓存便于开发）
   - 请求日志记录
   - 支持局域网访问（自动获取本地 IP）
-
-### 八、导航模块（`modules/navigator.js`）
-
-- **功能**: 统一页面导航管理
-- **特性**:
-  - 平滑页面切换动画（淡入淡出）
-  - 自动处理浏览器缓存恢复（防止后退时页面空白）
-  - 提供 `goToManager()`、`goToConverter()`、`goToEditor()` 方法
-  - 模块加载时自动初始化事件监听器
 
 ## 核心功能流程图
 
@@ -867,11 +773,11 @@ npm run dev
 #### 运行时依赖
 
 - **js-yaml**: YAML 解析
-- **其他**: 内置浏览器 API（无需额外依赖）
 
 #### 开发依赖
 
-- 无（纯前端项目，无需构建工具）
+- **Jest + Babel**: 单元测试框架
+- **http-server**: 静态文件服务（备选）
 
 ## 键盘快捷键
 
@@ -1037,7 +943,7 @@ npm run dev
 - 添加国际化支持（`i18n/`），支持中英文语言切换
 - 添加批量转换脚本（`batch-convert.mjs`），支持批量处理多个工作流文件
 - 添加统计渲染器（`stats-renderer.js`），优化统计视图性能
-- 添加历史记录管理器（`history-manager.js`），统一历史记录管理
+- 添加历史记录管理器（`converter-history.js`），统一历史记录管理
 - 添加引用缓存管理（`refCache.js`），优化转换性能
 
 **代码优化**:
@@ -1121,54 +1027,6 @@ npm run dev
 - 添加工具函数目录
 - 创建项目文档
 
-## 关键数据结构
-
-### Coze 剪贴板格式
-
-```json
-{
-  "type": "coze-workflow-clipboard-data",
-  "source": {
-    "workflowId": "...",
-    "flowMode": 0,
-    "spaceId": "...",
-    "isDouyin": false,
-    "host": "www.coze.cn"
-  },
-  "json": {
-    "nodes": [...],
-    "edges": [...],
-    "name": "..."
-  },
-  "bounds": { "x": ..., "y": ..., "width": ..., "height": ... }
-}
-```
-
-### 节点数据结构（转换后）
-
-```json
-{
-  "id": "...",
-  "type": "...",      // Coze 类型编号
-  "meta": { "position": { "x": ..., "y": ... } },
-  "data": {
-    "inputs": { ... },          // 输入参数（必须在前面）
-    "nodeMeta": {               // 节点元数据
-      "title": "...",
-      "icon": "...",
-      "description": "...",
-      "mainColor": "...",
-      "subTitle": "..."
-    },
-    "outputs": [...]            // 输出定义（必须在最后）
-  },
-  "_temp": {
-    "bounds": { "x": ..., "y": ..., "width": ..., "height": ... },
-    "externalData": { ... }
-  }
-}
-```
-
 ## 已修复的问题
 
 ### 问题1: 数据结构顺序错误
@@ -1249,184 +1107,42 @@ npm run dev
 - **修复**: `build.js` 将 highlighter-worker 内联化，通过 `Blob URL` 创建 Worker，解决 CORS 问题
 - **影响文件**: `src/scripts/build.js`
 
-## 开发服务器
+## 测试
 
-### 启动方式
+项目使用 Jest 进行单元测试，测试文件位于 `tests/` 目录：
+
+| 测试文件 | 覆盖内容 |
+|----------|----------|
+| `core.test.js` | 工作流核心逻辑（节点/边 CRUD、历史记录、验证） |
+| `canvas.test.js` | 画布坐标转换、视口剔除、性能统计 |
+| `edge.test.js` | 边几何计算（贝塞尔路径、箭头、容器节点） |
+| `keyboard.test.js` | 键盘快捷键、输入框/模态框过滤 |
+| `clipboard.test.js` | 剪贴板复制/粘贴 |
+| `converter.test.js` | YAML → Coze 格式转换 |
+| `reverse.test.js` | Coze → YAML 反向转换 |
+| `helpers.test.js` | 工具函数 |
+
+运行测试：
 
 ```bash
-npm run dev
-```
-
-### 访问地址
-
-- 工作流管理: <http://localhost:8080/>
-- 转换器: <http://localhost:8080/converter>
-- 编辑器: <http://localhost:8080/editor>
-
-### 服务器配置
-
-- 端口: 8080
-- 缓存控制: 禁用缓存（便于开发调试）
-- 路由映射: 支持 URL 查询参数
-
-## 测试文件
-
-测试脚本已删除，如需测试可创建以下文件：
-
-```javascript
-// test_converter.mjs
-import { convertYamlToClipboard } from "./src/modules/converter.js";
-
-const yaml = {
-  /* YAML 数据 */
-};
-const result = convertYamlToClipboard(yaml);
-console.log(JSON.stringify(result, null, 2));
+npm run test
 ```
 
 ## 优化思路与方向
 
-### 一、代码质量优化
+大部分优化项已在 v1.0 ~ v1.4 中完成，包括：
 
-#### 1. 重复代码消除 ✅ 已完成
+- **代码质量**: 重复代码消除、数据结构规范化、构建系统完善
+- **功能增强**: 批量转换、数据校验、节点类型扩展（22种）
+- **性能优化**: 虚拟滚动、Web Worker 语法高亮、引用缓存
+- **用户体验**: 编辑器增强、图形预览、主题切换、页面导航、对话框
+- **架构优化**: 模块化重构、WorkflowCore 集中状态管理
+- **安全优化**: XSS 防护、路径白名单
 
-- **问题**: `cleanIcon()` 函数在 `converter.js` 和 `graph-view.js` 中重复定义
-- **优化方案**: 已将其移至 `utils/types.js` 或 `utils/utils.js` 中统一管理
+### 待实现
 
-#### 2. 数据结构顺序规范化 ✅ 已完成
-
-- **问题**: 多个地方手动构建节点数据结构，容易出错
-- **优化方案**: 创建统一的节点数据结构构建函数 `buildNodeData()`，确保顺序一致
-
-#### 3. 构建系统完善 ✅ 已完成
-
-- **问题**: 原 `build.js` 不支持三页面独立构建、`file://` 协议兼容性、Worker 内联等
-- **优化方案**: 已实现完整的 ES Module → 单 HTML 打包流程，支持 ESM/CJS 转换、动态 import 展开、Worker 内联化、变量去重、导航路径替换等
-
-### 二、功能增强
-
-#### 1. 批量转换功能 ✅ 已完成
-
-- **当前状态**: 已实现批量转换脚本
-- **优化方案**:
-  - 创建可视化的批量转换工具
-  - 支持批量导入/导出
-  - 添加转换状态进度显示
-
-#### 2. 数据校验增强 ✅ 已完成
-
-- **当前状态**: 基础校验已完善
-- **优化方案**:
-  - 添加更严格的数据格式校验
-  - 提供详细的错误提示（哪一行出错，原因是什么）
-  - 支持自动修复简单错误
-
-#### 3. 节点类型扩展 ✅ 已完成
-
-- **当前状态**: 支持 22 种节点类型（start, end, llm, code, image_generate, video_generation, condition, variable_merge, plugin, loop, batch, intent, async_task, http, comment, text, output, input, question, knowledge, break, variable_assign）
-- **优化方案**:
-  - 已添加新节点类型的便捷扩展机制
-  - 支持自定义节点类型配置
-  - 已添加节点类型注册机制
-
-### 三、性能优化
-
-#### 1. 大文件处理优化 ✅ 已完成
-
-- **问题**: 大工作流文件解析可能卡顿
-- **优化方案**:
-  - 已实现虚拟滚动处理
-  - Web Worker 语法高亮避免主线程阻塞
-
-#### 2. 缓存机制 ✅ 已完成
-
-- **问题**: 重复转换相同数据效率低
-- **优化方案**:
-  - 已添加转换结果缓存（refCache.js）
-  - 基于 WeakMap 的引用缓存策略
-
-### 四、用户体验优化
-
-#### 1. 编辑器增强 ✅ 已完成
-
-- **当前状态**: 完整的可视化编辑功能
-- **优化方案**:
-  - 已实现节点拖拽创建
-  - 已实现常用快捷键（Ctrl+C/V/Z/Y/A/S/Delete/Esc）
-  - 已实现撤销/重做（最多50步）
-
-#### 2. 预览功能 ✅ 已完成
-
-- **当前状态**: 图形可视化已完成
-- **优化方案**:
-  - 支持缩放和平移（已实现）
-  - 支持节点点击查看详情
-
-#### 3. 主题切换 ✅ 已完成
-
-- **当前状态**: 完整的主题支持
-- **优化方案**:
-  - 已实现深色/浅色自动切换
-  - 通过 CSS 变量驱动主题系统
-
-#### 4. 导航与对话框 ✅ 已完成
-
-- 已实现三页面间平滑导航（navigator.js）
-- 已实现模态对话框组件（dialog.js）
-
-### 五、架构优化
-
-#### 1. 模块化重构 ✅ 已完成
-
-- **问题**: 部分模块职责不清晰
-- **优化方案**:
-  - 已明确模块职责边界
-  - 提取公共逻辑到工具函数
-  - 建立了清晰的依赖关系
-
-#### 2. 状态管理 ✅ 已完成
-
-- **问题**: 状态分散在多个地方
-- **优化方案**:
-  - 已引入 WorkflowCore 集中状态管理
-  - 历史记录通过深拷贝实现状态快照
-
-#### 3. 测试覆盖
-
-- **当前状态**: 使用示例文件进行手动测试
-- **优化方案**:
-  - 添加单元测试（Jest/Vitest）
-  - 添加集成测试
-  - 添加转换结果验证测试
-
-### 六、安全优化
-
-#### 1. 输入验证 ✅ 已完成
-
-- **问题**: 缺少对用户输入的严格验证
-- **优化方案**:
-  - 已添加 XSS 防护（escapeHtml）
-  - 已验证所有输入数据格式
-  - 已有输入大小限制
-
-#### 2. 文件安全 ✅ 已完成
-
-- **问题**: 文件读取缺少路径安全检查
-- **优化方案**:
-  - 已有严格的路径白名单（server.js）
-  - 已防止路径遍历攻击
-
-## 优先级建议
-
-| 优先级 | 优化项             | 说明                              | 状态   |
-| ------ | ------------------ | --------------------------------- | ------ |
-| ✅ P0  | 构建系统完善       | 三页面构建 + `file://` 协议兼容性 | 已完成 |
-| ✅ P0  | 编辑器交互问题修复 | z-index层级 + 虚边坐标 + 模块缺失 | 已完成 |
-| ✅ P0  | 错误处理增强       | 提升稳定性和可维护性              | 已完成 |
-| ✅ P0  | 重复代码消除       | 减少维护成本                      | 已完成 |
-| ✅ P1  | 数据校验增强       | 提升用户体验                      | 已完成 |
-| P1     | 自动化测试覆盖     | 保障代码质量和回归                | 待实现 |
-| ✅ P2  | 批量转换功能       | 提升生产效率（脚本已实现）        | 已完成 |
-| ✅ P2  | 性能优化           | 虚拟滚动 + Web Worker 处理大文件  | 已完成 |
-| ✅ P3  | 架构优化           | 明确模块分层                      | 已完成 |
-| ✅ P3  | 安全优化           | XSS防护 + 路径安全检查            | 已完成 |
+| 优先级 | 优化项 | 说明 |
+|--------|--------|------|
+| P1 | 自动化测试持续完善 | 持续补充测试用例，提升覆盖率 |
+| P2 | ESLint + Git Hooks | 代码规范自动化检查 |
+| P3 | CI/CD 流水线 | 自动化测试与构建 |

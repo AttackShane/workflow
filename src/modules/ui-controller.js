@@ -1,167 +1,21 @@
 import { convertYamlToClipboard } from './converter.js';
 import { convertClipboardToYaml } from './reverse.js';
-import { highlightJson, highlightYaml } from './highlighter.js';
 import { showStats, saveToHistory } from './stats-view.js';
 import { goToEditor, goToManager, initNavigator } from './navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM, StringUtils, ClipboardUtils } from '../utils/helpers.js';
+import { DOM, ClipboardUtils } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
 import { Logger } from '../utils/logger.js';
 import { t } from '../i18n/i18n.js';
+import { renderWithVirtualScroll, renderSync, renderAsync } from './converter-renderer.js';
 
-// 动态导入虚拟滚动模块
-let VirtualScroll = null;
-import('./virtual-scroll.js').then(m => { VirtualScroll = m.VirtualScroll; });
-
-// 状态管理
-let curData = null;
-let curDataType = null;
-let selectedFile = null;
-let elements = {};
-let isHighlighting = false;
-let worker = null;
-let workerTaskId = 0;
-let virtualScroll = null;
-
-function terminateWorker() {
-    if (worker) {
-        worker.terminate();
-        worker = null;
-    }
-}
-
-window.addEventListener('beforeunload', terminateWorker);
-
-// 缓存系统
-const conversionCache = new Map();
-const highlightCache = new Map();
-
-// 安全验证：Worker 返回的高亮 HTML 只允许 highlight.js 使用的标签
-const ALLOWED_TAGS = ['span', 'br'];
-function isHighlightHtmlSafe(html) {
-    const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
-    let match;
-    while ((match = tagRegex.exec(html)) !== null) {
-        const tagName = match[1].toLowerCase();
-        if (!ALLOWED_TAGS.includes(tagName)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-// 性能监控
-const performanceStats = {
-    conversionTime: 0,
-    highlightTime: 0,
-    renderTime: 0
-};
-
-/**
- * 安全加载 YAML，确保 ID 字段保持为字符串类型
- * @param {string} input - YAML 字符串
- * @returns {object} 解析后的对象
- */
-function loadYamlWithStringIds(input) {
-    // 在解析前处理 YAML 字符串，将大数字转换为字符串
+function _loadYamlWithStringIds(input) {
     const processedInput = convertLargeNumbersToStrings(input);
     const yamlData = window.jsyaml.load(processedInput);
     return yamlData;
 }
 
-// 导出状态获取函数
-export function getCurData() { return curData; }
-export function getCurDataType() { return curDataType; }
-
-/**
- * 显示消息提示
- * @param {string} text - 消息文本
- * @param {boolean} isError - 是否为错误消息
- */
-export function msg(text, isError = false) {
-    const statusElement = DOM.get(SELECTORS.CONVERTER.COPY_STATUS);
-    if (!statusElement) return;
-    
-    DOM.setText(statusElement, text);
-    DOM.setStyle(statusElement, 'color', isError ? '#dc2626' : '#10b981');
-    
-    setTimeout(() => {
-        DOM.setText(statusElement, '');
-    }, APP_CONFIG.UI.COPY_TIMEOUT);
-}
-
-/**
- * 重置 UI 状态
- */
-export function resetUI() {
-    curData = null;
-    curDataType = null;
-    selectedFile = null;
-    
-    DOM.setText(DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY), '');
-    DOM.setText(DOM.get(SELECTORS.CONVERTER.INPUT_TEXT), '');
-    DOM.setHtml(DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA), t('converter.defaultOutput'));
-    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), true);
-    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), true);
-    
-    updateLineNumbers(t('converter.defaultOutput'));
-}
-
-/**
- * 更新行号显示
- * @param {string} text - 文本内容
- */
-export function updateLineNumbers(text) {
-    const lineNumbers = DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS);
-    const lineNumbersContent = DOM.get('lineNumbersContent');
-    if (!lineNumbers || !text) return;
-    
-    const lines = text.split('\n').length;
-    const lineHeight = parseFloat(document.documentElement.style.getPropertyValue('--code-line-height') || '21');
-    
-    const totalHeight = lines * lineHeight;
-    lineNumbersContent.style.height = totalHeight + 'px';
-    
-    const fragment = document.createDocumentFragment();
-    for (let i = 0; i < lines; i++) {
-        const div = document.createElement('div');
-        div.className = 'line-numbers-line';
-        fragment.appendChild(div);
-    }
-    
-    lineNumbersContent.innerHTML = '';
-    lineNumbersContent.appendChild(fragment);
-}
-
-/**
- * 处理文件选择
- * @param {Event} event - 文件选择事件
- */
-export function handleFileSelect(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
-    const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
-    if (!fileNameDisplay || !inputText) return;
-    
-    selectedFile = file;
-    DOM.setText(fileNameDisplay, `已选择: ${file.name}`);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        DOM.setText(inputText, e.target?.result || '');
-        handleConvert();
-    };
-    reader.readAsText(file);
-}
-
-/**
- * 生成内容哈希
- * @param {string} content - 内容
- * @returns {string} 哈希值
- */
-function generateHash(content) {
+function _generateHash(content) {
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
         hash = ((hash << 5) - hash) + content.charCodeAt(i);
@@ -170,506 +24,429 @@ function generateHash(content) {
     return Math.abs(hash).toString(36);
 }
 
-/**
- * 添加到缓存
- * @param {Map} cache - 缓存 Map
- * @param {string} key - 缓存键
- * @param {any} value - 缓存值
- */
-function addToCache(cache, key, value) {
-    if (cache.size >= APP_CONFIG.CACHE.MAX_SIZE) {
-        const firstKey = cache.keys().next().value;
-        cache.delete(firstKey);
-    }
-    cache.set(key, value);
-}
+class UIController {
+    constructor() {
+        this._curData = null;
+        this._curDataType = null;
+        this._selectedFile = null;
+        this._elements = {};
+        this._isHighlighting = false;
+        this._worker = null;
+        this._workerTaskId = 0;
+        this._virtualScroll = null;
+        this._VirtualScroll = null;
+        this._conversionCache = new Map();
+        this._highlightCache = new Map();
+        this._performanceStats = {
+            conversionTime: 0,
+            highlightTime: 0,
+            renderTime: 0
+        };
 
-/**
- * 处理转换操作
- */
-export async function handleConvert() {
-    const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
-    if (!inputText) return;
-    
-    const input = inputText.value.trim();
-    if (!input) {
-        msg(t('converter.emptyInput'), true);
-        return;
+        import('./virtual-scroll.js').then(m => { this._VirtualScroll = m.VirtualScroll; });
+
+        window.addEventListener('beforeunload', () => this._terminateWorker());
     }
-    
-    const inputHash = generateHash(input);
-    
-    // 检查转换缓存
-    if (conversionCache.has(inputHash)) {
-        const cached = conversionCache.get(inputHash);
-        displayOutput(cached.result, cached.type);
-        msg('✓ 使用缓存结果');
-        return;
+
+    _terminateWorker() {
+        if (this._worker) {
+            this._worker.terminate();
+            this._worker = null;
+        }
     }
-    
-    let result, type;
-    const conversionStart = performance.now();
-    
-    try {
-        // 检测输入类型：首先尝试解析为 JSON
-        const trimmedInput = input.trimStart();
-        
-        // 更健壮的类型检测：
-        // 1. 检查是否以 { 或 [ 开头（JSON 数组也有可能）
-        // 2. 尝试用 JSON.parse 验证
-        // 3. 如果失败再尝试 YAML
-        const isJsonLike = trimmedInput.startsWith('{') || trimmedInput.startsWith('[');
-        
-        if (isJsonLike) {
-            try {
-                // 尝试作为 JSON 解析（剪贴板格式）
-                const jsonData = JSON.parse(input);
-                // convertClipboardToYaml 返回的是对象，需要用 jsyaml.dump 转换为字符串
-                const yamlObj = convertClipboardToYaml(jsonData);
-                result = window.jsyaml.dump(yamlObj);
-                type = 'yaml';
-            } catch (jsonError) {
-                // JSON 解析失败，尝试作为 YAML
-                const yamlData = loadYamlWithStringIds(input);
-                const clipboardData = convertYamlToClipboard(yamlData);
+
+    _addToCache(cache, key, value) {
+        if (cache.size >= APP_CONFIG.CACHE.MAX_SIZE) {
+            const firstKey = cache.keys().next().value;
+            cache.delete(firstKey);
+        }
+        cache.set(key, value);
+    }
+
+    getCurData = () => this._curData;
+
+    getCurDataType = () => this._curDataType;
+
+    msg = (text, isError = false) => {
+        const statusElement = DOM.get(SELECTORS.CONVERTER.COPY_STATUS);
+        if (!statusElement) return;
+
+        DOM.setText(statusElement, text);
+        DOM.setStyle(statusElement, 'color', isError ? '#dc2626' : '#10b981');
+
+        setTimeout(() => {
+            DOM.setText(statusElement, '');
+        }, APP_CONFIG.UI.COPY_TIMEOUT);
+    };
+
+    resetUI = () => {
+        this._curData = null;
+        this._curDataType = null;
+        this._selectedFile = null;
+
+        DOM.setText(DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY), '');
+        DOM.setText(DOM.get(SELECTORS.CONVERTER.INPUT_TEXT), '');
+        DOM.setHtml(DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA), t('converter.defaultOutput'));
+        DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), true);
+        DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), true);
+
+        this.updateLineNumbers(t('converter.defaultOutput'));
+    };
+
+    updateLineNumbers = (text) => {
+        const lineNumbers = DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS);
+        const lineNumbersContent = DOM.get('lineNumbersContent');
+        if (!lineNumbers || !text) return;
+
+        const lines = text.split('\n').length;
+        const lineHeight = parseFloat(document.documentElement.style.getPropertyValue('--code-line-height') || '21');
+
+        const totalHeight = lines * lineHeight;
+        lineNumbersContent.style.height = totalHeight + 'px';
+
+        const fragment = document.createDocumentFragment();
+        for (let i = 0; i < lines; i++) {
+            const div = document.createElement('div');
+            div.className = 'line-numbers-line';
+            fragment.appendChild(div);
+        }
+
+        lineNumbersContent.innerHTML = '';
+        lineNumbersContent.appendChild(fragment);
+    };
+
+    handleFileSelect = (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
+        const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
+        if (!fileNameDisplay || !inputText) return;
+
+        this._selectedFile = file;
+        DOM.setText(fileNameDisplay, `已选择: ${file.name}`);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            DOM.setText(inputText, e.target?.result || '');
+            this.handleConvert();
+        };
+        reader.readAsText(file);
+    };
+
+    handleConvert = async () => {
+        const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
+        if (!inputText) return;
+
+        const input = inputText.value.trim();
+        if (!input) {
+            this.msg(t('converter.emptyInput'), true);
+            return;
+        }
+
+        const inputHash = _generateHash(input);
+
+        if (this._conversionCache.has(inputHash)) {
+            const cached = this._conversionCache.get(inputHash);
+            this.displayOutput(cached.result, cached.type);
+            this.msg('✓ 使用缓存结果');
+            return;
+        }
+
+        let result, type;
+        const conversionStart = performance.now();
+
+        try {
+            const trimmedInput = input.trimStart();
+
+            const isJsonLike = trimmedInput.startsWith('{') || trimmedInput.startsWith('[');
+
+            if (isJsonLike) {
+                try {
+                    const jsonData = JSON.parse(input);
+                    const yamlObj = convertClipboardToYaml(jsonData);
+                    result = window.jsyaml.dump(yamlObj);
+                    type = 'yaml';
+                } catch (jsonError) {
+                    const yamlData = _loadYamlWithStringIds(input);
+                    const clipboardData = convertYamlToClipboard(yamlData);
+                    result = JSON.stringify(clipboardData, null, 2);
+                    type = 'json';
+                }
+            } else {
+                const yamlData = _loadYamlWithStringIds(input);
+                const clipboardData = convertYamlToClipboard(yamlData, input);
                 result = JSON.stringify(clipboardData, null, 2);
                 type = 'json';
             }
-        } else {
-            // 默认当作 YAML 处理
-            const yamlData = loadYamlWithStringIds(input);
-            const clipboardData = convertYamlToClipboard(yamlData, input);
-            result = JSON.stringify(clipboardData, null, 2);
-            type = 'json';
+
+            this._addToCache(this._conversionCache, inputHash, { result, type });
+
+            this._performanceStats.conversionTime = performance.now() - conversionStart;
+            this.displayOutput(result, type);
+            this.msg(`${t('converter.successConvert')} (${this._performanceStats.conversionTime.toFixed(1)}ms)`);
+        } catch (error) {
+            this.msg(`${t('converter.errorConvert')}: ${error.message}`, true);
+            Logger.error('Conversion error:', error);
         }
-        
-        // 添加到缓存
-        addToCache(conversionCache, inputHash, { result, type });
-        
-        performanceStats.conversionTime = performance.now() - conversionStart;
-        displayOutput(result, type);
-        msg(`${t('converter.successConvert')} (${performanceStats.conversionTime.toFixed(1)}ms)`);
-    } catch (error) {
-        msg(`${t('converter.errorConvert')}: ${error.message}`, true);
-        Logger.error('Conversion error:', error);
-    }
-}
-
-/**
- * 显示转换结果
- * @param {string} data - 转换后的数据
- * @param {string} type - 数据类型 ('json' 或 'yaml')
- * @param {boolean} saveToHistoryFlag - 是否保存到历史记录
- */
-export function displayOutput(data, type, saveToHistoryFlag = true) {
-    curData = data;
-    curDataType = type;
-    
-    const contentKey = generateHash(data) + ':' + type;
-    
-    const lines = data.split('\n').length;
-    
-    // 重置滚动位置到顶部（任何时候显示新内容都从第一行开始）
-    const outputWrapper = DOM.get('outputWrapper');
-    const lineNumbers = DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS);
-    if (outputWrapper) outputWrapper.scrollTop = 0;
-    if (lineNumbers) lineNumbers.scrollTop = 0;
-    
-    // 大量行使用虚拟滚动
-    if (lines > APP_CONFIG.VIRTUAL_SCROLL.THRESHOLD && VirtualScroll) {
-        renderWithVirtualScroll(data, type, contentKey);
-    } else {
-        // 如果之前使用了虚拟滚动，需要清理状态
-        if (virtualScroll) {
-            virtualScroll.destroy();
-            virtualScroll = null;
-        }
-        // 重新初始化行号同步（确保样式正确）
-        initLineNumberScrollSync();
-        
-        if (lines > 500) {
-            renderAsync(data, type, contentKey);
-            updateLineNumbers(data);
-        } else {
-            renderSync(data, type, contentKey);
-            updateLineNumbers(data);
-        }
-    }
-    
-    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), false);
-    DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), false);
-    
-    showStats(data, type === 'json');
-    if (saveToHistoryFlag) {
-        saveToHistory(data, type === 'json');
-    }
-}
-
-function renderWithVirtualScroll(data, type, contentKey) {
-    const outputWrapper = DOM.get('outputWrapper');
-    const outputArea = DOM.get('outputArea');
-    const outputBuffer = DOM.get('outputBuffer');
-    const lineNumbers = DOM.get('lineNumbers');
-    const lineNumbersContent = DOM.get('lineNumbersContent');
-    
-    if (!outputWrapper || !outputArea || !lineNumbers || !lineNumbersContent) {
-        renderAsync(data, type, contentKey);
-        return;
-    }
-    
-    // 获取原始行数（用于行号生成）
-    const originalLineCount = data.split('\n').length;
-    
-    if (!virtualScroll) {
-        virtualScroll = new VirtualScroll({
-            container: outputWrapper,
-            content: outputArea,
-            lineNumbers: lineNumbers,
-            lineNumbersContent: lineNumbersContent,
-            buffer: outputBuffer
-        });
-    }
-    
-    // 先渲染行号（基于原始数据的行数）
-    const lineHeight = parseFloat(document.documentElement.style.getPropertyValue('--code-line-height') || '21');
-    const totalHeight = originalLineCount * lineHeight;
-    lineNumbersContent.style.height = totalHeight + 'px';
-    
-    const fragment = document.createDocumentFragment();
-    for (let i = 0; i < originalLineCount; i++) {
-        const div = document.createElement('div');
-        div.className = 'line-numbers-line';
-        fragment.appendChild(div);
-    }
-    lineNumbersContent.innerHTML = '';
-    lineNumbersContent.appendChild(fragment);
-    
-    // 检查高亮缓存
-    if (highlightCache.has(contentKey)) {
-        virtualScroll.setContent(highlightCache.get(contentKey), originalLineCount);
-        virtualScroll.scrollToTop();
-        return;
-    }
-    
-    const currentTaskId = ++workerTaskId;
-    
-    if (!worker) {
-        worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
-    }
-    
-    isHighlighting = true;
-    outputArea.innerHTML = '<span style="color: #9ca3af;">渲染中...</span>';
-    
-    worker.postMessage({ id: currentTaskId, text: data, type });
-    
-    worker.addEventListener('message', function handler(e) {
-        if (e.data.id === currentTaskId) {
-            worker.removeEventListener('message', handler);
-            isHighlighting = false;
-            const result = e.data.result;
-            const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
-            addToCache(highlightCache, contentKey, safe);
-            virtualScroll.setContent(safe, originalLineCount);
-            virtualScroll.scrollToTop();
-        }
-    });
-}
-
-function renderSync(data, type, contentKey) {
-    const outputArea = DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA);
-    if (!outputArea) return;
-    
-    // 检查高亮缓存
-    if (highlightCache.has(contentKey)) {
-        DOM.setHtml(outputArea, highlightCache.get(contentKey));
-        return;
-    }
-    
-    const highlighted = type === 'json' 
-        ? highlightJson(data) 
-        : highlightYaml(data);
-    
-    addToCache(highlightCache, contentKey, highlighted);
-    DOM.setHtml(outputArea, highlighted);
-}
-
-async function renderAsync(data, type, contentKey) {
-    const outputArea = DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA);
-    if (!outputArea) return;
-    
-    // 检查高亮缓存
-    if (highlightCache.has(contentKey)) {
-        DOM.setHtml(outputArea, highlightCache.get(contentKey));
-        return;
-    }
-    
-    isHighlighting = true;
-    outputArea.innerHTML = '<span style="color: #9ca3af;">渲染中...</span>';
-    
-    const currentTaskId = ++workerTaskId;
-    
-    try {
-        if (!worker) {
-            worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
-        }
-        
-        worker.postMessage({ id: currentTaskId, text: data, type });
-        
-        await new Promise((resolve) => {
-            const handler = function(e) {
-                if (e.data.id === currentTaskId) {
-                    const result = e.data.result;
-                    const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
-                    addToCache(highlightCache, contentKey, safe);
-                    outputArea.innerHTML = safe;
-                    worker.removeEventListener('message', handler);
-                    resolve();
-                }
-            };
-            worker.addEventListener('message', handler);
-        });
-    } catch (error) {
-        Logger.error('Worker error:', error);
-        const highlighted = type === 'json' ? highlightJson(data) : highlightYaml(data);
-        addToCache(highlightCache, contentKey, highlighted);
-        outputArea.innerHTML = highlighted;
-    } finally {
-        isHighlighting = false;
-    }
-}
-
-/**
- * 复制输出内容到剪贴板
- */
-export async function copyOutput() {
-    if (!curData) return;
-    
-    if (await ClipboardUtils.copy(curData)) {
-        msg(t('converter.copySuccess'));
-    } else {
-        msg(t('converter.copyError'), true);
-    }
-}
-
-/**
- * 下载输出内容
- */
-export function downloadOutput() {
-    if (!curData || !curDataType) return;
-    
-    const blob = new Blob([curData], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = DOM.create('a', {
-        href: url,
-        download: `output.${curDataType}`
-    });
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    msg(t('converter.downloadSuccess'));
-}
-
-/**
- * 初始化 UI
- */
-export function initUI() {
-    // 获取 DOM 元素
-    elements = {
-        modeFileBtn: DOM.get(SELECTORS.CONVERTER.MODE_FILE_BTN),
-        modeTextBtn: DOM.get(SELECTORS.CONVERTER.MODE_TEXT_BTN),
-        filePanel: DOM.get(SELECTORS.CONVERTER.FILE_PANEL),
-        textPanel: DOM.get(SELECTORS.CONVERTER.TEXT_PANEL),
-        fileInput: DOM.get(SELECTORS.CONVERTER.FILE_INPUT),
-        fileNameDisplay: DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY),
-        inputText: DOM.get(SELECTORS.CONVERTER.INPUT_TEXT),
-        convertFileBtn: DOM.get(SELECTORS.CONVERTER.CONVERT_FILE_BTN),
-        clearFileBtn: DOM.get(SELECTORS.CONVERTER.CLEAR_FILE_BTN),
-        convertTextBtn: DOM.get(SELECTORS.CONVERTER.CONVERT_TEXT_BTN),
-        clearTextBtn: DOM.get(SELECTORS.CONVERTER.CLEAR_TEXT_BTN),
-        copyOutputBtn: DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN),
-        downloadBtn: DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN),
-        resetBtn: DOM.get('resetBtn'),
-        outputArea: DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA),
-        copyStatus: DOM.get(SELECTORS.CONVERTER.COPY_STATUS),
-        lineNumbers: DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS),
-        uploadArea: DOM.get('uploadArea'),
-        codeContainer: DOM.get(SELECTORS.CONVERTER.CODE_CONTAINER)
     };
-    
-    // 绑定事件
-    bindEvents();
-    
-    // 初始化输出区域
-    if (elements.outputArea) {
-        elements.outputArea.innerHTML = t('converter.defaultOutput');
-    }
-    
-    // 初始化行号同步滚动
-    initLineNumberScrollSync();
-    
-    // 监听字体大小变化事件
-    document.addEventListener('fontsizechange', handleFontSizeChange);
-}
 
-/**
- * 处理字体大小变化
- */
-function handleFontSizeChange() {
-    if (virtualScroll) {
-        virtualScroll.updateFontSize();
-    } else if (curData) {
-        updateLineNumbers(curData);
-    }
-}
+    displayOutput = (data, type, saveToHistoryFlag = true) => {
+        this._curData = data;
+        this._curDataType = type;
 
-/**
- * 初始化行号同步滚动
- */
-function initLineNumberScrollSync() {
-    const { lineNumbers } = elements;
-    const outputWrapper = DOM.get('outputWrapper');
-    if (!outputWrapper || !lineNumbers) return;
-    
-    // 禁止行号区域滚动
-    lineNumbers.style.overflow = 'hidden';
-    lineNumbers.style.pointerEvents = 'none';
-    lineNumbers.style.userSelect = 'none';
-    
-    // 只绑定内容到行号的单向同步（监听正确的滚动容器 outputWrapper）
-    outputWrapper.addEventListener('scroll', () => {
-        lineNumbers.scrollTop = outputWrapper.scrollTop;
-    });
-}
+        const contentKey = _generateHash(data) + ':' + type;
 
-/**
- * 绑定事件监听器
- */
-function bindEvents() {
-    const { 
-        modeFileBtn, 
-        modeTextBtn, 
-        fileInput, 
-        convertFileBtn, 
-        clearFileBtn,
-        convertTextBtn, 
-        clearTextBtn,
-        copyOutputBtn, 
-        downloadBtn, 
-        resetBtn,
-        uploadArea 
-    } = elements;
-    
-    // 模式切换
-    DOM.on(modeFileBtn, 'click', () => switchMode('file'));
-    DOM.on(modeTextBtn, 'click', () => switchMode('text'));
-    
-    // 文件操作
-    DOM.on(fileInput, 'change', handleFileSelect);
-    DOM.on(convertFileBtn, 'click', handleConvert);
-    DOM.on(clearFileBtn, 'click', () => {
-        DOM.setText(elements.fileNameDisplay, '');
-        DOM.setText(elements.inputText, '');
-        resetUI();
-    });
-    
-    // 文本操作
-    DOM.on(convertTextBtn, 'click', (e) => {
-        e.stopPropagation();
-        handleConvert();
-    });
-    DOM.on(clearTextBtn, 'click', () => {
-        DOM.setText(elements.inputText, '');
-        resetUI();
-    });
-    
-    // 输出操作
-    DOM.on(copyOutputBtn, 'click', copyOutput);
-    DOM.on(downloadBtn, 'click', downloadOutput);
-    DOM.on(resetBtn, 'click', resetUI);
-    
-    // 导航按钮
-    DOM.on(DOM.get('editorBtn'), 'click', () => goToEditor({ newWorkflow: true }));
-    DOM.on(DOM.get('managerBtn'), 'click', goToManager);
-    
-    // 上传区域点击
-    DOM.on(uploadArea, 'click', () => {
-        fileInput?.click();
-    });
-    
-    // 拖拽上传
-    DOM.on(uploadArea, 'dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.add('dragover');
-    });
-    
-    DOM.on(uploadArea, 'dragleave', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.remove('dragover');
-    });
-    
-    DOM.on(uploadArea, 'drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        uploadArea.classList.remove('dragover');
-        
-        const files = e.dataTransfer?.files;
-        if (files && files.length > 0) {
-            const file = files[0];
-            if (isValidFile(file)) {
-                handleDroppedFile(file);
+        const lines = data.split('\n').length;
+
+        const outputWrapper = DOM.get('outputWrapper');
+        const lineNumbers = DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS);
+        if (outputWrapper) outputWrapper.scrollTop = 0;
+        if (lineNumbers) lineNumbers.scrollTop = 0;
+
+        if (lines > APP_CONFIG.VIRTUAL_SCROLL.THRESHOLD && this._VirtualScroll) {
+            this._renderWithVirtualScroll(data, type, contentKey);
+        } else {
+            if (this._virtualScroll) {
+                this._virtualScroll.destroy();
+                this._virtualScroll = null;
+            }
+            this._initLineNumberScrollSync();
+
+            if (lines > 500) {
+                this._renderAsync(data, type, contentKey);
+                this.updateLineNumbers(data);
             } else {
-                msg('不支持的文件类型', true);
+                this._renderSync(data, type, contentKey);
+                this.updateLineNumbers(data);
             }
         }
-    });
-}
 
-/**
- * 检查文件是否有效
- */
-function isValidFile(file) {
-    const validExtensions = ['.yaml', '.yml', '.json'];
-    const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-    return validExtensions.includes(ext);
-}
+        DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN), false);
+        DOM.setDisabled(DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN), false);
 
-/**
- * 处理拖放的文件
- */
-function handleDroppedFile(file) {
-    const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
-    const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
-    if (!fileNameDisplay || !inputText) return;
-    
-    selectedFile = file;
-    DOM.setText(fileNameDisplay, `已选择: ${file.name}`);
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        DOM.setText(inputText, e.target?.result || '');
-        handleConvert();
+        showStats(data, type === 'json');
+        if (saveToHistoryFlag) {
+            saveToHistory(data, type === 'json');
+        }
     };
-    reader.readAsText(file);
+
+    _renderWithVirtualScroll(data, type, contentKey) {
+        renderWithVirtualScroll(this, data, type, contentKey);
+    }
+
+    _renderSync(data, type, contentKey) {
+        renderSync(this, data, type, contentKey);
+    }
+
+    async _renderAsync(data, type, contentKey) {
+        await renderAsync(this, data, type, contentKey);
+    }
+
+    copyOutput = async () => {
+        if (!this._curData) return;
+
+        if (await ClipboardUtils.copy(this._curData)) {
+            this.msg(t('converter.copySuccess'));
+        } else {
+            this.msg(t('converter.copyError'), true);
+        }
+    };
+
+    downloadOutput = () => {
+        if (!this._curData || !this._curDataType) return;
+
+        const blob = new Blob([this._curData], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = DOM.create('a', {
+            href: url,
+            download: `output.${this._curDataType}`
+        });
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.msg(t('converter.downloadSuccess'));
+    };
+
+    initUI = () => {
+        this._elements = {
+            modeFileBtn: DOM.get(SELECTORS.CONVERTER.MODE_FILE_BTN),
+            modeTextBtn: DOM.get(SELECTORS.CONVERTER.MODE_TEXT_BTN),
+            filePanel: DOM.get(SELECTORS.CONVERTER.FILE_PANEL),
+            textPanel: DOM.get(SELECTORS.CONVERTER.TEXT_PANEL),
+            fileInput: DOM.get(SELECTORS.CONVERTER.FILE_INPUT),
+            fileNameDisplay: DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY),
+            inputText: DOM.get(SELECTORS.CONVERTER.INPUT_TEXT),
+            convertFileBtn: DOM.get(SELECTORS.CONVERTER.CONVERT_FILE_BTN),
+            clearFileBtn: DOM.get(SELECTORS.CONVERTER.CLEAR_FILE_BTN),
+            convertTextBtn: DOM.get(SELECTORS.CONVERTER.CONVERT_TEXT_BTN),
+            clearTextBtn: DOM.get(SELECTORS.CONVERTER.CLEAR_TEXT_BTN),
+            copyOutputBtn: DOM.get(SELECTORS.CONVERTER.COPY_OUTPUT_BTN),
+            downloadBtn: DOM.get(SELECTORS.CONVERTER.DOWNLOAD_BTN),
+            resetBtn: DOM.get('resetBtn'),
+            outputArea: DOM.get(SELECTORS.CONVERTER.OUTPUT_AREA),
+            copyStatus: DOM.get(SELECTORS.CONVERTER.COPY_STATUS),
+            lineNumbers: DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS),
+            uploadArea: DOM.get('uploadArea'),
+            codeContainer: DOM.get(SELECTORS.CONVERTER.CODE_CONTAINER)
+        };
+
+        this._bindEvents();
+
+        if (this._elements.outputArea) {
+            this._elements.outputArea.innerHTML = t('converter.defaultOutput');
+        }
+
+        this._initLineNumberScrollSync();
+
+        document.addEventListener('fontsizechange', this._handleFontSizeChange);
+    };
+
+    _handleFontSizeChange = () => {
+        if (this._virtualScroll) {
+            this._virtualScroll.updateFontSize();
+        } else if (this._curData) {
+            this.updateLineNumbers(this._curData);
+        }
+    };
+
+    _initLineNumberScrollSync = () => {
+        const { lineNumbers } = this._elements;
+        const outputWrapper = DOM.get('outputWrapper');
+        if (!outputWrapper || !lineNumbers) return;
+
+        lineNumbers.style.overflow = 'hidden';
+        lineNumbers.style.pointerEvents = 'none';
+        lineNumbers.style.userSelect = 'none';
+
+        outputWrapper.addEventListener('scroll', () => {
+            lineNumbers.scrollTop = outputWrapper.scrollTop;
+        });
+    };
+
+    _bindEvents = () => {
+        const {
+            modeFileBtn,
+            modeTextBtn,
+            fileInput,
+            convertFileBtn,
+            clearFileBtn,
+            convertTextBtn,
+            clearTextBtn,
+            copyOutputBtn,
+            downloadBtn,
+            resetBtn,
+            uploadArea
+        } = this._elements;
+
+        DOM.on(modeFileBtn, 'click', () => this._switchMode('file'));
+        DOM.on(modeTextBtn, 'click', () => this._switchMode('text'));
+
+        DOM.on(fileInput, 'change', this.handleFileSelect);
+        DOM.on(convertFileBtn, 'click', this.handleConvert);
+        DOM.on(clearFileBtn, 'click', () => {
+            DOM.setText(this._elements.fileNameDisplay, '');
+            DOM.setText(this._elements.inputText, '');
+            this.resetUI();
+        });
+
+        DOM.on(convertTextBtn, 'click', (e) => {
+            e.stopPropagation();
+            this.handleConvert();
+        });
+        DOM.on(clearTextBtn, 'click', () => {
+            DOM.setText(this._elements.inputText, '');
+            this.resetUI();
+        });
+
+        DOM.on(copyOutputBtn, 'click', this.copyOutput);
+        DOM.on(downloadBtn, 'click', this.downloadOutput);
+        DOM.on(resetBtn, 'click', this.resetUI);
+
+        DOM.on(DOM.get('editorBtn'), 'click', () => goToEditor({ newWorkflow: true }));
+        DOM.on(DOM.get('managerBtn'), 'click', goToManager);
+
+        DOM.on(uploadArea, 'click', () => {
+            fileInput?.click();
+        });
+
+        DOM.on(uploadArea, 'dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.add('dragover');
+        });
+
+        DOM.on(uploadArea, 'dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+        });
+
+        DOM.on(uploadArea, 'drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadArea.classList.remove('dragover');
+
+            const files = e.dataTransfer?.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                if (this._isValidFile(file)) {
+                    this._handleDroppedFile(file);
+                } else {
+                    this.msg('不支持的文件类型', true);
+                }
+            }
+        });
+    };
+
+    _isValidFile(file) {
+        const validExtensions = ['.yaml', '.yml', '.json'];
+        const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+        return validExtensions.includes(ext);
+    }
+
+    _handleDroppedFile(file) {
+        const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
+        const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
+        if (!fileNameDisplay || !inputText) return;
+
+        this._selectedFile = file;
+        DOM.setText(fileNameDisplay, `已选择: ${file.name}`);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            DOM.setText(inputText, e.target?.result || '');
+            this.handleConvert();
+        };
+        reader.readAsText(file);
+    }
+
+    _switchMode = (mode) => {
+        const isFileMode = mode === 'file';
+
+        DOM.toggleClass(this._elements.filePanel, 'hidden', !isFileMode);
+        DOM.toggleClass(this._elements.textPanel, 'hidden', isFileMode);
+        DOM.toggleClass(this._elements.modeFileBtn, 'active', isFileMode);
+        DOM.toggleClass(this._elements.modeTextBtn, 'active', !isFileMode);
+
+        if (isFileMode) {
+            DOM.setText(this._elements.inputText, '');
+        }
+    };
 }
 
-/**
- * 切换模式
- * @param {string} mode - 模式名称 ('file' 或 'text')
- */
-function switchMode(mode) {
-    const isFileMode = mode === 'file';
-    
-    DOM.toggleClass(elements.filePanel, 'hidden', !isFileMode);
-    DOM.toggleClass(elements.textPanel, 'hidden', isFileMode);
-    DOM.toggleClass(elements.modeFileBtn, 'active', isFileMode);
-    DOM.toggleClass(elements.modeTextBtn, 'active', !isFileMode);
-    
-    if (isFileMode) {
-        DOM.setText(elements.inputText, '');
-    }
-}
+const _instance = new UIController();
+export const getCurData = () => _instance.getCurData();
+export const getCurDataType = () => _instance.getCurDataType();
+export const msg = (...args) => _instance.msg(...args);
+export const resetUI = (...args) => _instance.resetUI(...args);
+export const updateLineNumbers = (...args) => _instance.updateLineNumbers(...args);
+export const handleFileSelect = (...args) => _instance.handleFileSelect(...args);
+export const handleConvert = (...args) => _instance.handleConvert(...args);
+export const displayOutput = (...args) => _instance.displayOutput(...args);
+export const copyOutput = (...args) => _instance.copyOutput(...args);
+export const downloadOutput = (...args) => _instance.downloadOutput(...args);
+export const initUI = (...args) => _instance.initUI(...args);

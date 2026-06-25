@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n.js';
+import { deepClone } from '../utils/helpers.js';
 
 export class WorkflowHistory {
     constructor(ui, prefix = '') {
@@ -40,8 +41,8 @@ export class WorkflowHistory {
         const state = this.core.history[index];
         
         // 使用深拷贝避免污染历史记录
-        this.core.nodes = JSON.parse(JSON.stringify(state.nodes));
-        this.core.edges = JSON.parse(JSON.stringify(state.edges));
+        this.core.nodes = deepClone(state.nodes);
+        this.core.edges = deepClone(state.edges);
         this.core.selectedNode = state.selectedNode;
         this.core.selectedEdge = state.selectedEdge;
         

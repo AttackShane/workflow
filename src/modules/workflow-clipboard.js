@@ -1,5 +1,5 @@
-import { TYPE_MAP, getMainColor, getSubTitle } from "../utils/types.js";
-import { ClipboardUtils } from "../utils/helpers.js";
+import { TYPE_MAP, getMainColor, getSubTitle, resolveNodeType } from "../utils/types.js";
+import { ClipboardUtils, deepClone } from "../utils/helpers.js";
 import { t } from "../i18n/i18n.js";
 import { mixinClipboardPaste } from './workflow-clipboard-paste.js';
 
@@ -55,7 +55,7 @@ export class WorkflowClipboard {
         
         selectedNodes.forEach(node => {
             const type = node.type.toLowerCase();
-            const typeNum = TYPE_MAP[type] || this.core.getTypeNumber(node.type);
+            const typeNum = resolveNodeType(type);
             
             const nodeMeta = {
                 title: node.title || t('nodes.node'),
@@ -259,7 +259,7 @@ export class WorkflowClipboard {
                         flatParams._llmParamRaw.forEach(p => {
                             const key = p.name === 'modleName' ? 'modelName' : p.name;
                             if (!handledKeys.has(key) && !handledKeys.has(p.name)) {
-                                llmParams.push(JSON.parse(JSON.stringify(p)));
+                                llmParams.push(deepClone(p));
                                 handledKeys.add(p.name);
                             }
                         });

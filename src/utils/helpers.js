@@ -231,14 +231,22 @@ export const Storage = {
      * @param {string} key - 键名
      */
     remove(key) {
-        localStorage.removeItem(key);
+        try {
+            localStorage.removeItem(key);
+        } catch {
+            // Node.js 测试环境无 localStorage
+        }
     },
     
     /**
      * 清空所有存储
      */
     clear() {
-        localStorage.clear();
+        try {
+            localStorage.clear();
+        } catch {
+            // Node.js 测试环境无 localStorage
+        }
     }
 };
 
@@ -253,8 +261,8 @@ export const StringUtils = {
      */
     escapeHtml(str) {
         if (str == null || str === '') return '';
-        const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-        return String(str).replace(/[&<>"]/g, c => ESCAPE_MAP[c]);
+        const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return String(str).replace(/[&<>"']/g, c => ESCAPE_MAP[c]);
     },
     
     /**
@@ -419,3 +427,19 @@ export const ClipboardUtils = {
         }
     }
 };
+
+/**
+ * 深拷贝工具函数
+ * 使用浏览器原生 structuredClone API，性能优于 JSON.parse(JSON.stringify())
+ * 支持 Date、Map、Set、ArrayBuffer 等更多数据类型
+ * @param {*} obj - 需要深拷贝的对象
+ * @returns {*} 深拷贝后的对象
+ */
+export function deepClone(obj) {
+    if (obj == null) return obj;
+    try {
+        return structuredClone(obj);
+    } catch {
+        return JSON.parse(JSON.stringify(obj));
+    }
+}

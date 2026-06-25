@@ -1,3 +1,8 @@
+/**
+ * 工作流画布模块（含视口剔除优化）
+ * 实现视口剔除（Viewport Culling）技术，提升大规模节点渲染性能
+ */
+
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
@@ -14,24 +19,35 @@ export class WorkflowCanvas {
         this.lastMouseY = 0;
         this.isMarqueeSelectionActive = false;
         this.hasDraggedCanvas = false;
+        
+        // 性能优化相关
+        this.renderDebounceTimer = null;
+        this.visibleNodes = new Set();
+        this.renderBatchSize = 50;
+        this.renderThreshold = 50;
+        
+        // 视口信息
+        this.viewport = {
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0
+        };
     }
 
     /**
      * 初始化画布
      */
     init() {
-        // 获取 DOM 元素
         this.canvas = DOM.get(this.prefix + SELECTORS.EDITOR.CANVAS);
         this.canvasContent = DOM.get(this.prefix + SELECTORS.EDITOR.CANVAS_CONTENT);
         this.svgLayer = DOM.get(this.prefix + SELECTORS.EDITOR.SVG_LAYER);
         this.svgHitLayer = DOM.get(this.prefix + SELECTORS.EDITOR.SVG_HIT_LAYER);
         this.emptyState = DOM.get(this.prefix + SELECTORS.EDITOR.EMPTY_STATE);
         
-        // 绑定事件
         this.setupEventListeners();
-        
-        // 初始化 SVG 尺寸
         this.updateSvgSize();
+        this.updateViewport();
     }
 
     /**
@@ -43,8 +59,119 @@ export class WorkflowCanvas {
         DOM.on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(e));
         DOM.on(this.canvas, 'click', (e) => this.onCanvasClick(e));
         
-        // 窗口大小变化时更新 SVG 尺寸
-        DOM.on(window, 'resize', () => this.updateSvgSize());
+        DOM.on(window, 'resize', () => {
+            this.updateSvgSize();
+            this.scheduleRenderUpdate();
+        });
+        
+        DOM.on(this.canvas, 'scroll', () => this.scheduleRenderUpdate());
+    }
+
+    /**
+     * 更新视口信息
+     */
+    updateViewport() {
+        if (!this.canvas) return;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const { translateX, translateY, scale } = this.getCurrentTransform();
+        
+        this.viewport.left = -translateX / scale - this.renderThreshold;
+        this.viewport.top = -translateY / scale - this.renderThreshold;
+        this.viewport.right = (rect.width - translateX) / scale + this.renderThreshold;
+        this.viewport.bottom = (rect.height - translateY) / scale + this.renderThreshold;
+    }
+
+    /**
+     * 调度渲染更新（防抖）
+     */
+    scheduleRenderUpdate() {
+        if (this.renderDebounceTimer) {
+            clearTimeout(this.renderDebounceTimer);
+        }
+        
+        this.renderDebounceTimer = setTimeout(() => {
+            this.updateViewport();
+            this.updateVisibleNodes();
+        }, 50);
+    }
+
+    /**
+     * 更新可见节点
+     */
+    updateVisibleNodes() {
+        if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
+            return;
+        }
+        
+        const newVisibleNodes = new Set();
+        
+        for (let i = 0; i < this.core.nodes.length; i += this.renderBatchSize) {
+            const batch = this.core.nodes.slice(i, i + this.renderBatchSize);
+            
+            batch.forEach(node => {
+                if (this.isNodeVisible(node)) {
+                    newVisibleNodes.add(node.id);
+                }
+            });
+        }
+        
+        this.updateNodeVisibility(newVisibleNodes);
+        this.visibleNodes = newVisibleNodes;
+        this.updateEdgeVisibility(newVisibleNodes);
+    }
+
+    /**
+     * 检查节点是否在视口内
+     * @param {object} node - 节点对象
+     * @returns {boolean} 是否可见
+     */
+    isNodeVisible(node) {
+        const x = node.x || 0;
+        const y = node.y || 0;
+        const width = node.width || 200;
+        const height = node.height || 100;
+        
+        return !(
+            x + width < this.viewport.left ||
+            x > this.viewport.right ||
+            y + height < this.viewport.top ||
+            y > this.viewport.bottom
+        );
+    }
+
+    /**
+     * 更新节点显示状态
+     * @param {Set} visibleNodeIds - 可见节点ID集合
+     */
+    updateNodeVisibility(visibleNodeIds) {
+        document.querySelectorAll('.canvas-node').forEach(nodeEl => {
+            const nodeId = nodeEl.dataset.nodeId;
+            const isVisible = visibleNodeIds.has(nodeId);
+            
+            DOM.setStyle(nodeEl, 'opacity', isVisible ? '1' : '0');
+            DOM.setStyle(nodeEl, 'pointerEvents', isVisible ? 'auto' : 'none');
+            DOM.setStyle(nodeEl, 'visibility', isVisible ? 'visible' : 'hidden');
+        });
+    }
+
+    /**
+     * 更新边的可见性
+     * @param {Set} visibleNodeIds - 可见节点ID集合
+     */
+    updateEdgeVisibility(visibleNodeIds) {
+        document.querySelectorAll('.workflow-edge').forEach(edgeEl => {
+            const edgeId = edgeEl.getAttribute('data-edge-id');
+            if (!edgeId) return;
+            
+            const edge = this.core.edges.find(e => e.id === edgeId);
+            if (!edge) return;
+            
+            const isVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
+            
+            DOM.setStyle(edgeEl, 'opacity', isVisible ? '1' : '0');
+            DOM.setStyle(edgeEl, 'pointerEvents', isVisible ? 'auto' : 'none');
+        });
     }
 
     /**
@@ -71,9 +198,7 @@ export class WorkflowCanvas {
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
         const transform = this.canvasContent?.style.transform || '';
         
-        // 解析当前变换参数
         const currentScale = parseFloat(transform.match(/scale\(([\d.]+)\)/)?.[1]) || 1;
-        // 匹配 translate(x, y) 格式（支持负数）
         const match = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const currentTranslateX = match ? parseFloat(match[1]) : 0;
         const currentTranslateY = match ? parseFloat(match[2]) : 0;
@@ -84,19 +209,15 @@ export class WorkflowCanvas {
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
-        // 计算新的缩放比例（限制范围）
         const newScale = Math.max(APP_CONFIG.ZOOM.MIN_SCALE, Math.min(APP_CONFIG.ZOOM.MAX_SCALE, currentScale * zoomFactor));
         this.canvasScale = newScale;
         
-        // 计算新的平移位置（以鼠标为中心缩放）
         const newTranslateX = mouseX - (mouseX - currentTranslateX) * (newScale / currentScale);
         const newTranslateY = mouseY - (mouseY - currentTranslateY) * (newScale / currentScale);
         
-        // 应用变换
         this.applyTransform(newTranslateX, newTranslateY, newScale);
-        
-        // 缩放后更新 SVG 尺寸
         this.updateSvgSize();
+        this.scheduleRenderUpdate();
     }
     
     /**
@@ -121,22 +242,18 @@ export class WorkflowCanvas {
         
         const rect = this.canvas.getBoundingClientRect();
         
-        // 如果没有节点或节点系统不可用，使用固定大尺寸
         if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
             this.setFixedSvgSize(rect);
             return;
         }
         
-        // 计算所有节点的边界框
         const bounds = this.calculateNodesBounds();
         
-        // 处理所有节点在原点的情况
         if (bounds.minX === Infinity) {
             this.setFixedSvgSize(rect);
             return;
         }
         
-        // 根据内容计算 SVG 尺寸
         this.setContentSvgSize(rect, bounds);
     }
     
@@ -149,7 +266,7 @@ export class WorkflowCanvas {
         let maxX = -Infinity, maxY = -Infinity;
         
         this.core.nodes.forEach(node => {
-            if (node.parentId) return; // 跳过子节点，子节点坐标是相对于容器的，不是画布坐标
+            if (node.parentId) return;
             const x = node.x || 0;
             const y = node.y || 0;
             const width = node.width || 200;
@@ -179,25 +296,17 @@ export class WorkflowCanvas {
      * @param {Object} bounds - 节点边界框
      */
     setContentSvgSize(rect, bounds) {
-        // 添加边距（考虑连接线的弯曲和缩放）
         const padding = 400;
-        let contentWidth = bounds.maxX - bounds.minX;
-        let contentHeight = bounds.maxY - bounds.minY;
+        const contentWidth = bounds.maxX - bounds.minX;
+        const contentHeight = bounds.maxY - bounds.minY;
         
-        // 防止负坐标导致过大的尺寸
-        contentWidth = Math.max(0, Math.min(contentWidth, 50000));
-        contentHeight = Math.max(0, Math.min(contentHeight, 50000));
-        
-        // 根据缩放比例调整尺寸：缩得越小，需要的 SVG 越大
         const scaleFactor = 1 / this.canvasScale;
         const scaledWidth = contentWidth * scaleFactor + padding * 2;
         const scaledHeight = contentHeight * scaleFactor + padding * 2;
         
-        // 确保最小尺寸，同时设置最大上限防止溢出
         const minSize = Math.max(rect.width, rect.height) * 2;
-        const maxSize = 100000;
-        const svgWidth = Math.min(Math.max(scaledWidth, minSize, 2000), maxSize);
-        const svgHeight = Math.min(Math.max(scaledHeight, minSize, 2000), maxSize);
+        const svgWidth = Math.max(scaledWidth, minSize, 2000);
+        const svgHeight = Math.max(scaledHeight, minSize, 2000);
         
         this.setSvgSize(svgWidth, svgHeight);
     }
@@ -241,6 +350,10 @@ export class WorkflowCanvas {
 
         if (isNode || isEdge) return;
         
+        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.length > 0) {
+            return;
+        }
+        
         const startX = e.clientX;
         const startY = e.clientY;
         const isMarqueeMode = e.ctrlKey || e.metaKey;
@@ -256,6 +369,8 @@ export class WorkflowCanvas {
      * 处理框选选择
      * @param {number} startX - 起始 X 坐标
      * @param {number} startY - 起始 Y 坐标
+     * @param {boolean} accumulate - 是否追加选择
+     * @param {string|null} containerId - 容器节点ID
      */
     handleMarqueeSelection(startX, startY, accumulate = false, containerId = null) {
         this.isMarqueeSelectionActive = true;
@@ -325,7 +440,6 @@ export class WorkflowCanvas {
         
         const transform = this.canvasContent?.style.transform || '';
         
-        // 匹配 translate(x, y) 格式（支持负数）
         const match = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const startTranslateX = match ? parseFloat(match[1]) : 0;
         const startTranslateY = match ? parseFloat(match[2]) : 0;
@@ -348,6 +462,8 @@ export class WorkflowCanvas {
             DOM.setStyle(this.canvas, 'cursor', 'default');
             DOM.off(document, 'mousemove', onMouseMove);
             DOM.off(document, 'mouseup', onMouseUp);
+            
+            this.scheduleRenderUpdate();
         };
         
         DOM.on(document, 'mousemove', onMouseMove);
@@ -403,7 +519,6 @@ export class WorkflowCanvas {
     screenToCanvas(screenX, screenY) {
         const { translateX, translateY, scale } = this.getCurrentTransform();
         
-        // 逆变换：先减去平移，再除以缩放
         const canvasX = (screenX - translateX) / scale;
         const canvasY = (screenY - translateY) / scale;
         
@@ -417,6 +532,7 @@ export class WorkflowCanvas {
         this.canvasScale = 1;
         this.applyTransform(0, 0, 1);
         this.updateSvgSize();
+        this.scheduleRenderUpdate();
     }
 
     /**
@@ -436,24 +552,22 @@ export class WorkflowCanvas {
             return;
         }
         
-        // 计算中心位置
         const centerX = (bounds.minX + bounds.maxX) / 2;
         const centerY = (bounds.minY + bounds.maxY) / 2;
         
-        // 计算缩放比例以适应画布
         const contentWidth = bounds.maxX - bounds.minX;
         const contentHeight = bounds.maxY - bounds.minY;
         const scaleX = rect.width / (contentWidth + 200);
         const scaleY = rect.height / (contentHeight + 200);
         const newScale = Math.min(scaleX, scaleY, 1);
         
-        // 计算平移位置使内容居中
         const translateX = rect.width / 2 - centerX * newScale;
         const translateY = rect.height / 2 - centerY * newScale;
         
         this.canvasScale = newScale;
         this.updateSvgSize();
         this.applyTransform(translateX, translateY, newScale);
+        this.scheduleRenderUpdate();
     }
 
     /**
@@ -483,6 +597,7 @@ export class WorkflowCanvas {
         const HEADER_H = 36;
         const DESC_H = 20;
         const BORDER = 4;
+        const CONN_POINT_Y = 30;
 
         const defaultW = 200;
         const defaultH = 100;
@@ -495,12 +610,35 @@ export class WorkflowCanvas {
             return { w, h };
         };
 
-        // 通用布局函数：对一组节点按边关系分层排列
-        const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, centerY = true) => {
+        const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, _centerY = false) => {
             if (groupNodes.length === 0) return;
             const groupSizes = new Map();
             const groupIds = new Set(groupNodes.map(n => n.id));
             groupNodes.forEach(n => groupSizes.set(n.id, getNodeSize(n)));
+
+            const nodeIsContainer = (node) => {
+                const info = this.core.nodeTypeInfo[node.type] || {};
+                return info.hasContainer === true;
+            };
+
+            // nodeCenterY 存储的是**连接点绝对坐标**
+            // 容器节点外部连接点位置：绝对坐标 = node.y + 30px (根据workflow-edge.js渲染代码)
+            // 对于给定连接点坐标connY，反推node.y：
+            // node.y = connY - (连接点在node内的偏移)
+            // 偏移：容器=CONN_POINT_Y，普通节点=height/2
+            const nodeYFromConnY = (node, connY) => {
+                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                return nodeIsContainer(node) ? connY - CONN_POINT_Y : connY - sz.h / 2;
+            };
+            const connYFromNodeY = (node, nodeY) => {
+                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                return nodeIsContainer(node) ? nodeY + CONN_POINT_Y : nodeY + sz.h / 2;
+            };
+            const bottomFromNodeY = (node, nodeY) => {
+                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                const h = sz.h;
+                return nodeY + h;
+            };
 
             const adj = new Map();
             const inDeg = new Map();
@@ -554,24 +692,79 @@ export class WorkflowCanvas {
                 }
             });
 
+            // nodeCenterY 存储的是连接点Y坐标（非容器=几何中心，容器=header顶部连接点）
+            const nodeCenterY = new Map();
+
+            // Level 0: stack from top
+            if (levels.length > 0 && levels[0]) {
+                let yOff = startY;
+                levels[0].forEach(node => {
+                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                    const connY = connYFromNodeY(node, yOff);
+                    nodeCenterY.set(node.id, connY);
+                    yOff += sz.h + gapV;
+                });
+            }
+
+            // Subsequent levels: position based on average connection Y of predecessors
+            for (let col = 1; col < levels.length; col++) {
+                if (!levels[col]) continue;
+                levels[col].forEach(node => {
+                    const predIds = preds.get(node.id);
+
+                    if (predIds && predIds.length > 0) {
+                        let sumCenterY = 0;
+                        let count = 0;
+                        predIds.forEach(pid => {
+                            if (nodeCenterY.has(pid)) {
+                                sumCenterY += nodeCenterY.get(pid);
+                                count++;
+                            }
+                        });
+                        if (count > 0) {
+                            nodeCenterY.set(node.id, sumCenterY / count);
+                        } else {
+                            nodeCenterY.set(node.id, connYFromNodeY(node, startY));
+                        }
+                    } else {
+                        nodeCenterY.set(node.id, connYFromNodeY(node, startY));
+                    }
+                });
+            }
+
+            // Resolve overlaps within each level
+            for (let col = 0; col < levels.length; col++) {
+                if (!levels[col]) continue;
+                levels[col].sort((a, b) => (nodeCenterY.get(a.id) || 0) - (nodeCenterY.get(b.id) || 0));
+
+                let prevBottom = -Infinity;
+                levels[col].forEach(node => {
+                    let connY = nodeCenterY.get(node.id) || 0;
+                    const nodeY = nodeYFromConnY(node, connY);
+                    const top = nodeY;
+
+                    if (top < prevBottom + gapV) {
+                        const newY = prevBottom + gapV;
+                        connY = connYFromNodeY(node, newY);
+                        nodeCenterY.set(node.id, connY);
+                    }
+
+                    prevBottom = bottomFromNodeY(node, nodeYFromConnY(node, nodeCenterY.get(node.id) || 0));
+                });
+            }
+
+            // Assign x and y positions from connection Y
             let xOff = startX;
             levels.forEach((level, col) => {
                 const maxW = levelMaxW[col] || defaultW;
-                const totalH = level.reduce((sum, node) => {
-                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                    return sum + sz.h;
-                }, 0) + (level.length - 1) * gapV;
-
-                let yOff = centerY ? (startY - totalH / 2) : startY;
                 level.forEach((node) => {
                     const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                    const connY = nodeCenterY.get(node.id) || 0;
                     node.x = xOff;
-                    node.y = yOff;
+                    node.y = nodeYFromConnY(node, connY);
                     node.width = sz.w;
                     node.height = sz.h;
-                    yOff += sz.h + gapV;
                 });
-
                 xOff += maxW + gapH;
             });
         };
@@ -606,7 +799,7 @@ export class WorkflowCanvas {
 
         // 2. 顶层节点布局（此时容器尺寸已确定）
         const nodes = this.core.nodes.filter(n => !n.parentId);
-        layoutNodeGroup(nodes, 0, 0, hGap, vGap);
+        layoutNodeGroup(nodes, 0, 0, hGap, vGap, false);
 
         // 3. 整体平移到正象限
         const bounds = this.calculateNodesBounds();
@@ -621,6 +814,42 @@ export class WorkflowCanvas {
 
         this.ui.refreshCanvas();
         this.updateSvgSize();
+        this.scheduleRenderUpdate();
         this.centerView();
+    }
+
+    /**
+     * 获取可见节点数量
+     * @returns {number} 可见节点数量
+     */
+    getVisibleNodeCount() {
+        return this.visibleNodes.size;
+    }
+
+    /**
+     * 获取性能统计信息
+     * @returns {object} 性能统计
+     */
+    getPerformanceStats() {
+        const totalNodes = this.core?.nodes?.length || 0;
+        const visibleNodes = this.visibleNodes.size;
+        const hiddenNodes = totalNodes - visibleNodes;
+        const visibilityRatio = totalNodes > 0 ? (visibleNodes / totalNodes * 100).toFixed(1) : '0';
+        
+        return {
+            totalNodes,
+            visibleNodes,
+            hiddenNodes,
+            visibilityRatio: `${visibilityRatio}%`,
+            canvasScale: this.canvasScale.toFixed(2)
+        };
+    }
+
+    /**
+     * 强制刷新所有节点可见性
+     */
+    forceVisibilityUpdate() {
+        this.updateViewport();
+        this.updateVisibleNodes();
     }
 }

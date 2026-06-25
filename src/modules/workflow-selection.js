@@ -1,4 +1,4 @@
-import { DOM } from '../utils/helpers.js';
+import { DOM, deepClone } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 
 /**
@@ -195,7 +195,7 @@ export class WorkflowSelection {
 
             const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
             const newNode = {
-                ...JSON.parse(JSON.stringify(node)),
+                ...deepClone(node),
                 id: newId,
                 title: `${node.title}${t('messages.duplicateNodeSuffix')}`,
                 x: node.x + 30,

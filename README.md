@@ -89,10 +89,10 @@ workflow/
 │   │   ├── graph-view.js  # 图形可视化视图
 │   │   ├── stats-view.js  # 统计视图
 │   │   ├── stats-renderer.js # 统计渲染器
-│   │   ├── history-manager.js # 历史记录管理
+│   │   ├── converter-history.js # 转换历史管理
 │   │   ├── theme-controller.js # 主题控制器
 │   │   ├── i18n-controller.js  # 国际化控制器
-│   │   ├── keyboard-shortcuts.js # 键盘快捷键
+│   │   ├── converter-keyboard.js # 转换器键盘快捷键
 │   │   ├── virtual-scroll.js  # 虚拟滚动优化
 │   │   ├── highlighter.js     # 语法高亮（主）
 │   │   ├── highlighter-worker.js # 语法高亮（Worker）
@@ -105,8 +105,7 @@ workflow/
 │   │   ├── workflow-autosave.js  # 自动保存
 │   │   ├── workflow-share.js     # 分享功能
 │   │   ├── workflow-canvas.js    # 画布坐标与变换
-│   │   ├── workflow-canvas-optimized.js # 优化画布（节点剔除）
-│   │   ├── workflow-node.js      # 节点入口（14行，mixin组装）
+│   │   ├── workflow-node.js      # 节点入口（mixin组装）
 │   │   ├── workflow-node-render.js  # 节点渲染（DOM创建、拖拽）
 │   │   ├── workflow-node-panel.js   # 节点属性面板
 │   │   ├── workflow-node-selector.js # 变量选择器
@@ -145,41 +144,48 @@ workflow/
 
 | 模块                         | 行数 | 说明                                                         |
 | ---------------------------- | :--: | ------------------------------------------------------------ |
-| `workflow-core.js`           | 632  | 工作流核心（节点/边CRUD、历史记录、验证、批量操作）          |
-| `workflow-storage.js`        | 64   | 工作流本地存储（localStorage 读写）                          |
-| `workflow-serializer.js`     | 326  | 工作流序列化/反序列化（导入导出）                            |
-| `workflow-ui.js`             | 535  | 编辑器 UI 总控（整合画布、节点、边、键盘快捷键）             |
-| `workflow-messages.js`       | 74   | 消息提示（success/error/warning）                            |
-| `workflow-search.js`         | 81   | 搜索功能（节点搜索、跳转）                                   |
-| `workflow-autosave.js`       | 76   | 自动保存（定时保存到 localStorage）                          |
-| `workflow-share.js`          | 68   | 分享功能（生成分享链接）                                     |
-| `workflow-canvas.js`         | 521  | 画布管理（无限画布、缩放、平移、坐标转换）                   |
-| `workflow-canvas-optimized.js` | 637 | 优化画布（节点剔除、虚拟化渲染、自动布局）                   |
-| `workflow-node.js`           | 14   | 节点入口（mixin 组装 render/panel/selector）                 |
-| `workflow-node-render.js`    | 281  | 节点渲染（DOM创建、拖拽、选择、删除）                        |
-| `workflow-node-panel.js`     | 626  | 节点属性面板（参数编辑、编辑器弹窗、合并变量）               |
-| `workflow-node-selector.js`  | 315  | 变量选择器（输入参数引用、变量弹窗、合并变量管理）            |
-| `workflow-edge.js`           | 296  | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接）          |
-| `workflow-clipboard.js`      | 451  | 剪贴板复制（Coze 格式复制、多节点+连线关系保留）             |
-| `workflow-clipboard-paste.js` | 325  | 剪贴板粘贴（Coze/简单/多节点三种格式）                       |
-| `workflow-history.js`        | 63   | 历史步骤面板（可视化撤销/重做导航）                          |
-| `workflow-keyboard.js`       | 76   | 编辑器键盘快捷键（Ctrl+C/V/Z/Y/A/S/Delete/Esc）             |
-| `workflow-selection.js`      | 163  | 多选与框选（Shift多选、框选兜底）                            |
-| `workflow-align.js`          | 192  | 节点对齐（多节点自动对齐布局）                               |
-| `workflow-manager.js`        | 542  | 工作流管理页面（列表、创建、编辑、导入导出）                 |
-| `converter.js`               | 217  | YAML → Coze 格式转换器（核心转换逻辑）                       |
-| `reverse.js`                 | 243  | Coze → YAML 反向转换器                                       |
-| `ui-controller.js`           | 646  | UI 控制器（转换器页面：输出渲染、历史、文件操作）             |
-| `graph-view.js`              | 663  | 图形可视化视图（SVG 渲染工作流拓扑、节点详情弹窗）            |
-| `stats-view.js`              | 604  | 统计视图与历史面板（节点数量/类型分布、编辑/删除/确认弹窗）   |
-| `dialog.js`                  | 341  | 模态对话框组件（alert/confirm/success/error）                |
-| `navigator.js`               | 111  | 页面导航管理（三页面间带淡入淡出动效的跳转）                 |
-| `theme-controller.js`        | 114  | 主题控制器（深色/浅色自动切换）                              |
-| `i18n-controller.js`         | 168  | 国际化控制器（中英文切换）                                   |
-| `keyboard-shortcuts.js`      | 51   | 键盘快捷键管理（转换器页面）                                 |
-| `virtual-scroll.js`          | 135  | 虚拟滚动优化（大文本量性能）                                 |
-| `highlighter.js`             | 64   | 语法高亮（YAML/JSON Web Worker 异步处理）                    |
-| `app.js`                     | 25   | 应用入口（初始化 theme/i18n/页面路由）                       |
+| `workflow-core.js`           | 460  | 工作流核心（节点/边CRUD、历史记录、验证、批量操作）          |
+| `workflow-node-types.js`     | 258  | 节点类型定义与映射                                           |
+| `workflow-storage.js`        | 98   | 工作流本地存储（localStorage 读写）                          |
+| `workflow-serializer.js`     | 387  | 工作流序列化/反序列化（导入导出）                            |
+| `workflow-ui.js`             | 589  | 编辑器 UI 总控（整合画布、节点、边、键盘快捷键）             |
+| `workflow-messages.js`       | 80   | 消息提示（success/error/warning）                            |
+| `workflow-search.js`         | 92   | 搜索功能（节点搜索、跳转）                                   |
+| `workflow-autosave.js`       | 82   | 自动保存（定时保存到 localStorage）                          |
+| `workflow-share.js`          | 75   | 分享功能（生成分享链接）                                     |
+| `workflow-canvas.js`         | 775  | 画布管理（无限画布、缩放、平移、视口剔除、坐标转换）         |
+| `workflow-node.js`           | 20   | 节点入口（mixin 组装 render/panel/selector）                 |
+| `workflow-node-render.js`    | 613  | 节点渲染（DOM创建、拖拽、选择、删除）                        |
+| `workflow-container-render.js` | 200 | 容器节点渲染（循环/批处理容器）                              |
+| `workflow-node-panel.js`     | 394  | 节点属性面板（参数编辑、编辑器弹窗）                         |
+| `workflow-param-editor.js`   | 320  | 参数编辑器（输入输出参数、合并组变量）                       |
+| `workflow-node-selector.js`  | 347  | 变量选择器（输入参数引用、变量弹窗、合并变量管理）            |
+| `workflow-edge.js`           | 426  | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接）          |
+| `workflow-clipboard.js`      | 632  | 剪贴板复制（Coze 格式复制、多节点+连线关系保留）             |
+| `workflow-clipboard-paste.js` | 492  | 剪贴板粘贴（Coze/简单/多节点三种格式）                       |
+| `workflow-history.js`        | 70   | 历史步骤面板（可视化撤销/重做导航）                          |
+| `workflow-keyboard.js`       | 95   | 编辑器键盘快捷键（Ctrl+C/V/Z/Y/A/S/Delete/Esc）             |
+| `workflow-selection.js`      | 214  | 多选与框选（Shift多选、框选兜底）                            |
+| `workflow-align.js`          | 235  | 节点对齐（多节点自动对齐布局）                               |
+| `workflow-manager.js`        | 614  | 工作流管理页面（列表、创建、编辑、导入导出）                 |
+| `converter.js`               | 229  | YAML → Coze 格式转换器（核心转换逻辑）                       |
+| `converter-renderer.js`      | 157  | 转换器渲染器（虚拟滚动、语法高亮、异步渲染）                 |
+| `reverse.js`                 | 254  | Coze → YAML 反向转换器                                       |
+| `ui-controller.js`           | 452  | UI 控制器（转换器页面：输出渲染、历史、文件操作）             |
+| `graph-view.js`              | 408  | 图形可视化视图（SVG 渲染工作流拓扑）                         |
+| `workflow-node-detail-modal.js` | 276 | 节点详情模态框（JSON/YAML 复制、编辑器跳转）                |
+| `stats-view.js`              | 640  | 统计视图与历史面板（节点数量/类型分布、编辑/删除/确认弹窗）   |
+| `stats-renderer.js`          | 144  | 统计渲染器（统计数据的 DOM 渲染）                            |
+| `dialog.js`                  | 388  | 模态对话框组件（alert/confirm/success/error）                |
+| `navigator.js`               | 142  | 页面导航管理（三页面间带淡入淡出动效的跳转）                 |
+| `theme-controller.js`        | 135  | 主题控制器（深色/浅色自动切换）                              |
+| `i18n-controller.js`         | 198  | 国际化控制器（中英文切换）                                   |
+| `converter-keyboard.js`      | 58   | 键盘快捷键管理（转换器页面）                                 |
+| `virtual-scroll.js`          | 140  | 虚拟滚动优化（大文本量性能）                                 |
+| `highlighter.js`             | 68   | 语法高亮（YAML/JSON Web Worker 异步处理）                    |
+| `converter-history.js`       | 174  | 转换历史记录管理器（localStorage 存储）                      |
+| `templates.js`               | 119  | HTML 模板（节点详情、编辑器弹窗等）                          |
+| `app.js`                     | 29   | 应用入口（初始化 theme/i18n/页面路由）                       |
 
 ## 📖 使用方法
 

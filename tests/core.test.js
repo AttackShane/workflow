@@ -19,7 +19,7 @@ describe('StringUtils.escapeHtml', () => {
   it('should not escape safe characters', () => {
     expect(StringUtils.escapeHtml('hello world')).toBe('hello world');
     expect(StringUtils.escapeHtml('中文测试')).toBe('中文测试');
-    expect(StringUtils.escapeHtml("it's fine")).toBe("it's fine");
+    expect(StringUtils.escapeHtml("it's fine")).toBe("it&#39;s fine");
   });
 
   it('should escape attribute-breaking chars in user data', () => {

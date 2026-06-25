@@ -1,10 +1,9 @@
-// @ts-nocheck
 /**
  * 工作流转换器模块
  * 负责将YAML格式的工作流定义转换为Coze剪贴板格式
  * 支持22种节点类型的转换，包括start、end、llm、plugin、code等
  */
-import { TYPE_MAP, getMainColor, getSubTitle, getBounds, clearRefCache } from "../utils/types.js";
+import { TYPE_MAP, getMainColor, getSubTitle, getBounds, clearRefCache, resolveNodeType } from "../utils/types.js";
 import { buildOutputMap } from "../components/outputMapper.js";
 import { convertInputParameters } from "../components/inputMapper.js";
 import { nodeHandlers } from "../components/nodeHandlers.js";
@@ -38,8 +37,7 @@ function processPluginNode(data, nodeMeta, params, type) {
     if (type === "plugin" && apiParam) {
         const pluginName = apiParam.find(p => p.name === "pluginName")?.input?.value?.content;
         const apiName = apiParam.find(p => p.name === "apiName")?.input?.value?.content;
-        if (pluginName && apiName) nodeMeta.subtitle = `${pluginName}:${apiName}`;
-        delete nodeMeta.subTitle;
+        if (pluginName && apiName) nodeMeta.subTitle = `${pluginName}:${apiName}`;
     }
 }
 
@@ -106,7 +104,7 @@ function calculateBounds(nodes) {
 export function convertNode(node, outputMap) {
     const id = String(node.id);
     const type = node.type.toLowerCase();
-    const mapped = TYPE_MAP[type] || "5";
+    const mapped = resolveNodeType(type);
     
     const pos = node.position;
     const meta = { position: pos || { x: 0, y: 0 } };

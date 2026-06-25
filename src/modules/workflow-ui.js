@@ -10,7 +10,7 @@ import { Logger } from '../utils/logger.js';
 import { Dialog } from './dialog.js';
 import { goToManager } from './navigator.js';
 import { SELECTORS } from '../config/constants.js';
-import { DOM } from '../utils/helpers.js';
+import { DOM, deepClone } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
 import { mixinMessages } from './workflow-messages.js';
 import { mixinSearch } from './workflow-search.js';
@@ -100,7 +100,7 @@ export class WorkflowUI {
         if (this.core.nodes.length > 0) {
             const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
             topLevelNodes.forEach(node => {
-                const nodeCopy = JSON.parse(JSON.stringify(node));
+                const nodeCopy = deepClone(node);
                 const el = this.node.createElement(nodeCopy);
                 this.canvas.canvasContent.appendChild(el);
             });
@@ -335,7 +335,7 @@ export class WorkflowUI {
         // 只渲染顶层节点（子节点由容器内部 renderContainerChildren 负责渲染）
         this.core.nodes.forEach(node => {
             if (node.parentId) return;
-            const nodeCopy = JSON.parse(JSON.stringify(node));
+            const nodeCopy = deepClone(node);
             const el = this.node.createElement(nodeCopy);
             this.canvas.canvasContent.appendChild(el);
         });
@@ -461,8 +461,8 @@ export class WorkflowUI {
      */
     async saveAndReturn() {
         const workflow = {
-            nodes: JSON.parse(JSON.stringify(this.core.nodes)),
-            edges: JSON.parse(JSON.stringify(this.core.edges)),
+            nodes: deepClone(this.core.nodes),
+            edges: deepClone(this.core.edges),
             selectedNode: this.core.selectedNode,
             selectedEdge: this.core.selectedEdge,
             updatedAt: Date.now()
@@ -547,8 +547,8 @@ export class WorkflowUI {
             const editingId = sessionStorage.getItem('editingWorkflowId');
             
             const workflow = {
-                nodes: JSON.parse(JSON.stringify(this.core.nodes)),
-                edges: JSON.parse(JSON.stringify(this.core.edges)),
+                nodes: deepClone(this.core.nodes),
+                edges: deepClone(this.core.edges),
                 selectedNode: this.core.selectedNode,
                 selectedEdge: this.core.selectedEdge,
                 updatedAt: Date.now()

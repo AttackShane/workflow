@@ -29,7 +29,7 @@ export const WORKFLOW_TEMPLATES = [
             { id: 'node_200001', type: 'start', x: 400, y: 80, title: '用户提问', description: '接收用户问题' },
             { id: 'node_200002', type: 'llm', x: 400, y: 200, title: '意图识别', description: '分析用户意图', parameters: { prompt: '分析用户的问题意图，返回意图标签' } },
             { id: 'node_200003', type: 'condition', x: 300, y: 320, title: '意图分支', description: '根据意图分流' },
-            { id: 'node_200004', type: 'knowledge', x: 150, y: 440, title: '知识库检索', description: '从知识库检索匹配的答案', parameters: { query: '{{用户问题}}', topK: 5, useRerank: true, useRewrite: true, isPersonalOnly: true, enableChatHistory: false, chatHistoryRound: 3 } },
+            { id: 'node_200004', type: 'knowledge_query', x: 150, y: 440, title: '知识库检索', description: '从知识库检索匹配的答案', parameters: { query: '{{用户问题}}', topK: 5, useRerank: true, useRewrite: true, isPersonalOnly: true, enableChatHistory: false, chatHistoryRound: 3 } },
             { id: 'node_200005', type: 'llm', x: 350, y: 440, title: '闲聊回复', description: '生成闲聊回复' },
             { id: 'node_200006', type: 'end', x: 250, y: 560, title: '回复用户', description: '输出最终回复' }
         ],

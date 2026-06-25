@@ -1,6 +1,6 @@
 import { Dialog } from './dialog.js';
 import { goToConverter, goToEditor, initNavigator } from './navigator.js';
-import { StringUtils, Storage } from '../utils/helpers.js';
+import { StringUtils, Storage, deepClone } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
 import { WORKFLOW_TEMPLATES } from './templates.js';
@@ -355,8 +355,8 @@ export class WorkflowManager {
             id: `wf_${Date.now()}`,
             name: workflowData.name || t('manager.importedWorkflowName'),
             description: workflowData.description || '',
-            nodes: JSON.parse(JSON.stringify(workflowData.nodes)),
-            edges: JSON.parse(JSON.stringify(workflowData.edges || [])),
+            nodes: deepClone(workflowData.nodes),
+            edges: deepClone(workflowData.edges || []),
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -557,7 +557,7 @@ export class WorkflowManager {
         categories.forEach(category => {
             const section = document.createElement('div');
             section.className = 'template-category';
-            section.innerHTML = `<h3 class="template-category-title">${category}</h3>`;
+            section.innerHTML = `<h3 class="template-category-title">${StringUtils.escapeHtml(category)}</h3>`;
 
             const grid = document.createElement('div');
             grid.className = 'template-category-grid';
@@ -596,8 +596,8 @@ export class WorkflowManager {
             id: 'wf_' + Date.now(),
             name: template.name,
             description: template.description,
-            nodes: JSON.parse(JSON.stringify(template.nodes)),
-            edges: JSON.parse(JSON.stringify(template.edges)),
+            nodes: deepClone(template.nodes),
+            edges: deepClone(template.edges),
             createdAt: Date.now(),
             updatedAt: Date.now()
         };

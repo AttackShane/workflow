@@ -148,8 +148,8 @@
             sessionStorage.removeItem('editingWorkflow');
             
             if (workflow.nodes && workflow.nodes.length > 0) {
-                core.nodes = JSON.parse(JSON.stringify(workflow.nodes));
-                core.edges = JSON.parse(JSON.stringify(workflow.edges || []));
+                core.nodes = structuredClone(workflow.nodes);
+                core.edges = structuredClone(workflow.edges || []);
                 core.selectedNode = workflow.selectedNode || null;
                 core.selectedEdge = workflow.selectedEdge || null;
             }
