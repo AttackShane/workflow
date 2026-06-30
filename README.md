@@ -77,7 +77,6 @@ workflow/
 │   ├── assets/            # 静态资源（favicon.svg）
 │   ├── components/        # 组件处理模块（节点处理器、输入输出映射）
 │   ├── config/            # 配置文件（constants.js）
-│   ├── example/           # 示例工作流（13个测试用例）
 │   ├── i18n/              # 国际化支持（中英文语言包）
 │   ├── modules/           # 核心功能模块
 │   │   ├── app.js        # 应用入口
