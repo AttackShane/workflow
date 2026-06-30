@@ -185,6 +185,9 @@ export class I18nController {
         
         // 更新主题按钮文本
         updateThemeButtonText();
+
+        // 触发全局语言切换事件，通知各组件重渲染
+        document.dispatchEvent(new CustomEvent('languagechange', { detail: { language: lang } }));
     }
 }
 

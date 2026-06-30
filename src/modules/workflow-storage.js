@@ -3,7 +3,6 @@
  * 负责工作流的本地存储持久化
  */
 import { Storage } from '../utils/helpers.js';
-import { t } from '../i18n/i18n.js';
 
 /**
  * 存储相关的 mixin 方法
@@ -47,7 +46,7 @@ export function mixinStorage(core) {
         this.selectedNode = null;
         this.selectedEdge = null;
 
-        this.resetHistory(t('messages.loadFromLocalStorage'));
+        this.resetHistory('messages.loadFromLocalStorage');
         return true;
     };
 

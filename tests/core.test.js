@@ -250,7 +250,7 @@ describe('WorkflowCore', () => {
 
       expect(core.history.length).toBeGreaterThan(0);
       const last = core.history[core.history.length - 1];
-      expect(last.action).toBe('创建节点');
+      expect(last.actionKey).toBe('创建节点');
       expect(last.nodes.length).toBe(1);
     });
 

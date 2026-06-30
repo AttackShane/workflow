@@ -392,7 +392,6 @@ export const zhCN = {
         answer_type: '回答类型',
         options: '选项列表',
         limit: '选项数量限制',
-        variables: '变量定义',
         mergeStrategy: '合并策略',
         inputArray: '输入数组',
         batchSize: '批量大小',
@@ -572,7 +571,10 @@ export const zhCN = {
         mergeGroups: '聚合分组',
         group: '分组',
         noRef: '无引用',
-        clickToSelect: '点击选择'
+        clickToSelect: '点击选择',
+        variables: '变量设置',
+        leftVariable: '目标变量',
+        rightValue: '新值'
     },
     actions: {
         addNode: '添加节点: {type}',
@@ -604,5 +606,76 @@ export const zhCN = {
         '豆包·1.8·深度思考': '豆包·1.8·深度思考',
         '豆包·1.6·思考深度调节': '豆包·1.6·思考深度调节',
         'DeepSeek-V3.2': 'DeepSeek-V3.2'
+    },
+    templates: {
+        categories: {
+            basic: '入门',
+            common: '常用',
+            advanced: '进阶'
+        },
+        tpl_welcome: {
+            name: '欢迎消息',
+            description: '一个简单的欢迎工作流，包含开始→LLM→结束',
+            nodes: {
+                start: { title: '开始', desc: '工作流起点' },
+                llm: { title: '生成欢迎语', desc: '生成友好的欢迎消息' },
+                end: { title: '结束', desc: '工作流终点' }
+            }
+        },
+        tpl_chatbot: {
+            name: '智能客服',
+            description: '多轮对话客服机器人，包含问答分支',
+            nodes: {
+                start: { title: '用户提问', desc: '接收用户问题' },
+                intent: { title: '意图识别', desc: '分析用户意图' },
+                branch: { title: '意图分支', desc: '根据意图分流' },
+                knowledge: { title: '知识库检索', desc: '从知识库检索匹配的答案' },
+                chat: { title: '闲聊回复', desc: '生成闲聊回复' },
+                end: { title: '回复用户', desc: '输出最终回复' }
+            }
+        },
+        tpl_image_gen: {
+            name: '图片生成',
+            description: '文本描述→图片生成流程',
+            nodes: {
+                start: { title: '开始', desc: '接收输入' },
+                text: { title: '图片描述', desc: '生成或接收图片描述文本' },
+                image: { title: '生成图片', desc: '根据描述生成图片' },
+                end: { title: '输出图片', desc: '输出生成的图片' }
+            }
+        },
+        tpl_data_process: {
+            name: '数据处理',
+            description: 'HTTP请求→代码处理→LLM分析',
+            nodes: {
+                start: { title: '开始', desc: '触发数据处理' },
+                http: { title: '获取数据', desc: '从API获取数据' },
+                code: { title: '数据清洗', desc: '清洗和转换数据格式' },
+                llm: { title: '数据分析', desc: 'LLM分析处理结果' },
+                end: { title: '输出报告', desc: '输出分析报告' }
+            }
+        },
+        tpl_loop: {
+            name: '循环处理',
+            description: '循环节点内包含子节点，逐条处理数据',
+            nodes: {
+                start: { title: '开始', desc: '接收批量数据' },
+                loop: { title: '循环处理', desc: '逐条处理数据' },
+                process: { title: '处理单条', desc: '大模型处理每条数据' },
+                format: { title: '结果格式化', desc: '格式化单条处理结果' },
+                end: { title: '汇总输出', desc: '输出汇总结果' }
+            }
+        },
+        tpl_batch: {
+            name: '批处理',
+            description: '批量处理数据，每批独立执行子工作流',
+            nodes: {
+                start: { title: '开始', desc: '接收大批量数据' },
+                batch: { title: '批处理', desc: '分批处理数据' },
+                api: { title: '调用API', desc: '对每批数据调用外部API' },
+                analysis: { title: '结果分析', desc: '分析每批处理结果' },
+                end: { title: '汇总输出', desc: '输出全部结果' }
+            }
+        }
     }
 };

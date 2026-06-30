@@ -80,15 +80,20 @@ function buildExternalData(node, type, params) {
  */
 function calculateBounds(nodes) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    const len = nodes.length;
-    for (let i = 0; i < len; i++) {
-        const n = nodes[i];
+    function processNode(n) {
         const x = n.meta.position?.x ?? 0;
         const y = n.meta.position?.y ?? 0;
         if (x < minX) minX = x;
         if (y < minY) minY = y;
         if (x > maxX) maxX = x;
         if (y > maxY) maxY = y;
+        if (n.blocks && Array.isArray(n.blocks)) {
+            n.blocks.forEach(processNode);
+        }
+    }
+    const len = nodes.length;
+    for (let i = 0; i < len; i++) {
+        processNode(nodes[i]);
     }
     if (!isFinite(minX)) minX = 0;
     if (!isFinite(minY)) minY = 0;

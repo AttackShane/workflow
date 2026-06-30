@@ -7,10 +7,21 @@ export class WorkflowHistory {
         this.core = ui.core;
         this.prefix = prefix;
         this.historyList = null;
+        this._languageChangeHandler = null;
     }
 
     init() {
         this.historyList = document.getElementById(this.prefix + 'historyList');
+        this._languageChangeHandler = () => this.updatePanel();
+        document.addEventListener('languagechange', this._languageChangeHandler);
+        window.addEventListener('beforeunload', () => this.destroy());
+    }
+
+    destroy() {
+        if (this._languageChangeHandler) {
+            document.removeEventListener('languagechange', this._languageChangeHandler);
+            this._languageChangeHandler = null;
+        }
     }
 
     updatePanel() {
@@ -23,7 +34,7 @@ export class WorkflowHistory {
         this.core.history.forEach((state, index) => {
             const item = document.createElement('div');
             item.className = `history-item ${index === this.core.historyIndex ? 'current' : ''} ${index === 0 ? 'initial' : ''}`;
-            item.textContent = t(state.action);
+            item.textContent = t(state.actionKey, state.actionParams);
             item.style.order = index;
             
             item.addEventListener('click', () => {
@@ -46,8 +57,8 @@ export class WorkflowHistory {
         this.core.selectedNode = state.selectedNode;
         this.core.selectedEdge = state.selectedEdge;
         
-        this.core._emitChange('undo');
-        this.ui.showMessage(t('history.jumpTo', { action: state.action }), 'info');
+        this.core._emitChange('jumpToHistory');
+        this.ui.showMessage(t('history.jumpTo', { action: t(state.actionKey, state.actionParams) }), 'info');
     }
 
     undo() {

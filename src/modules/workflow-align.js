@@ -111,7 +111,7 @@ export class WorkflowAlign {
             case 'distV':  this.distributeVertical(nodes);   break;
         }
 
-        this.core.saveHistory(t('messages.alignNodes'));
+        this.core.saveHistory('messages.alignNodes');
     }
 
     alignLeft(nodes) {
@@ -207,7 +207,7 @@ export class WorkflowAlign {
             n.el.style.transform = `translate(${curX}px, ${n.y}px)`;
             curX += n.width + gap;
         });
-        this.core.saveHistory(t('messages.distributeHorizontal'));
+        this.core.saveHistory('messages.distributeHorizontal');
         this.ui.updateEdges();
         this.updateAlignToolbar();
     }
@@ -228,7 +228,7 @@ export class WorkflowAlign {
             n.el.style.transform = `translate(${n.x}px, ${curY}px)`;
             curY += n.height + gap;
         });
-        this.core.saveHistory(t('messages.distributeVertical'));
+        this.core.saveHistory('messages.distributeVertical');
         this.ui.updateEdges();
         this.updateAlignToolbar();
     }

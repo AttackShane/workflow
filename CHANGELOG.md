@@ -1,5 +1,61 @@
 # Changelog
 
+## v1.4.2 - 2026-06-30
+
+### loop_set_variable 节点完整修复
+
+- **粘贴/加载参数丢失**：`loop_set_variable` 节点粘贴后 `variables` 参数消失，修复 Coze 使用 `left/right` 格式与编辑器通用 `name/input` 格式的转换问题
+- **导出格式错误**：复制时 `inputs` 里同时出现 `inputParameters`（通用格式）和 `variables` 字段，添加专属处理分支，确保导出为 `left/right` 格式
+- **引用 blockID 未重映射**：粘贴/加载时 `left.value.content.blockID` 和 `right.value.content.blockID` 未更新，导致引用指向错误节点
+- **属性面板可视化编辑器**：将 `variables` 参数从 JSON 文本框升级为可视化编辑器，支持添加/删除变量、点击选择引用（左值/右值）、字面量直接输入
+- **默认值修复**：`variables` 参数 `defaultValue` 从 `'{}'` 改为 `'[]'`
+
+### this 绑定修复
+
+- **属性面板事件处理**：`document.addEventListener('click', node._handleAction)` 缺少 `.bind(node)`，导致 `this` 指向 `document`，所有 `this.addInputParam` 等方法报 `is not a function`
+- **节点搜索功能**：递归调用 `checkNode(child)` 未绑定 `this`，导致 `this.core` 为 `undefined`，搜索功能完全不可用
+- **全局扫描**：确认所有其他事件监听器和 forEach 回调均使用箭头函数或已绑定，无遗漏
+
+### 容器节点样式隔离
+
+- 修复容器（loop/batch）内子节点样式被覆盖的问题，CSS 选择器从后代选择器（空格）改为子选择器（`>`），容器样式不再泄漏到内部节点
+
+### 国际化翻译修复
+
+- 修复 `nodes.variables`、`nodes.leftVariable`、`nodes.rightValue` 翻译键显示原始 key 文本的问题，翻译键从根级别移动到 `nodes` 对象内
+
+### 文档
+
+- 新增 `AGENTS.md` - AI 会话上下文注入文件，包含项目架构、编码规范、常见陷阱
+- 新增 `CLAUDE.md` - AI 会话上下文注入文件，包含数据结构、修复记录、后续指南
+- 更新 `CHANGELOG.md`、`README.md`、`PROJECT_DOC.md` 同步最新改动
+
+## v1.4.1 - 2026-06-30
+
+### 条件节点动态分支
+- 条件节点从固定 2 分支改为动态 N 分支（支持 12+ 分支）
+- 每个分支包含 `name` + `condition` 表达式
+- 粘贴时从 Coze 分支的 `condition.conditions[0].right.input.value.content` 提取分支名
+
+### 条件表达式编辑器
+- 属性面板新增结构化条件编辑表单（替代 JSON textarea）
+- 支持 左值 + 操作符 + 右值，AND/OR 连接
+- 引用格式 `{{blockID.name}}`，普通文本为字面量
+- 保存时自动转回 Coze 结构化 `{input: {type, value: {type, content}}}` 格式
+
+### 性能优化
+- 节点批量测量：N 个节点仅 1 次 forced reflow（原为 N 次），消除 143ms 性能警告
+- `createElement` 新增 `skipMeasure` 选项，`batchMeasureElements` 方法统一测量
+- 移除 `updateContainerSize` 中冗余的 `getBoundingClientRect()` 调用
+
+### CI/CD 修复
+- 修复 `package-lock.json` 被 gitignore 导致 CI 找不到锁文件的问题
+- CI 矩阵从 `[20.x, 22.x]` 更新为 `[22.x, 24.x]`（Node.js 20 已弃用）
+
+### 文档
+- 更新 README.md 项目结构、模块行数、功能特性
+- 更新 PROJECT_DOC.md 测试数据引用
+
 ## v1.4.0 - 2026-06-25
 
 ### 架构重构 - 模块化拆分

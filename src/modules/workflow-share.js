@@ -3,6 +3,7 @@
  * 负责导出 YAML 文件和生成分享链接
  */
 import { Dialog } from './dialog.js';
+import { getJsyaml } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 
 /**
@@ -24,7 +25,7 @@ export function mixinShare(ui) {
             description: workflowDesc || 'Created with workflow editor'
         });
 
-        const yamlStr = window.jsyaml.dump(workflow, { indent: 2, lineWidth: 120 });
+        const yamlStr = getJsyaml().dump(workflow, { indent: 2, lineWidth: 120 });
         const blob = new Blob([yamlStr], { type: 'application/x-yaml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');

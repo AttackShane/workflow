@@ -67,16 +67,21 @@ export class Dialog {
     }
 
     static #ensureSingle() {
-        if (this.#currentResolve) {
+        if (this.#currentResolve || this.#isClosing) {
             if (this.#closeTimer) {
                 clearTimeout(this.#closeTimer);
                 this.#closeTimer = null;
             }
-            const oldResolve = this.#currentResolve;
-            this.#currentResolve = null;
-            oldResolve(false);
+            document.removeEventListener('keydown', this.#keydownHandler);
+            if (this.#currentResolve) {
+                const oldResolve = this.#currentResolve;
+                this.#currentResolve = null;
+                oldResolve(false);
+            }
             this.#isClosing = false;
-            this.#container.innerHTML = '';
+            if (this.#container) {
+                this.#container.innerHTML = '';
+            }
         }
     }
 

@@ -462,7 +462,6 @@ export const enUS = {
         answer_type: 'Answer Type',
         options: 'Options',
         limit: 'Limit',
-        variables: 'Variables',
         mergeStrategy: 'Merge Strategy',
         inputArray: 'Input Array',
         batchSize: 'Batch Size',
@@ -572,7 +571,10 @@ export const enUS = {
         mergeGroups: 'Merge Groups',
         group: 'Group',
         noRef: 'No Reference',
-        clickToSelect: 'Click to select'
+        clickToSelect: 'Click to select',
+        variables: 'Set Variables',
+        leftVariable: 'Target Variable',
+        rightValue: 'New Value'
     },
     actions: {
         addNode: 'Add node: {type}',
@@ -604,5 +606,76 @@ export const enUS = {
         '豆包·1.8·深度思考': 'Doubao 1.8 Deep Thinking',
         '豆包·1.6·思考深度调节': 'Doubao 1.6 Thinking Depth',
         'DeepSeek-V3.2': 'DeepSeek-V3.2'
+    },
+    templates: {
+        categories: {
+            basic: 'Basic',
+            common: 'Common',
+            advanced: 'Advanced'
+        },
+        tpl_welcome: {
+            name: 'Welcome Message',
+            description: 'A simple welcome workflow, Start → LLM → End',
+            nodes: {
+                start: { title: 'Start', desc: 'Workflow starting point' },
+                llm: { title: 'Generate Welcome', desc: 'Generate a friendly welcome message' },
+                end: { title: 'End', desc: 'Workflow end point' }
+            }
+        },
+        tpl_chatbot: {
+            name: 'Smart Chatbot',
+            description: 'Multi-turn conversation chatbot with question branching',
+            nodes: {
+                start: { title: 'User Question', desc: 'Receive user question' },
+                intent: { title: 'Intent Recognition', desc: 'Analyze user intent' },
+                branch: { title: 'Intent Branch', desc: 'Branch based on intent' },
+                knowledge: { title: 'Knowledge Search', desc: 'Retrieve matching answers from knowledge base' },
+                chat: { title: 'Chat Reply', desc: 'Generate casual reply' },
+                end: { title: 'Reply User', desc: 'Output final reply' }
+            }
+        },
+        tpl_image_gen: {
+            name: 'Image Generation',
+            description: 'Text description → Image generation workflow',
+            nodes: {
+                start: { title: 'Start', desc: 'Receive input' },
+                text: { title: 'Image Description', desc: 'Generate or receive image description text' },
+                image: { title: 'Generate Image', desc: 'Generate image from description' },
+                end: { title: 'Output Image', desc: 'Output generated image' }
+            }
+        },
+        tpl_data_process: {
+            name: 'Data Processing',
+            description: 'HTTP request → Code processing → LLM analysis',
+            nodes: {
+                start: { title: 'Start', desc: 'Trigger data processing' },
+                http: { title: 'Fetch Data', desc: 'Get data from API' },
+                code: { title: 'Clean Data', desc: 'Clean and transform data format' },
+                llm: { title: 'Data Analysis', desc: 'LLM analyzes processing results' },
+                end: { title: 'Output Report', desc: 'Output analysis report' }
+            }
+        },
+        tpl_loop: {
+            name: 'Loop Processing',
+            description: 'Loop node contains child nodes, process data one by one',
+            nodes: {
+                start: { title: 'Start', desc: 'Receive batch data' },
+                loop: { title: 'Loop Processing', desc: 'Process data one by one' },
+                process: { title: 'Process Item', desc: 'LLM processes each item' },
+                format: { title: 'Format Result', desc: 'Format single processing result' },
+                end: { title: 'Aggregate Output', desc: 'Output aggregated results' }
+            }
+        },
+        tpl_batch: {
+            name: 'Batch Processing',
+            description: 'Process data in batches, execute sub-workflow per batch',
+            nodes: {
+                start: { title: 'Start', desc: 'Receive large batch data' },
+                batch: { title: 'Batch Process', desc: 'Process data in batches' },
+                api: { title: 'Call API', desc: 'Call external API for each batch' },
+                analysis: { title: 'Result Analysis', desc: 'Analyze processing results per batch' },
+                end: { title: 'Aggregate Output', desc: 'Output all results' }
+            }
+        }
     }
 };

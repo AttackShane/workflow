@@ -41,6 +41,13 @@ export class WorkflowCore {
         this._onChange = null;
         /** @type {boolean} 是否批量操作中 */
         this._batchMode = false;
+
+        /** @type {Object} 节点类型信息缓存 */
+        this._nodeTypeInfo = getNodeTypeInfo();
+        this._nodeTypeInfoHandler = () => { this._nodeTypeInfo = getNodeTypeInfo(); };
+        if (typeof document !== 'undefined') {
+            document.addEventListener('languagechange', this._nodeTypeInfoHandler);
+        }
         
         mixinStorage(this);
         mixinSerializer(this);
@@ -82,11 +89,11 @@ export class WorkflowCore {
     }
 
     /**
-     * 获取节点类型配置信息（动态翻译）
+     * 获取节点类型配置信息（动态翻译，语言切换时自动刷新缓存）
      * @returns {Object} 包含每种节点的标题、图标、描述、输入输出属性和参数定义
      */
     get nodeTypeInfo() {
-        return getNodeTypeInfo();
+        return this._nodeTypeInfo;
     }
     
     /**
@@ -147,15 +154,23 @@ export class WorkflowCore {
      * @param {string} nodeId - 节点ID
      */
     deleteNode(nodeId) {
-        const childIds = this.getChildNodes(nodeId).map(n => n.id);
-        childIds.forEach(cid => this.deleteNode(cid));
-        this.edges = this.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
-        this.nodes = this.nodes.filter(n => n.id !== nodeId);
-        
-        if (this.selectedNode === nodeId) {
-            this.selectedNode = null;
+        const wasBatch = this._batchMode;
+        this._batchMode = true;
+        try {
+            const childIds = this.getChildNodes(nodeId).map(n => n.id);
+            childIds.forEach(cid => this.deleteNode(cid));
+            this.edges = this.edges.filter(e => e.source !== nodeId && e.target !== nodeId);
+            this.nodes = this.nodes.filter(n => n.id !== nodeId);
+
+            if (this.selectedNode === nodeId) {
+                this.selectedNode = null;
+            }
+        } finally {
+            this._batchMode = wasBatch;
+            if (!wasBatch) {
+                this._emitChange('deleteNode', nodeId);
+            }
         }
-        this._emitChange('deleteNode', nodeId);
     }
 
     /**
@@ -211,12 +226,10 @@ export class WorkflowCore {
      * @param {string} sourceId - 源节点ID
      * @param {string} targetId - 目标节点ID
      * @param {string} sourcePort - 源端口ID（可选，用于分支节点）
+     * @param {string} targetPort - 目标端口ID（可选）
      * @returns {object|null} 创建的边对象，如果已存在则返回null
      */
     createEdge(sourceId, targetId, sourcePort = '', targetPort = '') {
-        const existingEdge = this.edges.find(e => e.source === sourceId && e.target === targetId);
-        if (existingEdge) return null;
-
         // 容器端口校验：外部端口只能连外部节点，内部端口只能连容器内子节点
         const sourceIsContainer = this.isContainerNode(sourceId);
         const targetIsContainer = this.isContainerNode(targetId);
@@ -245,10 +258,8 @@ export class WorkflowCore {
         if (targetPort) {
             edge.targetPort = targetPort;
         }
-        
-        this.edges.push(edge);
-        this._emitChange('createEdge', edge);
-        return edge;
+
+        return this.addEdge(edge);
     }
     
     /**
@@ -286,38 +297,40 @@ export class WorkflowCore {
     
     /**
      * 保存当前状态到历史记录
-     * @param {string} [action='操作'] - 操作描述
+     * @param {string} [actionKey='messages.defaultAction'] - i18n 键
+     * @param {object} [actionParams={}] - i18n 插值参数
      */
-    saveHistory(action = t('messages.defaultAction')) {
+    saveHistory(actionKey = 'messages.defaultAction', actionParams = {}) {
         const state = {
             nodes: deepClone(this.nodes),
             edges: deepClone(this.edges),
             selectedNode: this.selectedNode,
             selectedEdge: this.selectedEdge,
-            action: action,
+            actionKey: actionKey,
+            actionParams: actionParams,
             timestamp: Date.now()
         };
-        
-        this.history = this.history.slice(0, this.historyIndex + 1);
-        this.history.push(state);
-        
+
+        this.historyIndex++;
+        this.history[this.historyIndex] = state;
+        this.history.length = this.historyIndex + 1;
+
         if (this.history.length > this.maxHistory) {
             this.history.shift();
             this.historyIndex--;
-        } else {
-            this.historyIndex = this.history.length - 1;
         }
         this._emitChange('history');
     }
     
     /**
      * 重置历史记录
-     * @param {string} [action='初始化'] - 操作描述
+     * @param {string} [actionKey='messages.initAction'] - i18n 键
+     * @param {object} [actionParams={}] - i18n 插值参数
      */
-    resetHistory(action = t('messages.initAction')) {
+    resetHistory(actionKey = 'messages.initAction', actionParams = {}) {
         this.history = [];
         this.historyIndex = -1;
-        this.saveHistory(action);
+        this.saveHistory(actionKey, actionParams);
     }
     
     /**
@@ -434,35 +447,39 @@ export class WorkflowCore {
      */
     validate() {
         const errors = [];
-        const startNodes = this.nodes.filter(n => n.type === 'start');
-        const endNodes = this.nodes.filter(n => n.type === 'end');
-        
-        if (startNodes.length === 0) {
-            errors.push(t('editor.errorNoStartNode'));
-        } else if (startNodes.length > 1) {
-            errors.push(t('editor.errorMultipleStartNodes'));
-        }
-        
-        if (endNodes.length === 0) {
-            errors.push(t('editor.errorNoEndNode'));
-        }
-        
+        let startCount = 0;
+        let endCount = 0;
+
+        const hasInputSet = new Set(this.edges.map(e => e.target));
+        const hasOutputSet = new Set(this.edges.map(e => e.source));
+
         this.nodes.forEach(node => {
+            if (node.type === 'start') startCount++;
+            if (node.type === 'end') endCount++;
+
             if (node.type !== 'start' && node.type !== 'comment' && node.type !== 'input') {
-                const hasInput = this.edges.some(e => e.target === node.id);
-                if (!hasInput && this.nodes.length > 1) {
+                if (!hasInputSet.has(node.id) && this.nodes.length > 1) {
                     errors.push(t('editor.errorNoInput', { title: node.title }));
                 }
             }
-            
+
             if (node.type !== 'end' && node.type !== 'comment' && node.type !== 'break') {
-                const hasOutput = this.edges.some(e => e.source === node.id);
-                if (!hasOutput && this.nodes.length > 1) {
+                if (!hasOutputSet.has(node.id) && this.nodes.length > 1) {
                     errors.push(t('editor.errorNoOutput', { title: node.title }));
                 }
             }
         });
-        
+
+        if (startCount === 0) {
+            errors.push(t('editor.errorNoStartNode'));
+        } else if (startCount > 1) {
+            errors.push(t('editor.errorMultipleStartNodes'));
+        }
+
+        if (endCount === 0) {
+            errors.push(t('editor.errorNoEndNode'));
+        }
+
         return {
             valid: errors.length === 0,
             message: errors.join('\n'),

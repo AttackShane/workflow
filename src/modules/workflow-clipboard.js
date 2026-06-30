@@ -363,6 +363,12 @@ export class WorkflowClipboard {
                     }
                     cozeNode.data.inputs.streamingOutput = node.parameters.streamingOutput === true;
                     cozeNode.data.inputs.terminatePlan = node.parameters.terminatePlan || 'returnVariables';
+                } else if (type === 'loop_set_variable') {
+                    if (Array.isArray(node.parameters.variables) && node.parameters.variables.length > 0) {
+                        cozeNode.data.inputs.inputParameters = node.parameters.variables;
+                    } else {
+                        cozeNode.data.inputs.inputParameters = [];
+                    }
                 } else {
                     const outputKeys = new Set(Object.keys(node.parameters?.node_outputs || {}));
                     Object.entries(node.parameters).forEach(([key, value]) => {

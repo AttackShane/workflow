@@ -19,7 +19,7 @@
   2. 遍历节点调用 `convertNode()` 转换
   3. 转换连线（`convertEdges`）
   4. 计算边界（`calculateBounds`）
-- **支持节点类型**: start、end、llm、code、image_generate、video_generation、condition、variable_merge、plugin、loop、batch、intent、async_task、http、comment、text、output、input、question（共19种）
+- **支持节点类型**: start、end、llm、plugin、code、knowledge_query、condition、workflow、sql_exec、output、text、image_generate、question、break、loop_set_variable、loop、intent、canvas、knowledge_write、batch、loop_continue、input、comment、variable_merge、json_parse、clear_conversation、create_conversation、variable_assign、db_update、db_select、db_delete、http、db_insert、update_conversation、delete_conversation、list_conversation、get_conversation_history、create_message、update_message、delete_message、json_serialize、json_deserialize、knowledge_delete、video_extract_audio、video_extract_frame、video_generation、memory_write、memory_read、async_task（共50种）
 
 #### 2. 反向转换器（`modules/reverse.js`）
 
@@ -39,8 +39,23 @@
 - **粘贴支持**: 支持 `coze-workflow-clipboard-data` 格式、简单节点格式、多节点格式
 - **ID映射**: 粘贴时自动重新映射节点ID和引用关系
 - **容错处理**: 剪贴板读取失败时使用内部缓存
+- **分支名提取**: 粘贴时从 Coze 分支的 `condition.conditions[0].right.input.value.content` 提取分支名
 
-#### 4. 国际化支持（`i18n/`）
+#### 4. 条件节点动态分支（`modules/workflow-node-types.js` + `workflow-node-render.js`）
+
+- **功能**: 条件节点支持动态多分支（N 个分支，每个含 `name` + `condition`）
+- **配置**: `branches` JSON 数组，默认 `[{"name":"是","condition":{}},{"name":"否","condition":{}}]`
+- **渲染**: 分支端口数量动态渲染，从 `branches` 数组解析
+- **定位**: 分支端口定位使用实际分支数代替硬编码 `/2`
+
+#### 5. 条件表达式编辑器（`modules/workflow-node-panel.js`）
+
+- **功能**: 结构化条件编辑表单，替代 JSON textarea
+- **UI 结构**: 分支名称 + 逻辑运算符(AND/OR) + 条件项(左值 + 操作符 + 右值)
+- **引用格式**: `{{blockID.name}}` 为引用，普通文本为字面量
+- **保存转换**: 自动转回 Coze `{input: {type: "string", value: {type: "ref"/"literal", content: ...}}}` 格式
+
+#### 6. 国际化支持（`i18n/`）
 
 - **核心模块**: `i18n.js` - 国际化核心模块
 - **语言包**:
@@ -52,14 +67,14 @@
   - 所有界面文本可配置
   - 不影响数据处理逻辑
 
-#### 5. 节点详情复制（`modules/graph-view.js`）
+#### 7. 节点详情复制（`modules/graph-view.js`）
 
 - **位置**: `convertToClipboardFormat()` 函数
 - **功能**: 点击节点后复制单个节点的 JSON 到剪贴板
 - **支持格式**: JSON、YAML、原始节点三种格式
 - **打开编辑器**: 支持一键打开工作流编辑器
 
-#### 6. 工作流核心（`modules/workflow-core.js` + `workflow-storage.js` + `workflow-serializer.js`）
+#### 8. 工作流核心（`modules/workflow-core.js` + `workflow-storage.js` + `workflow-serializer.js`）
 
 - **功能**: 工作流数据管理核心，拆分为三个模块
 - **workflow-core.js**: 节点管理（创建、删除、更新位置/属性）、连线管理、历史记录、批量操作、工作流验证
@@ -86,6 +101,13 @@
 - **功能**: YAML/JSON 语法高亮
 - **实现**: Web Worker 异步处理，避免阻塞主线程
 - **特性**: 支持代码折叠、行号显示
+
+#### 3. 批量测量优化（`modules/workflow-node-render.js`）
+
+- **功能**: 节点 DOM 尺寸批量测量，减少 forced reflow
+- **实现**: 所有节点一次性挂载到隐藏容器 → 一次 `getBoundingClientRect()` → 全部移除
+- **效果**: N 个节点仅 1 次 forced reflow（原为 N 次），消除 143ms 性能警告
+- **关键方法**: `batchMeasureElements(elements)`、`createElement(nodeData, {skipMeasure})`
 
 ### 三、用户体验
 
@@ -544,32 +566,27 @@ handler(data, params, ctx);
 
 #### 1. 类型映射
 
-**TYPE_MAP** - YAML 类型到 Coze 类型号的映射
+**TYPE_MAP** - YAML 类型到 Coze 类型号的映射（共 50 种）
 
 ```javascript
 const TYPE_MAP = {
-  start: "1",
-  end: "2",
-  llm: "3",
-  plugin: "4",
-  code: "5",
-  condition: "8",
-  http: "45",
-  text: "15",
-  image_generate: "16",
-  knowledge: "17",
-  question: "18",
-  loop: "21",
-  intent: "22",
-  break: "23",
-  variable_assign: "24",
-  batch: "28",
-  comment: "31",
-  variable_merge: "32",
-  video_generation: "65",
-  async_task: "72",
-  output: "13",
-  input: "30",
+    start: "1", end: "2", llm: "3", plugin: "4", code: "5",
+    knowledge_query: "6", condition: "8", workflow: "9",
+    sql_exec: "12", output: "13", text: "15", image_generate: "16",
+    question: "18", break: "19", loop_set_variable: "20",
+    loop: "21", intent: "22", canvas: "23",
+    knowledge_write: "27", batch: "28", loop_continue: "29",
+    input: "30", comment: "31", variable_merge: "32",
+    json_parse: "37", clear_conversation: "38", create_conversation: "39",
+    variable_assign: "40", db_update: "42", db_select: "43",
+    db_delete: "44", http: "45", db_insert: "46",
+    update_conversation: "51", delete_conversation: "52",
+    list_conversation: "53", get_conversation_history: "54",
+    create_message: "55", update_message: "56", delete_message: "57",
+    json_serialize: "58", json_deserialize: "59", knowledge_delete: "60",
+    video_extract_audio: "63", video_extract_frame: "64",
+    video_generation: "65", memory_write: "66", memory_read: "67",
+    async_task: "72"
 };
 ```
 
@@ -777,6 +794,8 @@ npm run dev
 #### 开发依赖
 
 - **Jest + Babel**: 单元测试框架
+- **ESLint**: 代码规范检查
+- **Husky + lint-staged**: Git hooks 提交前自动检查
 - **http-server**: 静态文件服务（备选）
 
 ## 键盘快捷键
@@ -864,10 +883,20 @@ npm run dev
    }
    ```
 
-3. **在 `modules/workflow-core.js` 中添加节点定义**（如需要在编辑器中创建）
+3. **在 `modules/workflow-node-types.js` 中添加节点定义**（编辑器中创建时使用）
 
    ```javascript
-   new_type: { title: '新类型', icon: '📦', description: '...', ... }
+   new_type: {
+       type: 'new_type',
+       title: '📦 新类型',
+       icon: '📦',
+       description: '新节点类型',
+       mainColor: '#XXXXXX',
+       subTitle: '新类型',
+       params: [
+           { name: 'param1', label: '参数1', type: 'text', defaultValue: '' }
+       ]
+   }
    ```
 
 ### 二、调试技巧
@@ -902,6 +931,72 @@ npm run dev
    - 记录错误日志
 
 ## 版本历史
+
+### v1.4.2 (2026-06-30)
+
+**loop_set_variable 节点完整修复**:
+
+- 修复粘贴/加载后 `variables` 参数丢失问题，Coze 使用 `left/right` 格式与编辑器通用 `name/input` 格式正确转换
+- 修复导出时 `inputs` 里同时出现 `inputParameters`（通用格式）和 `variables` 字段，添加专属处理分支
+- 修复粘贴/加载时 `left.value.content.blockID` 和 `right.value.content.blockID` 未重映射，导致引用指向错误节点
+- 属性面板升级：将 `variables` 参数从 JSON 文本框改为可视化编辑器，支持添加/删除变量、点击选择引用、字面量输入
+- 修复 `variables` 参数 `defaultValue` 从 `'{}'` 改为 `'[]'`
+
+**this 绑定修复**:
+
+- 修复 `document.addEventListener('click', node._handleAction)` 缺少 `.bind(node)`，导致 `this.addInputParam is not a function`
+- 修复节点搜索递归调用 `checkNode(child)` 未绑定 `this`，导致 `this.core` 为 `undefined`
+- 全局扫描确认所有事件监听器和 forEach 回调均使用箭头函数或已绑定
+
+**容器节点样式隔离**:
+
+- 修复容器（loop/batch）内子节点样式被覆盖，CSS 选择器从后代选择器改为子选择器（`>`）
+
+**国际化翻译修复**:
+
+- 修复 `nodes.variables`、`nodes.leftVariable`、`nodes.rightValue` 翻译键显示原始 key 文本，翻译键从根级别移动到 `nodes` 对象内
+
+**文档**:
+
+- 新增 `AGENTS.md` 和 `CLAUDE.md` 作为 AI 会话上下文注入文件
+
+### v1.4.1 (2026-06-30)
+
+**条件节点动态分支**:
+
+- 条件节点从固定 2 分支改为动态 N 分支（支持 12+ 分支），每个分支含 `name` + `condition` 表达式
+- 剪辑板粘贴时自动从 Coze 分支数据提取分支名
+
+**条件表达式编辑器**:
+
+- 属性面板新增结构化条件编辑表单（替代 JSON textarea）
+- 支持左值 + 操作符 + 右值，AND/OR 连接
+- 引用格式 `{{blockID.name}}`，保存时自动转回 Coze 结构化格式
+
+**性能优化**:
+
+- 节点批量测量：N 个节点仅 1 次 forced reflow（原为 N 次），消除 143ms 性能警告
+- 移除 `updateContainerSize` 中冗余的 `getBoundingClientRect()` 调用
+
+**CI/CD 修复**:
+
+- 修复 `package-lock.json` 被 gitignore 导致 CI 找不到锁文件
+- CI 矩阵更新为 `[22.x, 24.x]`（Node.js 20 已弃用）
+
+### v1.4.0 (2026-06-25)
+
+**模块拆分**:
+
+- 从 `workflow-core.js` 拆分出 `workflow-node-types.js`、`workflow-clipboard-paste.js`、`workflow-node-detail-modal.js`
+- 从 `workflow-node.js` 拆分出 `workflow-node-render.js`、`workflow-node-panel.js`、`workflow-node-selector.js`
+- 从 `workflow-clipboard.js` 拆分出 `workflow-clipboard-paste.js`
+- 从 `workflow-ui.js` 提取 `workflow-edge.js`、`workflow-selection.js`、`workflow-align.js`
+
+**编辑器增强**:
+
+- 新增容器节点渲染（循环/批处理容器）
+- 字符数统计显示
+- error 样式弹窗（danger 确认）
 
 ### v1.4 (2026-06-11)
 

@@ -3,7 +3,7 @@
  * 负责显示节点详情弹窗，支持 JSON/YAML 复制和编辑器跳转
  */
 import { cleanIcon } from '../utils/utils.js';
-import { ClipboardUtils } from '../utils/helpers.js';
+import { ClipboardUtils, getJsyaml } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 
 function convertToClipboardFormat(node) {
@@ -213,7 +213,7 @@ export function showNodeDetail(node) {
     `;
     copyYamlBtn.addEventListener('click', async () => {
         const clipboardData = convertToClipboardFormat(node);
-        const yamlStr = window.jsyaml.dump(clipboardData, { indent: 2, lineWidth: 120 });
+        const yamlStr = getJsyaml().dump(clipboardData, { indent: 2, lineWidth: 120 });
         await ClipboardUtils.copyWithFeedback(yamlStr, copyYamlBtn);
     });
 

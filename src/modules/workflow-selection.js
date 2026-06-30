@@ -177,7 +177,7 @@ export class WorkflowSelection {
 
         this.core.selectedNode = null;
         this.core.selectedEdge = null;
-        this.core.saveHistory(t('messages.deleteSelection'));
+        this.core.saveHistory('messages.deleteSelection');
         this.ui.showMessage(t('messages.deletedSelection'), 'success');
     }
 
@@ -208,7 +208,7 @@ export class WorkflowSelection {
             newEl.classList.add('selected');
         });
 
-        this.core.saveHistory(t('messages.duplicateNodes'));
+        this.core.saveHistory('messages.duplicateNodes');
         this.ui.showMessage(t('messages.duplicatedNodes', { count: selectedEls.length }), 'success');
     }
 }

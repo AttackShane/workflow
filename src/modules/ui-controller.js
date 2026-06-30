@@ -3,7 +3,7 @@ import { convertClipboardToYaml } from './reverse.js';
 import { showStats, saveToHistory } from './stats-view.js';
 import { goToEditor, goToManager, initNavigator } from './navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM, ClipboardUtils } from '../utils/helpers.js';
+import { DOM, ClipboardUtils, getJsyaml } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
 import { Logger } from '../utils/logger.js';
 import { t } from '../i18n/i18n.js';
@@ -11,7 +11,7 @@ import { renderWithVirtualScroll, renderSync, renderAsync } from './converter-re
 
 function _loadYamlWithStringIds(input) {
     const processedInput = convertLargeNumbersToStrings(input);
-    const yamlData = window.jsyaml.load(processedInput);
+    const yamlData = getJsyaml().load(processedInput);
     return yamlData;
 }
 
@@ -61,6 +61,14 @@ class UIController {
             cache.delete(firstKey);
         }
         cache.set(key, value);
+    }
+
+    _getFromCache(cache, key) {
+        if (!cache.has(key)) return undefined;
+        const value = cache.get(key);
+        cache.delete(key);
+        cache.set(key, value);
+        return value;
     }
 
     getCurData = () => this._curData;
@@ -119,6 +127,11 @@ class UIController {
         const file = event.target.files?.[0];
         if (!file) return;
 
+        if (!this._isValidFile(file)) {
+            this.msg('不支持的文件类型', true);
+            return;
+        }
+
         const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
         const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
         if (!fileNameDisplay || !inputText) return;
@@ -147,7 +160,7 @@ class UIController {
         const inputHash = _generateHash(input);
 
         if (this._conversionCache.has(inputHash)) {
-            const cached = this._conversionCache.get(inputHash);
+            const cached = this._getFromCache(this._conversionCache, inputHash);
             this.displayOutput(cached.result, cached.type);
             this.msg('✓ 使用缓存结果');
             return;
@@ -165,7 +178,7 @@ class UIController {
                 try {
                     const jsonData = JSON.parse(input);
                     const yamlObj = convertClipboardToYaml(jsonData);
-                    result = window.jsyaml.dump(yamlObj);
+                    result = getJsyaml().dump(yamlObj);
                     type = 'yaml';
                 } catch (jsonError) {
                     const yamlData = _loadYamlWithStringIds(input);
@@ -405,7 +418,18 @@ class UIController {
     _isValidFile(file) {
         const validExtensions = ['.yaml', '.yml', '.json'];
         const ext = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-        return validExtensions.includes(ext);
+        if (!validExtensions.includes(ext)) return false;
+
+        const validMimeTypes = [
+            'application/json',
+            'application/x-yaml',
+            'text/yaml',
+            'text/x-yaml',
+            'text/plain',
+            'application/octet-stream'
+        ];
+        const mime = file.type || '';
+        return !mime || validMimeTypes.includes(mime) || mime.startsWith('text/');
     }
 
     _handleDroppedFile(file) {

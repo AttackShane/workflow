@@ -45,10 +45,10 @@ export function mixinNodePanel(node) {
         '<div class=branch-conditions>' +
         '<div class=cond-logic><label class=cond-label>逻辑</label><select class=property-input cond-logic-select>' + LOGIC_OPTIONS_HTML + '</select></div>' +
         '<div class=cond-list></div>' +
-        '<button type=button class=btn btn-sm btn-add-cond onclick="window._wfAddCondItem(this)">+ 条件</button>' +
+        '<button type=button class=btn btn-sm btn-add-cond data-action="wfAddCondItem">+ 条件</button>' +
         '</div>';
 
-    window._wfAddBranchItem = function(listId) {
+    node._wfAddBranchItem = function(listId) {
         const list = document.getElementById(listId);
         if (!list) return;
         const item = document.createElement('div');
@@ -58,7 +58,7 @@ export function mixinNodePanel(node) {
         list.appendChild(item);
     };
 
-    window._wfAddCondItem = function(btn) {
+    node._wfAddCondItem = function(btn) {
         const list = btn.previousElementSibling;
         if (!list || !list.classList.contains('cond-list')) return;
         const item = document.createElement('div');
@@ -152,6 +152,9 @@ export function mixinNodePanel(node) {
 
         let paramsHtml = '';
         params.forEach(param => {
+            if (param.name === 'variables' && targetNode.type === 'loop_set_variable') {
+                return;
+            }
             const value = targetNode.parameters?.[param.name] ?? param.defaultValue;
             const required = param.required ? '<span class="required">*</span>' : '';
             const hint = param.description ? `<div class="hint">${StringUtils.escapeHtml(param.description)}</div>` : '';
@@ -192,12 +195,12 @@ export function mixinNodePanel(node) {
                                     <select class="property-input cond-logic-select">${logicOptions}</select>
                                 </div>
                                 <div class="cond-list">${condsHtml}</div>
-                                <button type="button" class="btn btn-sm btn-add-cond" onclick="window._wfAddCondItem(this)">+ 条件</button>
+                                <button type="button" class="btn btn-sm btn-add-cond" data-action="wfAddCondItem">+ 条件</button>
                             </div>
                         </div>`;
                 });
                 inputHtml += `</div>
-                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="window._wfAddBranchItem('prop_${param.name}')">+ 添加分支</button>`;
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddBranchItem" data-prop="prop_${param.name}">+ 添加分支</button>`;
             } else if (param.name === 'options' && targetNode.type === 'question') {
                 let options = [];
                 if (Array.isArray(value)) {
@@ -308,10 +311,12 @@ export function mixinNodePanel(node) {
 
                 ${this.renderMergeGroups(targetNode)}
 
+                ${this.renderLoopVariables(targetNode)}
+
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
                     ${t('nodes.input')}
-                    <button class="btn btn-sm" onclick="workflowUI.node.addInputParam('${StringUtils.escapeHtml(targetNode.id)}')">+ ${t('nodes.add')}</button>
+                    <button class="btn btn-sm" data-action="addInputParam" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="inputParamsList">
                     ${this.renderInputOutputParams(targetNode.inputParams || [], 'input', targetNode.id)}
@@ -320,15 +325,15 @@ export function mixinNodePanel(node) {
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
                     ${t('nodes.output')}
-                    <button class="btn btn-sm" onclick="workflowUI.node.addOutputParam('${StringUtils.escapeHtml(targetNode.id)}')">+ ${t('nodes.add')}</button>
+                    <button class="btn btn-sm" data-action="addOutputParam" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">+ ${t('nodes.add')}</button>
                 </h4>
                 <div id="outputParamsList">
                     ${this.renderInputOutputParams(targetNode.outputParams || [], 'output', targetNode.id)}
                 </div>
 
                 <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary" onclick="workflowUI.node.saveNodeDetail('${StringUtils.escapeHtml(targetNode.id)}')">${t('nodes.saveChanges')}</button>
-                    <button class="btn btn-danger" onclick="workflowUI.deleteNode('${StringUtils.escapeHtml(targetNode.id)}')">${t('nodes.deleteNode')}</button>
+                    <button class="btn btn-primary" data-action="saveNodeDetail" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">${t('nodes.saveChanges')}</button>
+                    <button class="btn btn-danger" data-action="deleteNode" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">${t('nodes.deleteNode')}</button>
                 </div>
             </div>
         `;
@@ -377,7 +382,7 @@ export function mixinNodePanel(node) {
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">${t('nodes.cancel')}</button>
-                    <button class="btn btn-primary" onclick="workflowUI.saveNodeEdit('${StringUtils.escapeHtml(nodeId)}')">${t('nodes.save')}</button>
+                    <button class="btn btn-primary" data-action="saveNodeEdit" data-node-id="${StringUtils.escapeHtml(nodeId)}">${t('nodes.save')}</button>
                 </div>
             </div>
         `;
@@ -524,7 +529,7 @@ export function mixinNodePanel(node) {
             this.renderPropertyPanel(targetNode);
         }
 
-        this.core.saveHistory(t('actions.editNode'));
+        this.core.saveHistory('actions.editNode');
     };
 
     node.saveNodeDetail = function(nodeId) {
@@ -625,12 +630,48 @@ export function mixinNodePanel(node) {
         this.saveDynamicParams(targetNode, 'input');
         this.saveDynamicParams(targetNode, 'output');
         this.saveMergeGroupVars(targetNode);
+        this.saveLoopVariables(targetNode);
 
         this._reRenderNode(nodeId);
         this.ui.updateEdges();
-        this.core.saveHistory(t('actions.editNode'));
+        this.core.saveHistory('actions.editNode');
         this.ui.showMessage(t('actions.nodeSaved'), 'success');
     };
+
+    node._handleAction = function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const nodeId = btn.dataset.nodeId;
+        const prop = btn.dataset.prop;
+
+        switch (action) {
+            case 'addInputParam':
+                this.addInputParam(nodeId);
+                break;
+            case 'addOutputParam':
+                this.addOutputParam(nodeId);
+                break;
+            case 'saveNodeDetail':
+                this.saveNodeDetail(nodeId);
+                break;
+            case 'deleteNode':
+                this.ui.deleteNode(nodeId);
+                break;
+            case 'saveNodeEdit':
+                this.ui.saveNodeEdit(nodeId);
+                break;
+            case 'wfAddCondItem':
+                this._wfAddCondItem(btn);
+                break;
+            case 'wfAddBranchItem':
+                this._wfAddBranchItem(prop);
+                break;
+        }
+    };
+
+    document.addEventListener('click', node._handleAction.bind(node));
 
     mixinParamEditor(node);
 }

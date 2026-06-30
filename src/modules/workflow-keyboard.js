@@ -11,27 +11,60 @@ export class WorkflowKeyboard {
      */
     constructor(ui) {
         this.ui = ui;
+        this._keydownHandler = null;
+        this._navConverterHandler = null;
+        this._navManagerHandler = null;
+        this._beforeUnloadHandler = null;
     }
 
     /**
      * 设置事件监听器
      */
     setupEventListeners() {
-        DOM.on(document, 'keydown', (e) => this.handleKeydown(e));
+        this._keydownHandler = (e) => this.handleKeydown(e);
+        DOM.on(document, 'keydown', this._keydownHandler);
 
-        DOM.on(DOM.get('navConverterBtn'), 'click', () => {
+        this._navConverterHandler = () => {
             sessionStorage.removeItem('editingWorkflowId');
             sessionStorage.removeItem('savedWorkflow');
             sessionStorage.removeItem('savedWorkflowName');
             sessionStorage.removeItem('savedWorkflowDesc');
             goToConverter();
-        });
-        DOM.on(DOM.get('navManagerBtn'), 'click', () => {
+        };
+        DOM.on(DOM.get('navConverterBtn'), 'click', this._navConverterHandler);
+
+        this._navManagerHandler = () => {
             if (!sessionStorage.getItem('savedWorkflow')) {
                 sessionStorage.removeItem('editingWorkflowId');
             }
             goToManager();
-        });
+        };
+        DOM.on(DOM.get('navManagerBtn'), 'click', this._navManagerHandler);
+
+        this._beforeUnloadHandler = () => this.destroy();
+        window.addEventListener('beforeunload', this._beforeUnloadHandler);
+    }
+
+    /**
+     * 移除事件监听器
+     */
+    destroy() {
+        if (this._keydownHandler) {
+            DOM.off(document, 'keydown', this._keydownHandler);
+            this._keydownHandler = null;
+        }
+        if (this._navConverterHandler) {
+            DOM.off(DOM.get('navConverterBtn'), 'click', this._navConverterHandler);
+            this._navConverterHandler = null;
+        }
+        if (this._navManagerHandler) {
+            DOM.off(DOM.get('navManagerBtn'), 'click', this._navManagerHandler);
+            this._navManagerHandler = null;
+        }
+        if (this._beforeUnloadHandler) {
+            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+            this._beforeUnloadHandler = null;
+        }
     }
 
     /**

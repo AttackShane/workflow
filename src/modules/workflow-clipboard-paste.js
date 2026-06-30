@@ -180,6 +180,10 @@ export function mixinClipboardPaste(clipboard) {
                 });
             }
 
+            if (type === 'loop_set_variable' && Array.isArray(cozeNode.data?.inputs?.inputParameters)) {
+                parameters.variables = cozeNode.data.inputs.inputParameters;
+            }
+
             const nodeMeta = cozeNode.data?.nodeMeta || cozeNode._temp?.externalData || {};
             const title = nodeMeta.title || cozeNode.title || t('nodeTypes.plugin');
             const description = nodeMeta.description || cozeNode.description || '';
@@ -195,18 +199,32 @@ export function mixinClipboardPaste(clipboard) {
                 icon: icon,
                 parameters: parameters,
                 parentId: parentId,
-                inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => ({
-                    name: p.name || '',
-                    type: p.type || p.input?.type || 'string',
-                    value: p.input?.value?.type === 'ref'
-                        ? { type: 'ref', content: p.input.value.content }
-                        : (p.input?.value?.content ?? p.defaultValue ?? ''),
-                    valueType: p.input?.value?.type || 'literal',
-                    rawMeta: p.input?.value?.rawMeta || null,
-                    schema: p.input?.schema || null,
-                    required: p.required === true,
-                    description: p.description || ''
-                })),
+                inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => {
+                    if (p.left && p.right) {
+                        return {
+                            name: p.left?.value?.content?.name || p.left?.value?.content || '',
+                            type: p.left?.type || p.right?.type || 'string',
+                            value: p.right?.value?.type === 'ref'
+                                ? { type: 'ref', content: p.right.value.content }
+                                : (p.right?.value?.content ?? ''),
+                            valueType: p.right?.value?.type || 'literal',
+                            left: p.left,
+                            right: p.right
+                        };
+                    }
+                    return {
+                        name: p.name || '',
+                        type: p.type || p.input?.type || 'string',
+                        value: p.input?.value?.type === 'ref'
+                            ? { type: 'ref', content: p.input.value.content }
+                            : (p.input?.value?.content ?? p.defaultValue ?? ''),
+                        valueType: p.input?.value?.type || 'literal',
+                        rawMeta: p.input?.value?.rawMeta || null,
+                        schema: p.input?.schema || null,
+                        required: p.required === true,
+                        description: p.description || ''
+                    };
+                }),
                 outputParams: (cozeNode.data?.outputs || []).map(o => ({
                     name: o.name || '',
                     type: o.type || 'string',
@@ -341,6 +359,22 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         });
                     }
+                    if (node.type === 'loop_set_variable' && Array.isArray(node.parameters.variables)) {
+                        node.parameters.variables.forEach(v => {
+                            if (v.left?.value?.content?.blockID && typeof v.left.value.content.blockID === 'string') {
+                                const newBlockId = idMap[String(v.left.value.content.blockID)];
+                                if (newBlockId) {
+                                    v.left.value.content.blockID = newBlockId;
+                                }
+                            }
+                            if (v.right?.value?.content?.blockID && typeof v.right.value.content.blockID === 'string') {
+                                const newBlockId = idMap[String(v.right.value.content.blockID)];
+                                if (newBlockId) {
+                                    v.right.value.content.blockID = newBlockId;
+                                }
+                            }
+                        });
+                    }
                 });
 
                 if (data.json.edges) {
@@ -402,7 +436,7 @@ export function mixinClipboardPaste(clipboard) {
             }
             this.ui.showMessage(message, 'success');
 
-            this.core.saveHistory(t('actions.pasteSuccess', { nodeCount }));
+            this.core.saveHistory('actions.pasteSuccess', { nodeCount });
         } catch (err) {
             this.ui.showMessage(t('actions.pasteFailed', { message: err.message }), 'error');
         }

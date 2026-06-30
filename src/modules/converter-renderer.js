@@ -28,6 +28,14 @@ function addToCache(cache, key, value) {
     cache.set(key, value);
 }
 
+function getFromCache(cache, key) {
+    if (!cache.has(key)) return undefined;
+    const value = cache.get(key);
+    cache.delete(key);
+    cache.set(key, value);
+    return value;
+}
+
 export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     const outputWrapper = DOM.get('outputWrapper');
     const outputArea = DOM.get('outputArea');
@@ -66,7 +74,8 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     lineNumbersContent.appendChild(fragment);
 
     if (ctrl._highlightCache.has(contentKey)) {
-        ctrl._virtualScroll.setContent(ctrl._highlightCache.get(contentKey), originalLineCount);
+        const cached = getFromCache(ctrl._highlightCache, contentKey);
+        ctrl._virtualScroll.setContent(cached, originalLineCount);
         ctrl._virtualScroll.scrollToTop();
         return;
     }
@@ -100,7 +109,7 @@ export function renderSync(ctrl, data, type, contentKey) {
     if (!outputArea) return;
 
     if (ctrl._highlightCache.has(contentKey)) {
-        DOM.setHtml(outputArea, ctrl._highlightCache.get(contentKey));
+        DOM.setHtml(outputArea, getFromCache(ctrl._highlightCache, contentKey));
         return;
     }
 
@@ -117,7 +126,7 @@ export async function renderAsync(ctrl, data, type, contentKey) {
     if (!outputArea) return;
 
     if (ctrl._highlightCache.has(contentKey)) {
-        DOM.setHtml(outputArea, ctrl._highlightCache.get(contentKey));
+        DOM.setHtml(outputArea, getFromCache(ctrl._highlightCache, contentKey));
         return;
     }
 

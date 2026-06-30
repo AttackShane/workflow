@@ -1,5 +1,5 @@
 import { APP_CONFIG } from '../config/constants.js';
-import { Storage } from '../utils/helpers.js';
+import { Storage, getJsyaml } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
 
 /**
@@ -52,7 +52,7 @@ export function saveToHistory(data, isJson, name = '') {
  */
 function extractWorkflowName(data, isJson) {
     try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
+        const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
         if (parsed && typeof parsed === 'object') {
             return parsed.name || parsed.workflow_name || parsed.title || parsed.json?.name || '';
         }
@@ -139,7 +139,14 @@ export function importHistory(historyData) {
         seen.add(key);
         return true;
     });
-    
+
+    // 按时间戳降序排列（最新的在前）
+    deduplicated.sort((a, b) => {
+        const ta = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+        const tb = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+        return tb - ta;
+    });
+
     // 限制最大数量
     if (deduplicated.length > APP_CONFIG.HISTORY.MAX_ITEMS) {
         deduplicated.splice(APP_CONFIG.HISTORY.MAX_ITEMS);

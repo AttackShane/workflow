@@ -1,9 +1,9 @@
 import { Dialog } from './dialog.js';
 import { goToConverter, goToEditor, initNavigator } from './navigator.js';
-import { StringUtils, Storage, deepClone } from '../utils/helpers.js';
+import { StringUtils, Storage, deepClone, getJsyaml } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
-import { WORKFLOW_TEMPLATES } from './templates.js';
+import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from './templates.js';
 
 export class WorkflowManager {
     constructor() {
@@ -410,7 +410,7 @@ export class WorkflowManager {
             })
         };
         
-        const yamlStr = window.jsyaml.dump(exportData, { indent: 2, lineWidth: 120 });
+        const yamlStr = getJsyaml().dump(exportData, { indent: 2, lineWidth: 120 });
         const blob = new Blob([yamlStr], { type: 'application/x-yaml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -552,7 +552,7 @@ export class WorkflowManager {
     renderTemplateGrid() {
         this.elements.templateGrid.innerHTML = '';
 
-        const categories = [...new Set(WORKFLOW_TEMPLATES.map(t => t.category))];
+        const categories = [...new Set(WORKFLOW_TEMPLATES.map(tpl => t(tpl.category)))];
 
         categories.forEach(category => {
             const section = document.createElement('div');
@@ -562,14 +562,15 @@ export class WorkflowManager {
             const grid = document.createElement('div');
             grid.className = 'template-category-grid';
 
-            WORKFLOW_TEMPLATES.filter(t => t.category === category).forEach(tpl => {
+            WORKFLOW_TEMPLATES.filter(tpl => t(tpl.category) === category).forEach(tpl => {
+                const resolved = resolveTemplateI18n(tpl, t);
                 const card = document.createElement('div');
                 card.className = 'template-card';
                 card.dataset.templateId = tpl.id;
                 card.innerHTML = `
                     <div class="template-card-icon">${tpl.icon}</div>
-                    <div class="template-card-name">${StringUtils.escapeHtml(tpl.name)}</div>
-                    <div class="template-card-desc">${StringUtils.escapeHtml(tpl.description)}</div>
+                    <div class="template-card-name">${StringUtils.escapeHtml(resolved.name)}</div>
+                    <div class="template-card-desc">${StringUtils.escapeHtml(resolved.description)}</div>
                     <div class="template-card-nodes">${t('manager.nodesCount', { count: tpl.nodes.length })}</div>
                 `;
                 grid.appendChild(card);
@@ -592,10 +593,11 @@ export class WorkflowManager {
     }
 
     createFromTemplate(template) {
+        const resolved = resolveTemplateI18n(template, t);
         const newWorkflow = {
             id: 'wf_' + Date.now(),
-            name: template.name,
-            description: template.description,
+            name: resolved.name,
+            description: resolved.description,
             nodes: deepClone(template.nodes),
             edges: deepClone(template.edges),
             createdAt: Date.now(),
@@ -607,7 +609,7 @@ export class WorkflowManager {
         this.renderWorkflowList();
         this.closeTemplateModal();
 
-        Dialog.success(t('manager.createdFromTemplate', { name: template.name }));
+        Dialog.success(t('manager.createdFromTemplate', { name: resolved.name }));
     }
 }
 

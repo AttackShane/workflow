@@ -160,9 +160,7 @@ export class WorkflowCanvas {
             const nodeId = nodeEl.dataset.nodeId;
             const isVisible = visibleNodeIds.has(nodeId);
             
-            DOM.setStyle(nodeEl, 'opacity', isVisible ? '1' : '0');
-            DOM.setStyle(nodeEl, 'pointerEvents', isVisible ? 'auto' : 'none');
-            DOM.setStyle(nodeEl, 'visibility', isVisible ? 'visible' : 'hidden');
+            DOM.setStyle(nodeEl, 'display', isVisible ? '' : 'none');
         });
     }
 
@@ -183,9 +181,7 @@ export class WorkflowCanvas {
             
             const isVisible = visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);
             
-            DOM.setStyle(edgeEl, 'opacity', isVisible ? '1' : '0');
-            DOM.setStyle(edgeEl, 'pointerEvents', isVisible ? 'auto' : 'none');
-            DOM.setStyle(edgeEl, 'visibility', isVisible ? 'visible' : 'hidden');
+            DOM.setStyle(edgeEl, 'display', isVisible ? '' : 'none');
         });
     }
 
@@ -837,7 +833,7 @@ export class WorkflowCanvas {
             node.y += offsetY;
         });
 
-        this.core.saveHistory(t('messages.viewReset'));
+        this.core.saveHistory('messages.viewReset');
 
         this.ui.refreshCanvas();
         this.updateSvgSize();

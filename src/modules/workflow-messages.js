@@ -64,9 +64,13 @@ export function mixinMessages(ui) {
                 gap: '8px',
                 maxWidth: '320px',
                 backgroundColor: colors[type] || colors.info
-            },
-            html: `<span>${icons[type] || icons.info}</span><span>${text}</span>`
+            }
         });
+
+        const iconSpan = DOM.create('span', { text: icons[type] || icons.info });
+        const textSpan = DOM.create('span', { text: text });
+        messageEl.appendChild(iconSpan);
+        messageEl.appendChild(textSpan);
 
         this.messageContainer.appendChild(messageEl);
 

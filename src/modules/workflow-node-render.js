@@ -122,7 +122,7 @@ export function mixinNodeRender(node) {
                     const targetPortId = point.dataset.portId || '';
                     const edge = this.core.createEdge(this.ui.connectingFrom, nodeData.id, this.ui.connectingFromPort, targetPortId);
                     if (edge) {
-                        this.core.saveHistory(t('messages.createConnection'));
+                        this.core.saveHistory('messages.createConnection');
                     }
                     this.ui.cancelConnection();
                 }
@@ -192,28 +192,10 @@ export function mixinNodeRender(node) {
     node.batchMeasureElements = function(elements) {
         if (elements.length === 0) return;
 
-        const container = document.createElement('div');
-        container.style.cssText = 'position:absolute;visibility:hidden;top:0;left:0;';
-        document.body.appendChild(container);
-
-        const originalParents = elements.map(({el}) => {
-            const parent = el.parentElement;
-            container.appendChild(el);
-            return parent;
-        });
-
         elements.forEach(({el, nodeData}) => {
             const rect = el.getBoundingClientRect();
             this._applyMeasurement(el, nodeData, rect);
         });
-
-        elements.forEach(({el}, i) => {
-            if (originalParents[i]) {
-                originalParents[i].appendChild(el);
-            }
-        });
-
-        document.body.removeChild(container);
     };
 
     node.addToCanvas = function(type, screenX, screenY, data = null) {
@@ -261,7 +243,7 @@ export function mixinNodeRender(node) {
             nodeData.height = h;
         }
 
-        this.core.saveHistory(t('actions.addNode', { type }));
+        this.core.saveHistory('actions.addNode', { type });
 
         return el;
     };
@@ -583,7 +565,7 @@ export function mixinNodeRender(node) {
             document.removeEventListener('mouseup', onMouseUp);
 
             if (this.ui.hasDragged) {
-                this.core.saveHistory(t('messages.moveNode'));
+                this.core.saveHistory('messages.moveNode');
             }
 
             this.ui.edge.updateAffectedEdges(Array.from(affectedNodeIds));
@@ -688,7 +670,7 @@ export function mixinNodeRender(node) {
         this.ui.showSummaryPanel();
 
         if (saveHistory) {
-            this.core.saveHistory(t('messages.deleteNode'));
+            this.core.saveHistory('messages.deleteNode');
         }
     };
 

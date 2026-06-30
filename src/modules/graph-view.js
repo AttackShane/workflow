@@ -1,5 +1,5 @@
 import { getNodeTypeName, getNodeColor, convertLargeNumbersToStrings } from '../utils/utils.js';
-import { StringUtils, ClipboardUtils } from '../utils/helpers.js';
+import { StringUtils, ClipboardUtils, getJsyaml } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
 import { showNodeDetail } from './workflow-node-detail-modal.js';
@@ -39,7 +39,7 @@ class GraphView {
 
     renderWorkflowGraph = (data, isJson) => {
         try {
-            const parsedData = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
+            const parsedData = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
 
             let nodes = [];
             let edges = [];

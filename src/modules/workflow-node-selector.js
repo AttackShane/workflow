@@ -344,4 +344,84 @@ export function mixinNodeSelector(node) {
             if (e.target === modal) modal.remove();
         });
     };
+
+    node.addLoopVariable = function(nodeId) {
+        try {
+            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            if (!targetNode) return;
+            if (!targetNode.parameters) targetNode.parameters = {};
+            if (!Array.isArray(targetNode.parameters.variables)) {
+                targetNode.parameters.variables = [];
+            }
+            targetNode.parameters.variables.push({
+                left: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: { source: 'block-output', blockID: '', name: 'output' },
+                        rawMeta: { type: 1 }
+                    }
+                },
+                right: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: { source: 'block-output', blockID: '', name: 'output' },
+                        rawMeta: { type: 1 }
+                    }
+                }
+            });
+            this.renderPropertyPanel(targetNode);
+        } catch (e) {}
+    };
+
+    node.removeLoopVariable = function(nodeId, vi) {
+        try {
+            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+            targetNode.parameters.variables.splice(vi, 1);
+            this.renderPropertyPanel(targetNode);
+        } catch (e) {}
+    };
+
+    node.openLoopVariableSelector = function(nodeId, vi, side) {
+        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+        const variable = targetNode.parameters.variables[vi];
+        if (!variable) return;
+
+        const ref = variable[side];
+        const currentBlockId = ref?.value?.content?.blockID || '';
+        const currentName = ref?.value?.content?.name || '';
+
+        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
+            if (!ref.value.content) {
+                ref.value.content = {};
+            }
+            ref.value.content.blockID = blockId;
+            ref.value.content.name = outputPath;
+
+            const edge = this.core.edges.find(e =>
+                e.target === targetNode.id && e.source === blockId
+            );
+            if (edge) {
+                edge.sourcePort = outputPath;
+            }
+
+            this.renderPropertyPanel(targetNode);
+        });
+    };
+
+    node.clearLoopVarRef = function(nodeId, vi) {
+        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+        const variable = targetNode.parameters.variables[vi];
+        if (!variable) return;
+
+        variable.right = {
+            type: 'string',
+            value: { type: 'literal', content: '' }
+        };
+        this.renderPropertyPanel(targetNode);
+    };
 }

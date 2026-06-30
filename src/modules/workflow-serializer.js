@@ -243,6 +243,10 @@ export function mixinSerializer(core) {
                 });
             }
 
+            if (type === 'loop_set_variable' && Array.isArray(cozeNode.data?.inputs?.inputParameters)) {
+                parameters.variables = cozeNode.data.inputs.inputParameters;
+            }
+
             const title = cozeNode.data?.nodeMeta?.title || cozeNode.title || t('messages.unknownNode');
             const description = cozeNode.data?.nodeMeta?.description || cozeNode.description || '';
 
@@ -369,6 +373,22 @@ export function mixinSerializer(core) {
                     }
                 });
             }
+            if (node.type === 'loop_set_variable' && Array.isArray(node.parameters.variables)) {
+                node.parameters.variables.forEach(v => {
+                    if (v.left?.value?.content?.blockID && typeof v.left.value.content.blockID === 'string') {
+                        const newBlockId = idMap[String(v.left.value.content.blockID)];
+                        if (newBlockId) {
+                            v.left.value.content.blockID = newBlockId;
+                        }
+                    }
+                    if (v.right?.value?.content?.blockID && typeof v.right.value.content.blockID === 'string') {
+                        const newBlockId = idMap[String(v.right.value.content.blockID)];
+                        if (newBlockId) {
+                            v.right.value.content.blockID = newBlockId;
+                        }
+                    }
+                });
+            }
         });
 
         if (data.json.edges) {
@@ -382,6 +402,6 @@ export function mixinSerializer(core) {
             });
         }
 
-        this.resetHistory(t('messages.importFromClipboard'));
+        this.resetHistory('messages.importFromClipboard');
     };
 }

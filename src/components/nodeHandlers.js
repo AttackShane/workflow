@@ -368,7 +368,12 @@ export const nodeHandlers = {
     },
 
     loop_set_variable: (data, params, ctx) => {
-        data.inputs = { inputParameters: ctx.inputParams };
+        const variables = params.variables || ctx.node.parameters?.variables;
+        if (Array.isArray(variables) && variables.length > 0 && variables[0].left && variables[0].right) {
+            data.inputs = { inputParameters: variables };
+        } else {
+            data.inputs = { inputParameters: [] };
+        }
     },
 
     loop_continue: (data, params, ctx) => {

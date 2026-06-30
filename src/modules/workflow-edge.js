@@ -287,7 +287,7 @@ export class WorkflowEdge {
         this.ui.showSummaryPanel();
         
         if (saveHistory) {
-            this.core.saveHistory(t('actions.deleteConnection'));
+            this.core.saveHistory('actions.deleteConnection');
         }
     }
 
@@ -390,7 +390,7 @@ export class WorkflowEdge {
                         );
                         if (!exists) {
                             this.core.createEdge(sourceId, targetId, this.ui.connectingFromPort);
-                            this.core.saveHistory(t('actions.createConnection'));
+                            this.core.saveHistory('actions.createConnection');
                             this.ui.showMessage(t('actions.connectionCreated'), 'success');
                         }
                     }

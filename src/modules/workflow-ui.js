@@ -28,6 +28,8 @@ export class WorkflowUI {
         this.isMultiSelectMode = false;
         this.connectingFrom = null;
         this.svgPath = null;
+        this._changeVersion = 0;
+        this._lastSavedVersion = 0;
         
         mixinMessages(this);
         mixinSearch(this);
@@ -63,7 +65,8 @@ export class WorkflowUI {
         
         // 设置数据变更自动刷新
         this.core.onChange = (action) => {
-            if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch') {
+            this._changeVersion++;
+            if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch' || action === 'jumpToHistory') {
                 this.refreshCanvas();
                 this.history.updatePanel();
                 this.renderNodePalette();
@@ -103,12 +106,14 @@ export class WorkflowUI {
         if (this.core.nodes.length > 0) {
             const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
             const elements = [];
+            const fragment = document.createDocumentFragment();
             topLevelNodes.forEach(node => {
                 const nodeCopy = deepClone(node);
                 const el = this.node.createElement(nodeCopy, { skipMeasure: true });
                 elements.push({ el, nodeData: nodeCopy });
-                this.canvas.canvasContent.appendChild(el);
+                fragment.appendChild(el);
             });
+            this.canvas.canvasContent.appendChild(fragment);
             this.node.batchMeasureElements(elements);
             this.core.nodes.forEach(node => {
                 if (node.parentId) {
@@ -123,7 +128,7 @@ export class WorkflowUI {
         }
 
         // 记录初始快照，用于判断是否需要提示保存
-        this._lastSavedSnapshot = this._captureSnapshot();
+        this._lastSavedVersion = this._captureSnapshot();
         
         // 启动自动保存
         this.startAutoSave();
@@ -133,14 +138,11 @@ export class WorkflowUI {
     }
 
     /**
-     * 捕获当前状态快照（用于判断是否有未保存变更）
-     * @returns {string} JSON字符串快照
+     * 捕获当前状态版本号（用于判断是否有未保存变更）
+     * @returns {number} 当前变更版本号
      */
     _captureSnapshot() {
-        return JSON.stringify({
-            nodes: this.core.nodes,
-            edges: this.core.edges
-        });
+        return this._changeVersion;
     }
 
     /**
@@ -148,15 +150,14 @@ export class WorkflowUI {
      * @returns {boolean} 是否有未保存变更
      */
     hasUnsavedChanges() {
-        const current = this._captureSnapshot();
-        return current !== this._lastSavedSnapshot;
+        return this._changeVersion !== this._lastSavedVersion;
     }
 
     /**
      * 更新已保存快照（保存成功后调用）
      */
     markSaved() {
-        this._lastSavedSnapshot = this._captureSnapshot();
+        this._lastSavedVersion = this._captureSnapshot();
     }
     
     /**
@@ -340,20 +341,18 @@ export class WorkflowUI {
      * 刷新画布显示
      */
     refreshCanvas() {
-        // 清空画布内容
-        while (this.canvas.canvasContent.firstChild) {
-            this.canvas.canvasContent.removeChild(this.canvas.canvasContent.firstChild);
-        }
-        
-        // 只渲染顶层节点（子节点由容器内部 renderContainerChildren 负责渲染）
+        this.canvas.canvasContent.replaceChildren();
+
         const elements = [];
+        const fragment = document.createDocumentFragment();
         this.core.nodes.forEach(node => {
             if (node.parentId) return;
             const nodeCopy = deepClone(node);
             const el = this.node.createElement(nodeCopy, { skipMeasure: true });
             elements.push({ el, nodeData: nodeCopy });
-            this.canvas.canvasContent.appendChild(el);
+            fragment.appendChild(el);
         });
+        this.canvas.canvasContent.appendChild(fragment);
         this.node.batchMeasureElements(elements);
         
         this.canvas.updateSvgSize();

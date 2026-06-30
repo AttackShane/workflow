@@ -3,6 +3,13 @@
  */
 import { Logger } from './logger.js';
 
+export function getJsyaml() {
+    if (!window.jsyaml) {
+        throw new Error('js-yaml 库未加载，请检查网络连接并刷新页面');
+    }
+    return window.jsyaml;
+}
+
 export const DOM = {
     /**
      * 获取 DOM 元素

@@ -192,7 +192,7 @@ export function getNodeTypeInfo() {
             title: t('nodeTypes.loop_set_variable'), icon: '📦', description: t('nodeTypes.description.loop_set_variable'), 
             hasInput: true, hasOutput: true, hidden: true,
             parameters: [
-                { name: 'variables', label: tl('variables'), type: 'json', defaultValue: '{}', required: true }
+                { name: 'variables', label: tl('variables'), type: 'json', defaultValue: '[]', required: true }
             ]
         },
         loop_continue: { 

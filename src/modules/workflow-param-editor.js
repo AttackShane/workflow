@@ -317,4 +317,110 @@ export function mixinParamEditor(node) {
             });
         }
     };
+
+    node.renderLoopVariables = function(targetNode) {
+        const variables = targetNode.parameters?.variables;
+        if (targetNode.type !== 'loop_set_variable' || !variables || !Array.isArray(variables)) {
+            return '';
+        }
+
+        const resolveNode = (blockId) => {
+            let target = this.core.nodes.find(n => n.id === blockId);
+            if (target) return target;
+            const shortId = blockId.replace('node_', '');
+            target = this.core.nodes.find(n => n.id === shortId || n.id.replace('node_', '') === shortId);
+            return target;
+        };
+
+        const getDisplayRef = (ref) => {
+            const refBlockId = ref?.value?.content?.blockID || '';
+            const refName = ref?.value?.content?.name || '';
+            const isRef = ref?.value?.type === 'ref';
+            if (isRef && refBlockId) {
+                const srcNode = resolveNode(refBlockId);
+                if (!srcNode) return `${refBlockId} → ${refName}`;
+                return `${srcNode.title || srcNode.id} → ${refName || 'output'}`;
+            }
+            if (!isRef && ref?.value?.content !== undefined && ref?.value?.content !== null) {
+                return String(ref.value.content);
+            }
+            return t('nodes.clickToSelect') || '点击选择';
+        };
+
+        let html = '<hr style="margin: 0.75rem 0; border-color: var(--border);">';
+        html += `<h4 style="display: flex; justify-content: space-between; align-items: center;">
+            ${t('nodes.variables') || '变量设置'}
+            <button class="btn btn-sm" onclick="workflowUI.node.addLoopVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
+        </h4>`;
+
+        if (variables.length === 0) {
+            html += `<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">${t('properties.noParams')}</p>`;
+        } else {
+            variables.forEach((v, vi) => {
+                const leftDisplay = getDisplayRef(v.left);
+                const rightIsRef = v.right?.value?.type === 'ref';
+                const rightDisplay = getDisplayRef(v.right);
+                const rightLiteral = (!rightIsRef && v.right?.value?.content !== undefined) ? v.right.value.content : '';
+                html += `<div class="property-group" style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 600; color: var(--text-primary);">${t('nodes.parameter', { index: vi + 1 }) || `变量 ${vi + 1}`}</span>
+                        <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeLoopVariable('${targetNode.id}', ${vi})">×</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <div>
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; display: block;">${t('nodes.leftVariable') || '目标变量'}</label>
+                            <button class="btn" style="width: 100%; text-align: left; padding: 0.3rem 0.5rem; min-height: 28px;" 
+                                    onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')">
+                                ${StringUtils.escapeHtml(leftDisplay)}
+                            </button>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; display: block;">${t('nodes.rightValue') || '新值'}</label>
+                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                <input class="property-input" id="loopVarRight_${vi}" type="text" 
+                                       value="${StringUtils.escapeHtml(String(rightLiteral))}" 
+                                       placeholder="${t('nodes.rightValue')}"
+                                       style="flex:1; ${rightIsRef ? 'display:none;' : ''}"
+                                       ${rightIsRef ? 'disabled' : ''}>
+                                <button class="btn" id="loopVarRightBtn_${vi}" style="flex:1; text-align: left; padding: 0.3rem 0.5rem; min-height: 28px; ${rightIsRef ? '' : 'display:none;'}" 
+                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')">
+                                    ${StringUtils.escapeHtml(rightDisplay)}
+                                </button>
+                                <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')" 
+                                        title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
+                                ${rightIsRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi})" 
+                                        title="${t('nodes.clearReference') || '清除引用'}">×</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        html += '</div>';
+
+        return html;
+    };
+
+    node.saveLoopVariables = function(targetNode) {
+        if (targetNode.type !== 'loop_set_variable') return;
+        if (!Array.isArray(targetNode.parameters.variables)) {
+            targetNode.parameters.variables = [];
+            return;
+        }
+
+        targetNode.parameters.variables.forEach((v, vi) => {
+            const rightInput = document.getElementById(`loopVarRight_${vi}`);
+            if (rightInput && !rightInput.disabled && !rightInput.hidden) {
+                const val = rightInput.value;
+                if (!v.right) {
+                    v.right = { type: 'string', value: { type: 'literal', content: '' } };
+                }
+                v.right.type = 'string';
+                v.right.value = { type: 'literal', content: val };
+            }
+        });
+    };
 }

@@ -565,7 +565,7 @@ body {
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.35), 0 0 24px rgba(139, 92, 246, 0.12);
 }
 
-.canvas-node.container .node-header {
+.canvas-node.container > .node-header {
     padding: 0.35rem 0.75rem;
     margin: 0;
     background: rgba(0, 0, 0, 0.15);
@@ -573,11 +573,11 @@ body {
     border-bottom: none;
 }
 
-.canvas-node.container .node-type {
+.canvas-node.container > .node-type {
     display: none;
 }
 
-.canvas-node.container .node-description {
+.canvas-node.container > .node-description {
     padding: 0.1rem 0.75rem 0.35rem;
     margin: 0;
     font-size: 0.65rem;
@@ -587,12 +587,12 @@ body {
     border-radius: 0;
 }
 
-.canvas-node.container.loop .node-icon {
+.canvas-node.container.loop > .node-icon {
     background: rgba(0, 178, 178, 0.2);
     color: #00B2B2;
 }
 
-.canvas-node.container.batch .node-icon {
+.canvas-node.container.batch > .node-icon {
     background: rgba(139, 92, 246, 0.2);
     color: #8B5CF6;
 }

@@ -1,5 +1,5 @@
 import { convertLargeNumbersToStrings, getNodeTypeName } from '../utils/utils.js';
-import { StringUtils } from '../utils/helpers.js';
+import { StringUtils, getJsyaml } from '../utils/helpers.js';
 
 /**
  * 渲染统计信息
@@ -13,7 +13,7 @@ export function renderStats(container, data, isJson) {
     let stats = {};
     
     try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
+        const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
         
         if (parsed && typeof parsed === 'object') {
             if (Array.isArray(parsed)) {
@@ -70,7 +70,7 @@ export function renderStatsDetail(container, data, isJson) {
     let detailStats = {};
     
     try {
-        const parsed = isJson ? JSON.parse(data) : window.jsyaml.load(convertLargeNumbersToStrings(data));
+        const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
         
         if (parsed && typeof parsed === 'object') {
             const workflowData = isJson ? parsed.json : parsed;

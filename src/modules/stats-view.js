@@ -16,6 +16,7 @@ import { renderStats, renderStatsDetail } from './stats-renderer.js';
 class StatsView {
     constructor() {
         this._statsInfo = null;
+        this._languageChangeHandler = null;
     }
 
     _getHistory() {
@@ -313,9 +314,14 @@ class StatsView {
                 transition: 'all 0.2s'
             }
         });
-        DOM.on(cancelBtn, 'click', () => {
-            document.body.removeChild(editModal);
-        });
+        const closeModal = () => {
+            DOM.off(input, 'keydown', handleKeydown);
+            if (editModal.parentNode) {
+                document.body.removeChild(editModal);
+            }
+        };
+
+        DOM.on(cancelBtn, 'click', closeModal);
         DOM.on(cancelBtn, 'mouseenter', () => cancelBtn.style.background = 'rgba(255, 255, 255, 0.05)');
         DOM.on(cancelBtn, 'mouseleave', () => cancelBtn.style.background = 'transparent');
 
@@ -335,27 +341,29 @@ class StatsView {
             const newName = input.value.trim();
             if (newName) {
                 this.updateHistoryItem(id, newName);
-                document.body.removeChild(editModal);
+                closeModal();
             }
         });
         DOM.on(saveBtn, 'mouseenter', () => saveBtn.style.background = '#4F46E5');
         DOM.on(saveBtn, 'mouseleave', () => saveBtn.style.background = '#5C62FF');
 
-        DOM.on(input, 'keydown', (e) => {
+        const handleKeydown = (e) => {
             if (e.key === 'Enter') {
                 const newName = input.value.trim();
                 if (newName) {
                     this.updateHistoryItem(id, newName);
-                    document.body.removeChild(editModal);
+                    closeModal();
                 }
             } else if (e.key === 'Escape') {
                 const newName = input.value.trim();
                 if (newName && newName !== currentName) {
                     this.updateHistoryItem(id, newName);
                 }
-                document.body.removeChild(editModal);
+                closeModal();
             }
-        });
+        };
+
+        DOM.on(input, 'keydown', handleKeydown);
 
         modalFooter.appendChild(cancelBtn);
         modalFooter.appendChild(saveBtn);
@@ -373,7 +381,7 @@ class StatsView {
             if (newName && newName !== currentName) {
                 this.updateHistoryItem(id, newName);
             }
-            document.body.removeChild(editModal);
+            closeModal();
         };
 
         DOM.on(editModal, 'click', (e) => {
@@ -449,7 +457,22 @@ class StatsView {
                 transition: 'all 0.2s'
             }
         });
-        DOM.on(cancelBtn, 'click', () => document.body.removeChild(confirmModal));
+        const closeConfirm = () => {
+            DOM.off(document, 'keydown', handleEscape);
+            if (confirmModal.parentNode) {
+                document.body.removeChild(confirmModal);
+            }
+        };
+
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                closeConfirm();
+            }
+        };
+
+        DOM.on(document, 'keydown', handleEscape);
+
+        DOM.on(cancelBtn, 'click', closeConfirm);
         DOM.on(cancelBtn, 'mouseenter', () => cancelBtn.style.background = 'rgba(255, 255, 255, 0.05)');
         DOM.on(cancelBtn, 'mouseleave', () => cancelBtn.style.background = 'transparent');
 
@@ -467,7 +490,7 @@ class StatsView {
         });
         DOM.on(deleteBtn, 'click', () => {
             this.deleteHistoryItem(id);
-            document.body.removeChild(confirmModal);
+            closeConfirm();
         });
         DOM.on(deleteBtn, 'mouseenter', () => deleteBtn.style.background = '#dc2626');
         DOM.on(deleteBtn, 'mouseleave', () => deleteBtn.style.background = '#ef4444');
@@ -483,7 +506,7 @@ class StatsView {
 
         DOM.on(confirmModal, 'click', (e) => {
             if (e.target === confirmModal) {
-                document.body.removeChild(confirmModal);
+                closeConfirm();
             }
         });
     }
@@ -610,6 +633,18 @@ class StatsView {
         this.updateHistoryPanel();
 
         this._loadSelectedHistory();
+
+        this._languageChangeHandler = () => {
+            const searchInput = DOM.get(SELECTORS.CONVERTER.HISTORY_SEARCH);
+            this.updateHistoryPanel(searchInput ? searchInput.value : '');
+        };
+        document.addEventListener('languagechange', this._languageChangeHandler);
+        window.addEventListener('beforeunload', () => {
+            if (this._languageChangeHandler) {
+                document.removeEventListener('languagechange', this._languageChangeHandler);
+                this._languageChangeHandler = null;
+            }
+        });
     };
 
     _loadSelectedHistory() {

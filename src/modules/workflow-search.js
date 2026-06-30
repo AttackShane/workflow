@@ -85,12 +85,7 @@ export function mixinSearch(ui) {
         const matchedNodeIds = new Set();
         const containerHasMatch = new Set();
 
-        nodeEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
-            if (!node) return;
-            nodeElMap.set(nodeId, el);
-
+        function checkNode(node) {
             const name = (node.title || '').toLowerCase();
             const type = (node.type || '').toLowerCase();
             const typeName = (typeNameMap[type] || type).toLowerCase();
@@ -99,11 +94,25 @@ export function mixinSearch(ui) {
             const matches = name.includes(term) || type.includes(term) || typeName.includes(term) || id.includes(term);
 
             if (matches) {
-                matchedNodeIds.add(nodeId);
+                matchedNodeIds.add(node.id);
                 if (node.parentId) {
                     containerHasMatch.add(node.parentId);
                 }
             }
+
+            if (this.core.isContainerNode(node.id)) {
+                const children = this.core.getChildNodes(node.id);
+                children.forEach(child => checkNode.call(this, child));
+            }
+        }
+
+        nodeEls.forEach(el => {
+            const nodeId = el.dataset.nodeId;
+            const node = this.core.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            nodeElMap.set(nodeId, el);
+
+            checkNode.call(this, node);
         });
 
         nodeElMap.forEach((el, nodeId) => {
@@ -148,6 +157,24 @@ export function mixinSearch(ui) {
         if (searchCount) {
             DOM.setStyle(searchCount, 'display', 'inline');
             DOM.setText(searchCount, `${matchCount}/${nodeEls.length}`);
+        }
+
+        // 滚动到第一个匹配节点
+        if (matchedNodeIds.size > 0) {
+            const firstMatchId = matchedNodeIds.values().next().value;
+            let targetEl = nodeElMap.get(firstMatchId);
+            if (!targetEl) {
+                const containerEls = document.querySelectorAll('.canvas-node[data-node-id]');
+                for (const el of containerEls) {
+                    if (el.dataset.nodeId === firstMatchId) {
+                        targetEl = el;
+                        break;
+                    }
+                }
+            }
+            if (targetEl) {
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     };
 }
