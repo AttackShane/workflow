@@ -127,11 +127,19 @@ export class WorkflowCanvas {
      * @returns {boolean} 是否可见
      */
     isNodeVisible(node) {
-        const x = node.x || 0;
-        const y = node.y || 0;
+        let x = node.x || 0;
+        let y = node.y || 0;
         const width = node.width || 200;
         const height = node.height || 100;
-        
+
+        if (node.parentId) {
+            const parent = this.core.nodes.find(n => n.id === node.parentId);
+            if (parent) {
+                x = (parent.x || 0) + x;
+                y = (parent.y || 0) + 56 + y;
+            }
+        }
+
         return !(
             x + width < this.viewport.left ||
             x > this.viewport.right ||
@@ -145,6 +153,9 @@ export class WorkflowCanvas {
      * @param {Set} visibleNodeIds - 可见节点ID集合
      */
     updateNodeVisibility(visibleNodeIds) {
+        const searchInput = document.getElementById('nodeSearchInput');
+        if (searchInput && searchInput.value.trim()) return;
+
         document.querySelectorAll('.canvas-node').forEach(nodeEl => {
             const nodeId = nodeEl.dataset.nodeId;
             const isVisible = visibleNodeIds.has(nodeId);
@@ -160,17 +171,21 @@ export class WorkflowCanvas {
      * @param {Set} visibleNodeIds - 可见节点ID集合
      */
     updateEdgeVisibility(visibleNodeIds) {
-        document.querySelectorAll('.workflow-edge').forEach(edgeEl => {
+        const searchInput = document.getElementById('nodeSearchInput');
+        if (searchInput && searchInput.value.trim()) return;
+
+        document.querySelectorAll('[data-edge-id]').forEach(edgeEl => {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             if (!edgeId) return;
             
             const edge = this.core.edges.find(e => e.id === edgeId);
             if (!edge) return;
             
-            const isVisible = visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target);
+            const isVisible = visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);
             
             DOM.setStyle(edgeEl, 'opacity', isVisible ? '1' : '0');
             DOM.setStyle(edgeEl, 'pointerEvents', isVisible ? 'auto' : 'none');
+            DOM.setStyle(edgeEl, 'visibility', isVisible ? 'visible' : 'hidden');
         });
     }
 
@@ -266,18 +281,31 @@ export class WorkflowCanvas {
         let maxX = -Infinity, maxY = -Infinity;
         
         this.core.nodes.forEach(node => {
-            if (node.parentId) return;
-            const x = node.x || 0;
-            const y = node.y || 0;
-            const width = node.width || 200;
-            const height = node.height || 100;
-            
-            minX = Math.min(minX, x);
-            minY = Math.min(minY, y);
-            maxX = Math.max(maxX, x + width);
-            maxY = Math.max(maxY, y + height);
+            if (node.parentId) {
+                const parent = this.core.nodes.find(n => n.id === node.parentId);
+                if (!parent) return;
+                const absX = (parent.x || 0) + (node.x || 0);
+                const absY = (parent.y || 0) + 56 + (node.y || 0);
+                const width = node.width || 200;
+                const height = node.height || 100;
+                
+                minX = Math.min(minX, absX);
+                minY = Math.min(minY, absY);
+                maxX = Math.max(maxX, absX + width);
+                maxY = Math.max(maxY, absY + height);
+            } else {
+                const x = node.x || 0;
+                const y = node.y || 0;
+                const width = node.width || 200;
+                const height = node.height || 100;
+                
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + width);
+                maxY = Math.max(maxY, y + height);
+            }
         });
-        
+
         return { minX, minY, maxX, maxY };
     }
     
@@ -300,9 +328,8 @@ export class WorkflowCanvas {
         const contentWidth = bounds.maxX - bounds.minX;
         const contentHeight = bounds.maxY - bounds.minY;
         
-        const scaleFactor = 1 / this.canvasScale;
-        const scaledWidth = contentWidth * scaleFactor + padding * 2;
-        const scaledHeight = contentHeight * scaleFactor + padding * 2;
+        const scaledWidth = contentWidth + padding * 2;
+        const scaledHeight = contentHeight + padding * 2;
         
         const minSize = Math.max(rect.width, rect.height) * 2;
         const svgWidth = Math.max(scaledWidth, minSize, 2000);

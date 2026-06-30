@@ -66,8 +66,11 @@ export class WorkflowUI {
             if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch') {
                 this.refreshCanvas();
                 this.history.updatePanel();
+                this.renderNodePalette();
             } else if (action === 'history') {
                 this.history.updatePanel();
+            } else if (action === 'selection') {
+                this.renderNodePalette();
             } else {
                 this.updateEdges();
                 this.canvas.updateSvgSize();
@@ -99,11 +102,14 @@ export class WorkflowUI {
         // 如果有已加载的节点，渲染它们
         if (this.core.nodes.length > 0) {
             const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
+            const elements = [];
             topLevelNodes.forEach(node => {
                 const nodeCopy = deepClone(node);
-                const el = this.node.createElement(nodeCopy);
+                const el = this.node.createElement(nodeCopy, { skipMeasure: true });
+                elements.push({ el, nodeData: nodeCopy });
                 this.canvas.canvasContent.appendChild(el);
             });
+            this.node.batchMeasureElements(elements);
             this.core.nodes.forEach(node => {
                 if (node.parentId) {
                     this.node.renderContainerChildren(node.parentId);
@@ -173,11 +179,18 @@ export class WorkflowUI {
         const types = this.core.nodeTypeInfo;
         const allTypes = Object.entries(types);
 
+        const selectedNode = this.core.nodes.find(n => n.id === this.core.selectedNode);
+        const isLoopSelected = selectedNode && selectedNode.type === 'loop';
+        const loopInternalTypes = new Set(['break', 'loop_set_variable', 'loop_continue']);
+
         const render = (filter = '') => {
             const q = filter.toLowerCase();
-            const filtered = allTypes.filter(([, info]) =>
-                !q || info.title.includes(q) || info.description?.includes(q)
-            );
+            const filtered = allTypes.filter(([type, info]) => {
+                if (info.hidden && !(isLoopSelected && loopInternalTypes.has(type))) {
+                    return false;
+                }
+                return !q || info.title.includes(q) || info.description?.includes(q);
+            });
 
             palette.innerHTML = '';
             for (const [type, info] of filtered) {
@@ -333,12 +346,15 @@ export class WorkflowUI {
         }
         
         // 只渲染顶层节点（子节点由容器内部 renderContainerChildren 负责渲染）
+        const elements = [];
         this.core.nodes.forEach(node => {
             if (node.parentId) return;
             const nodeCopy = deepClone(node);
-            const el = this.node.createElement(nodeCopy);
+            const el = this.node.createElement(nodeCopy, { skipMeasure: true });
+            elements.push({ el, nodeData: nodeCopy });
             this.canvas.canvasContent.appendChild(el);
         });
+        this.node.batchMeasureElements(elements);
         
         this.canvas.updateSvgSize();
         

@@ -67,8 +67,8 @@ export function mixinContainerRender(node) {
         const containerEl = this._elMap.get(containerId);
         if (!containerEl) return;
         const info = this.core.nodeTypeInfo[containerNode.type] || {};
-        const minW = containerNode.width || info.containerMinWidth || 300;
-        const minH = containerNode.height || info.containerMinHeight || 200;
+        const minW = info.containerMinWidth || 300;
+        const minH = info.containerMinHeight || 200;
 
         const HEADER_H = this.CONTAINER_HEADER_H;
         const DESC_H = this.CONTAINER_DESC_H;
@@ -77,6 +77,12 @@ export function mixinContainerRender(node) {
 
         const children = containerEl.querySelectorAll('.container-body .canvas-node');
         const bodyEl = containerEl.querySelector('.container-body');
+
+        const allTransitionEls = [containerEl];
+        if (bodyEl) allTransitionEls.push(bodyEl);
+        children.forEach(child => allTransitionEls.push(child));
+        allTransitionEls.forEach(el => { el.style.transition = 'none'; });
+        containerEl.offsetHeight;
         
         if (children.length === 0) {
             const bodyW = minW - 2 * BORDER;
@@ -89,6 +95,7 @@ export function mixinContainerRender(node) {
             containerEl.style.height = `${minH}px`;
             containerNode.width = minW;
             containerNode.height = minH;
+            allTransitionEls.forEach(el => { el.style.transition = ''; });
             return;
         }
 
@@ -99,7 +106,6 @@ export function mixinContainerRender(node) {
         children.forEach(child => {
             const left = parseFloat(child.dataset.x) || 0;
             const top = parseFloat(child.dataset.y) || 0;
-            child.getBoundingClientRect();
             const childW = child.offsetWidth;
             const childH = child.offsetHeight;
             childData.push({ el: child, left, top, w: childW, h: childH });
@@ -160,18 +166,26 @@ export function mixinContainerRender(node) {
             containerNode.y -= offsetY;
         }
 
-        childData.forEach(cd => {
-            const newLeft = Math.round(cd.left);
-            const newTop = Math.round(cd.top);
-            cd.el.dataset.x = newLeft;
-            cd.el.dataset.y = newTop;
-            cd.el.style.transform = `translate(${newLeft}px, ${newTop}px)`;
-            const nodeData = this.core.nodes.find(n => n.id === cd.el.dataset.nodeId);
-            if (nodeData) {
-                nodeData.x = newLeft;
-                nodeData.y = newTop;
-            }
-        });
+        if (!containerNode._skipLayout) {
+            childData.forEach(cd => {
+                const newLeft = Math.round(cd.left);
+                const newTop = Math.round(cd.top);
+                cd.el.dataset.x = newLeft;
+                cd.el.dataset.y = newTop;
+                cd.el.style.transform = `translate(${newLeft}px, ${newTop}px)`;
+                const nodeData = this.core.nodes.find(n => n.id === cd.el.dataset.nodeId);
+                if (nodeData) {
+                    nodeData.x = newLeft;
+                    nodeData.y = newTop;
+                }
+            });
+        } else {
+            childData.forEach(cd => {
+                cd.el.dataset.x = cd.left;
+                cd.el.dataset.y = cd.top;
+                cd.el.style.transform = `translate(${cd.left}px, ${cd.top}px)`;
+            });
+        }
 
         containerNode.x = Math.round(containerNode.x);
         containerNode.y = Math.round(containerNode.y);
@@ -192,9 +206,12 @@ export function mixinContainerRender(node) {
         containerEl.style.height = `${h}px`;
         containerNode.width = w;
         containerNode.height = h;
+        delete containerNode._skipLayout;
 
         if (this.ui && this.ui.edge) {
             this.ui.edge.updateAffectedEdges([containerId]);
         }
+
+        allTransitionEls.forEach(el => { el.style.transition = ''; });
     };
 }

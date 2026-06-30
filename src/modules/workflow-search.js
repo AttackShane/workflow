@@ -39,12 +39,19 @@ export function mixinSearch(ui) {
     ui.performSearch = function(term) {
         const searchCount = DOM.get('nodeSearchCount');
         const nodeEls = document.querySelectorAll('.canvas-node');
+        const edgeEls = document.querySelectorAll('[data-edge-id]');
         let matchCount = 0;
 
         if (!term) {
             nodeEls.forEach(el => {
                 DOM.removeClass(el, 'search-dimmed');
                 DOM.removeClass(el, 'search-highlight');
+                DOM.setStyle(el, 'opacity', '');
+                DOM.setStyle(el, 'visibility', '');
+                DOM.setStyle(el, 'pointerEvents', '');
+            });
+            edgeEls.forEach(el => {
+                DOM.removeClass(el, 'search-dimmed');
             });
             if (searchCount) DOM.setStyle(searchCount, 'display', 'none');
             return;
@@ -74,10 +81,15 @@ export function mixinSearch(ui) {
             memory_write: t('nodeTypes.memory_write'), memory_read: t('nodeTypes.memory_read')
         };
 
+        const nodeElMap = new Map();
+        const matchedNodeIds = new Set();
+        const containerHasMatch = new Set();
+
         nodeEls.forEach(el => {
             const nodeId = el.dataset.nodeId;
             const node = this.core.nodes.find(n => n.id === nodeId);
             if (!node) return;
+            nodeElMap.set(nodeId, el);
 
             const name = (node.title || '').toLowerCase();
             const type = (node.type || '').toLowerCase();
@@ -87,11 +99,48 @@ export function mixinSearch(ui) {
             const matches = name.includes(term) || type.includes(term) || typeName.includes(term) || id.includes(term);
 
             if (matches) {
+                matchedNodeIds.add(nodeId);
+                if (node.parentId) {
+                    containerHasMatch.add(node.parentId);
+                }
+            }
+        });
+
+        nodeElMap.forEach((el, nodeId) => {
+            const isMatch = matchedNodeIds.has(nodeId);
+            const node = this.core.nodes.find(n => n.id === nodeId);
+            const isContainer = node && this.core.isContainerNode(nodeId);
+
+            if (isMatch) {
                 DOM.removeClass(el, 'search-dimmed');
                 DOM.addClass(el, 'search-highlight');
+                DOM.setStyle(el, 'opacity', '');
+                DOM.setStyle(el, 'visibility', '');
+                DOM.setStyle(el, 'pointerEvents', '');
                 matchCount++;
             } else {
                 DOM.removeClass(el, 'search-highlight');
+                if (isContainer && containerHasMatch.has(nodeId)) {
+                    DOM.removeClass(el, 'search-dimmed');
+                } else {
+                    DOM.addClass(el, 'search-dimmed');
+                }
+                DOM.setStyle(el, 'opacity', '');
+                DOM.setStyle(el, 'visibility', '');
+                DOM.setStyle(el, 'pointerEvents', '');
+            }
+        });
+
+        edgeEls.forEach(el => {
+            const edgeId = el.getAttribute('data-edge-id');
+            if (!edgeId) return;
+            const edge = this.core.edges.find(e => e.id === edgeId);
+            if (!edge) return;
+
+            const isVisible = matchedNodeIds.has(edge.source) || matchedNodeIds.has(edge.target);
+            if (isVisible) {
+                DOM.removeClass(el, 'search-dimmed');
+            } else {
                 DOM.addClass(el, 'search-dimmed');
             }
         });

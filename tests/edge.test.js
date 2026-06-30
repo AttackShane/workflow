@@ -236,9 +236,9 @@ describe('WorkflowEdge', () => {
 
             const geom = edge._computeEdgeGeometry({ id: 'e1', source: 'n1', target: 'n2' });
 
-            // n1 absolute: x = 100 + 50 = 150, y = 50 + 58 + 100 = 208
+            // n1 absolute: x = 100 + 50 = 150, y = 50 + 56 + 100 = 206
             expect(geom.x1).toBe(300); // 150 + 150
-            expect(geom.y1).toBe(248); // 208 + 80/2
+            expect(geom.y1).toBe(246); // 206 + 80/2
             expect(geom.x2).toBe(400);
             expect(geom.y2).toBe(250); // 200 + 100/2
         });

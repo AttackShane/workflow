@@ -1,6 +1,9 @@
 {
   "description": "",
   "type": "module",
+  "engines": {
+    "node": ">=20.17"
+  },
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
@@ -9,7 +12,7 @@
     "http-server": "^14.1.1",
     "husky": "^9.1.7",
     "jest": "^30.4.2",
-    "lint-staged": "^17.0.8"
+    "lint-staged": "^16.4.0"
   },
   "scripts": {
     "dev": "node src/scripts/server.js",

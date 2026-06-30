@@ -201,8 +201,13 @@ body {
 
 .canvas-node.search-dimmed {
     opacity: 0.2;
-    filter: grayscale(0.8);
-    transition: opacity 0.2s, filter 0.2s;
+    transition: opacity 0.2s;
+}
+
+.workflow-edge.search-dimmed,
+[data-edge-id].search-dimmed {
+    opacity: 0.2 !important;
+    transition: opacity 0.2s;
 }
 
 .canvas-node.search-highlight {
@@ -814,6 +819,9 @@ body {
 }
 
 .workflow-edge {
+    stroke: #5C62FF;
+    stroke-width: 2;
+    fill: none;
     cursor: pointer;
     transition: stroke-width 0.2s;
 }
@@ -826,6 +834,19 @@ body {
 .workflow-edge.selected {
     stroke: #F59E0B;
     stroke-width: 3;
+}
+
+polygon.workflow-edge {
+    fill: #5C62FF;
+    transition: fill 0.2s;
+}
+
+polygon.workflow-edge:hover {
+    fill: #7C3AED;
+}
+
+polygon.workflow-edge.selected {
+    fill: #F59E0B;
 }
 
 .property-panel {
@@ -955,6 +976,106 @@ body {
     font-size: 0.65rem;
     color: var(--text-secondary);
     margin-top: 0.25rem;
+}
+
+.branch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.branch-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-secondary);
+}
+
+.branch-name-row {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+}
+
+.branch-item .branch-name {
+    flex: 1;
+}
+
+.branch-conditions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--accent);
+}
+
+.cond-logic {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.cond-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.cond-logic-select {
+    width: auto;
+    min-width: 4rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+}
+
+.cond-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.cond-item {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.cond-item .cond-left,
+.cond-item .cond-right {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.3rem;
+}
+
+.cond-item .cond-operator {
+    width: auto;
+    min-width: 3.5rem;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.2rem;
+}
+
+.cond-item .btn-danger {
+    flex-shrink: 0;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.7rem;
+    line-height: 1;
+}
+
+.btn-add-cond {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    align-self: flex-start;
+}
+
+.branch-item .btn-danger {
+    flex-shrink: 0;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    line-height: 1;
 }
 
 .node-detail {

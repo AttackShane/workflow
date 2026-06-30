@@ -15,7 +15,7 @@ export function mixinNodeRender(node) {
         node._elMap = new Map();
     }
 
-    node.createElement = function(nodeData) {
+    node.createElement = function(nodeData, options = {}) {
         const info = this.core.nodeTypeInfo[nodeData.type] || { title: t('messages.unknownNode'), icon: '📦', description: '', hasInput: true, hasOutput: true };
         const el = document.createElement('div');
         const isContainer = info.hasContainer === true;
@@ -37,8 +37,22 @@ export function mixinNodeRender(node) {
                 outputPointsHtml += `<div class="connection-point output branch-port" data-port-id="branch_${i}" title="${StringUtils.escapeHtml(name)}"></div>`;
             });
             outputPointsHtml += `<div class="connection-point output branch-port" data-port-id="default" title="其他"></div>`;
-        } else if (nodeData.type === 'condition' && nodeData.parameters?.branches) {
-            const branches = Array.isArray(nodeData.parameters.branches) ? nodeData.parameters.branches : [];
+        } else if (nodeData.type === 'intent' && nodeData.parameters?.categories) {
+            const categories = Array.isArray(nodeData.parameters.categories) ? nodeData.parameters.categories : [];
+            categories.forEach((cat, i) => {
+                const name = typeof cat === 'string' ? cat : (cat.name || cat);
+                outputPointsHtml += `<div class="connection-point output branch-port" data-port-id="branch_${i}" title="${StringUtils.escapeHtml(name)}"></div>`;
+            });
+            outputPointsHtml += `<div class="connection-point output branch-port" data-port-id="default" title="其他"></div>`;
+        } else if (nodeData.type === 'condition') {
+            const params = nodeData.parameters || {};
+            let branches = params.branches;
+            if (typeof branches === 'string') {
+                try { branches = JSON.parse(branches); } catch { branches = null; }
+            }
+            if (!Array.isArray(branches) || branches.length === 0) {
+                branches = [{ name: '是' }, { name: '否' }];
+            }
             branches.forEach((branch, i) => {
                 const name = (branch && branch.name) ? branch.name : (i === 0 ? 'True' : (i === 1 ? 'False' : `Branch ${i}`));
                 outputPointsHtml += `<div class="connection-point output branch-port" data-port-id="branch_${i}" title="${StringUtils.escapeHtml(name)}"></div>`;
@@ -62,6 +76,15 @@ export function mixinNodeRender(node) {
                 ${inputPoint}
                 ${outputPointsHtml}
             `;
+            const minW = info.containerMinWidth || 300;
+            const minH = info.containerMinHeight || 200;
+            const w = nodeData.width || minW;
+            const h = nodeData.height || minH;
+            el.style.width = `${w}px`;
+            el.style.height = `${h}px`;
+            nodeData.width = w;
+            nodeData.height = h;
+
             requestAnimationFrame(() => {
                 this.renderContainerChildren(nodeData.id);
             });
@@ -106,16 +129,28 @@ export function mixinNodeRender(node) {
             });
         });
 
-        const rect = (() => {
-            el.style.visibility = 'hidden';
-            el.style.position = 'absolute';
-            document.body.appendChild(el);
-            const r = el.getBoundingClientRect();
-            document.body.removeChild(el);
-            el.style.visibility = '';
-            el.style.position = '';
-            return r;
-        })();
+        if (!options.skipMeasure) {
+            const rect = this._measureElement(el);
+            this._applyMeasurement(el, nodeData, rect);
+        }
+
+        this._elMap.set(nodeData.id, el);
+
+        return el;
+    };
+
+    node._measureElement = function(el) {
+        el.style.visibility = 'hidden';
+        el.style.position = 'absolute';
+        document.body.appendChild(el);
+        const r = el.getBoundingClientRect();
+        document.body.removeChild(el);
+        el.style.visibility = '';
+        el.style.position = '';
+        return r;
+    };
+
+    node._applyMeasurement = function(el, nodeData, rect) {
         if (rect.width > 0) {
             nodeData.width = rect.width;
             nodeData.height = rect.height;
@@ -129,11 +164,56 @@ export function mixinNodeRender(node) {
                 port.style.top = (nodeData.height * (i + 0.5) / totalPorts) + 'px';
                 port.style.transform = 'translateY(-50%)';
             });
+        } else if (nodeData.type === 'intent' && nodeData.parameters?.categories) {
+            const categories = Array.isArray(nodeData.parameters.categories) ? nodeData.parameters.categories : [];
+            const totalPorts = categories.length + 1;
+            const branchPorts = el.querySelectorAll('.branch-port');
+            branchPorts.forEach((port, i) => {
+                port.style.top = (nodeData.height * (i + 0.5) / totalPorts) + 'px';
+                port.style.transform = 'translateY(-50%)';
+            });
+        } else if (nodeData.type === 'condition') {
+            let branches = nodeData.parameters?.branches;
+            if (typeof branches === 'string') {
+                try { branches = JSON.parse(branches); } catch { branches = []; }
+            }
+            if (!Array.isArray(branches) || branches.length === 0) {
+                branches = [{ name: '是' }, { name: '否' }];
+            }
+            const totalPorts = branches.length;
+            const branchPorts = el.querySelectorAll('.branch-port');
+            branchPorts.forEach((port, i) => {
+                port.style.top = (nodeData.height * (i + 0.5) / totalPorts) + 'px';
+                port.style.transform = 'translateY(-50%)';
+            });
         }
+    };
 
-        this._elMap.set(nodeData.id, el);
+    node.batchMeasureElements = function(elements) {
+        if (elements.length === 0) return;
 
-        return el;
+        const container = document.createElement('div');
+        container.style.cssText = 'position:absolute;visibility:hidden;top:0;left:0;';
+        document.body.appendChild(container);
+
+        const originalParents = elements.map(({el}) => {
+            const parent = el.parentElement;
+            container.appendChild(el);
+            return parent;
+        });
+
+        elements.forEach(({el, nodeData}) => {
+            const rect = el.getBoundingClientRect();
+            this._applyMeasurement(el, nodeData, rect);
+        });
+
+        elements.forEach(({el}, i) => {
+            if (originalParents[i]) {
+                originalParents[i].appendChild(el);
+            }
+        });
+
+        document.body.removeChild(container);
     };
 
     node.addToCanvas = function(type, screenX, screenY, data = null) {
@@ -152,8 +232,9 @@ export function mixinNodeRender(node) {
         for (const c of containers) {
             const cx = c.x || 0;
             const cy = c.y || 0;
-            const cw = c.width || (info.containerMinWidth || 300);
-            const ch = c.height || (info.containerMinHeight || 200);
+            const cInfo = this.core.nodeTypeInfo[c.type] || {};
+            const cw = c.width || (cInfo.containerMinWidth || 300);
+            const ch = c.height || (cInfo.containerMinHeight || 200);
             if (canvasX >= cx && canvasX <= cx + cw && canvasY >= cy + 58 && canvasY <= cy + ch) {
                 targetContainer = c;
                 break;
@@ -608,6 +689,37 @@ export function mixinNodeRender(node) {
 
         if (saveHistory) {
             this.core.saveHistory(t('messages.deleteNode'));
+        }
+    };
+
+    node._reRenderNode = function(nodeId) {
+        const nodeData = this.core.nodes.find(n => n.id === nodeId);
+        if (!nodeData) return;
+
+        const oldEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+        if (!oldEl) return;
+
+        const parent = oldEl.parentElement;
+        if (!parent) return;
+
+        const wasSelected = oldEl.classList.contains('selected');
+
+        const newEl = this.createElement(nodeData);
+        parent.replaceChild(newEl, oldEl);
+
+        if (wasSelected) {
+            newEl.classList.add('selected');
+        }
+
+        if (this.ui && this.ui.edge) {
+            this.ui.edge.updateAffectedEdges([nodeId]);
+        }
+        if (this.ui && this.ui.canvas) {
+            this.ui.canvas.updateSvgSize();
+        }
+
+        if (nodeData.parentId) {
+            this.updateContainerSize(nodeData.parentId);
         }
     };
 }

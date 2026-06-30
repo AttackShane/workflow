@@ -55,9 +55,7 @@ export function getNodeTypeInfo() {
             title: t('nodeTypes.condition'), icon: '🔀', description: t('nodeTypes.description.condition'), 
             hasInput: true, hasOutput: true,
             parameters: [
-                { name: 'condition', label: tl('condition'), type: 'text', defaultValue: '', required: true },
-                { name: 'trueBranchLabel', label: tl('trueBranchLabel'), type: 'text', defaultValue: t('messages.yes'), required: false },
-                { name: 'falseBranchLabel', label: tl('falseBranchLabel'), type: 'text', defaultValue: t('messages.no'), required: false }
+                { name: 'branches', label: tl('branches'), type: 'json', defaultValue: '[{"name":"是","condition":{}},{"name":"否","condition":{}}]', required: true }
             ]
         },
         image_generate: { 
@@ -93,7 +91,7 @@ export function getNodeTypeInfo() {
         },
         delay: { 
             title: t('nodeTypes.delay'), icon: '⏱️', description: t('nodeTypes.description.delay'), 
-            hasInput: true, hasOutput: true,
+            hasInput: true, hasOutput: true, hidden: true,
             parameters: [
                 { name: 'duration', label: tl('duration'), type: 'number', min: 100, max: 300000, defaultValue: 1000, required: true }
             ]
@@ -187,19 +185,19 @@ export function getNodeTypeInfo() {
         },
         break: { 
             title: t('nodeTypes.break'), icon: '⏹️', description: t('nodeTypes.description.break'), 
-            hasInput: true, hasOutput: false,
+            hasInput: true, hasOutput: false, hidden: true,
             parameters: []
         },
         loop_set_variable: { 
             title: t('nodeTypes.loop_set_variable'), icon: '📦', description: t('nodeTypes.description.loop_set_variable'), 
-            hasInput: true, hasOutput: false,
+            hasInput: true, hasOutput: true, hidden: true,
             parameters: [
                 { name: 'variables', label: tl('variables'), type: 'json', defaultValue: '{}', required: true }
             ]
         },
         loop_continue: { 
             title: t('nodeTypes.loop_continue'), icon: '🔄', description: t('nodeTypes.description.loop_continue'), 
-            hasInput: true, hasOutput: false,
+            hasInput: true, hasOutput: false, hidden: true,
             parameters: []
         },
         plugin: { 

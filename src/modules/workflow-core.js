@@ -97,6 +97,18 @@ export class WorkflowCore {
      * @param {object|null} [data] - 节点初始数据
      * @returns {object} 创建的节点对象
      */
+    _getDefaultParameters(type) {
+        const info = this.nodeTypeInfo[type];
+        if (!info || !info.parameters) return {};
+        const defaults = {};
+        info.parameters.forEach(param => {
+            if (param.defaultValue !== undefined) {
+                defaults[param.name] = param.defaultValue;
+            }
+        });
+        return defaults;
+    }
+
     createNode(type, x, y, data = null) {
         const info = this.nodeTypeInfo[type] || { title: t('messages.unknownNode'), icon: '📦', description: '', hasInput: true, hasOutput: true };
         const nodeId = `node_${++this.nodeIdCounter}`;
@@ -108,7 +120,7 @@ export class WorkflowCore {
             y: y,
             title: data?.title || info.title,
             description: data?.description || info.description,
-            parameters: data?.parameters || {},
+            parameters: data?.parameters || this._getDefaultParameters(type),
             inputParams: data?.inputParams || [],
             outputParams: data?.outputParams || [],
             parentId: data?.parentId || null
@@ -369,6 +381,7 @@ export class WorkflowCore {
     selectNode(nodeId) {
         this.selectedNode = nodeId;
         this.selectedEdge = null;
+        this._emitChange('selection');
     }
     
     /**
@@ -378,6 +391,7 @@ export class WorkflowCore {
     selectEdge(edgeId) {
         this.selectedEdge = edgeId;
         this.selectedNode = null;
+        this._emitChange('selection');
     }
     
     /**

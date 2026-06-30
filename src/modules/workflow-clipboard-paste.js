@@ -236,13 +236,14 @@ export function mixinClipboardPaste(clipboard) {
                         containerNodes.push({ containerId: newNode.id, cozeNode: cozeNode });
                         newNode.width = newNode.width || 300;
                         newNode.height = newNode.height || 200;
-                        newNode._skipLayout = true;
+                        // 不要设置 _skipLayout，让 updateContainerSize 自动对齐子节点到左上角并居中
+                        // Coze 给子节点坐标可能有负值，需要自动调整才能正确包裹
 
                         cozeNode.blocks.forEach(blockNode => {
                             if (!blockNode || !blockNode.id) return;
                             const childNode = createNodeFromCoze(blockNode, newNode.id);
                             if (!childNode) return;
-                            // 子节点在容器体内的位置需要相对容器体左上角，加上默认padding
+                            // 子节点在容器体内的位置需要相对容器体左上角
                             childNode.x = (blockNode.meta?.position?.x || 0);
                             childNode.y = (blockNode.meta?.position?.y || 0);
                             this.core.addNode(childNode);
@@ -323,6 +324,22 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         };
                         updateBlockIds(node.parameters.branches);
+                        node.parameters.branches.forEach((branch, i) => {
+                            if (!branch.name) {
+                                let name = '';
+                                if (branch.condition && Array.isArray(branch.condition.conditions) && branch.condition.conditions.length > 0) {
+                                    const firstCond = branch.condition.conditions[0];
+                                    const rightVal = firstCond.right?.input?.value?.content;
+                                    const leftVal = firstCond.left?.input?.value?.content;
+                                    if (rightVal && typeof rightVal === 'string') {
+                                        name = rightVal;
+                                    } else if (leftVal && typeof leftVal === 'string') {
+                                        name = leftVal;
+                                    }
+                                }
+                                branch.name = name || `Branch ${i + 1}`;
+                            }
+                        });
                     }
                 });
 
@@ -452,6 +469,7 @@ export function mixinClipboardPaste(clipboard) {
         const offset = 50;
 
         this.core.batchChanges(() => {
+            const elements = [];
             data.nodes.forEach(node => {
                 const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -469,10 +487,12 @@ export function mixinClipboardPaste(clipboard) {
                 };
 
                 this.core.addNode(newNode);
-                const el = this.ui.node.createElement(newNode);
+                const el = this.ui.node.createElement(newNode, { skipMeasure: true });
+                elements.push({ el, nodeData: newNode });
                 this.ui.canvas.canvasContent.appendChild(el);
                 this.ui.canvas.setEmptyState(false);
             });
+            this.ui.node.batchMeasureElements(elements);
 
             data.edges?.forEach(edge => {
                 const newEdge = {

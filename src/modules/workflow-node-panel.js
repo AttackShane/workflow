@@ -11,6 +11,121 @@ import { mixinParamEditor } from './workflow-param-editor.js';
  * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodePanel(node) {
+
+    const OPERATORS = [
+        { value: 1, label: '==' },
+        { value: 2, label: '!=' },
+        { value: 5, label: '>' },
+        { value: 6, label: '<' },
+        { value: 7, label: '>=' },
+        { value: 8, label: '<=' },
+        { value: 3, label: '包含' },
+        { value: 4, label: '不包含' },
+        { value: 9, label: '为空' },
+        { value: 10, label: '非空' }
+    ];
+
+    const LOGIC_OPTIONS = [
+        { value: 1, label: 'AND' },
+        { value: 2, label: 'OR' }
+    ];
+
+    const OPS_OPTIONS_HTML = OPERATORS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
+    const LOGIC_OPTIONS_HTML = LOGIC_OPTIONS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
+
+    const NEW_COND_ITEM_HTML = '<input type=text class=property-input cond-left placeholder="引用或值">' +
+        '<select class=property-input cond-operator>' + OPS_OPTIONS_HTML + '</select>' +
+        '<input type=text class=property-input cond-right placeholder="引用或值">' +
+        '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.cond-item\').remove()">×</button>';
+
+    const NEW_BRANCH_ITEM_HTML = '<div class=branch-name-row>' +
+        '<input type=text class=property-input branch-name placeholder="分支名称">' +
+        '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.branch-item\').remove()">×</button>' +
+        '</div>' +
+        '<div class=branch-conditions>' +
+        '<div class=cond-logic><label class=cond-label>逻辑</label><select class=property-input cond-logic-select>' + LOGIC_OPTIONS_HTML + '</select></div>' +
+        '<div class=cond-list></div>' +
+        '<button type=button class=btn btn-sm btn-add-cond onclick="window._wfAddCondItem(this)">+ 条件</button>' +
+        '</div>';
+
+    window._wfAddBranchItem = function(listId) {
+        const list = document.getElementById(listId);
+        if (!list) return;
+        const item = document.createElement('div');
+        item.className = 'branch-item';
+        item.dataset.index = list.children.length;
+        item.innerHTML = NEW_BRANCH_ITEM_HTML;
+        list.appendChild(item);
+    };
+
+    window._wfAddCondItem = function(btn) {
+        const list = btn.previousElementSibling;
+        if (!list || !list.classList.contains('cond-list')) return;
+        const item = document.createElement('div');
+        item.className = 'cond-item';
+        item.dataset.condIndex = list.children.length;
+        item.innerHTML = NEW_COND_ITEM_HTML;
+        list.appendChild(item);
+    };
+
+    node._conditionValueToText = function(valueObj) {
+        if (!valueObj || !valueObj.input || !valueObj.input.value) return '';
+        const v = valueObj.input.value;
+        if (v.type === 'ref' && v.content && v.content.blockID) {
+            return '{{' + (v.content.blockID || '') + '.' + (v.content.name || '') + '}}';
+        }
+        if (v.type === 'literal') {
+            return v.content !== undefined ? String(v.content) : '';
+        }
+        return '';
+    };
+
+    node._textToConditionValue = function(text) {
+        const trimmed = text.trim();
+        const match = trimmed.match(/^\{\{([^.}]+)\.([^}]+)\}\}$/);
+        if (match) {
+            return {
+                input: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: {
+                            source: 'block-output',
+                            blockID: match[1],
+                            name: match[2]
+                        }
+                    }
+                }
+            };
+        }
+        return {
+            input: {
+                type: 'string',
+                value: {
+                    type: 'literal',
+                    content: trimmed
+                }
+            }
+        };
+    };
+
+    node._renderConditionItem = function(cond, i) {
+        const leftText = node._conditionValueToText(cond.left);
+        const rightText = node._conditionValueToText(cond.right);
+        const op = cond.operator !== undefined ? cond.operator : 1;
+        let opsHtml = OPERATORS.map(o => {
+            const sel = o.value === op ? ' selected' : '';
+            return `<option value="${o.value}"${sel}>${o.label}</option>`;
+        }).join('');
+
+        return `<div class="cond-item" data-cond-index="${i}">
+            <input type="text" class="property-input cond-left" value="${StringUtils.escapeHtml(leftText)}" placeholder="引用或值">
+            <select class="property-input cond-operator">${opsHtml}</select>
+            <input type="text" class="property-input cond-right" value="${StringUtils.escapeHtml(rightText)}" placeholder="引用或值">
+            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.cond-item').remove()">×</button>
+        </div>`;
+    };
+
     node.renderPropertyPanel = function(targetNode) {
         const selectedNodes = document.querySelectorAll('.canvas-node.selected');
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
@@ -43,7 +158,86 @@ export function mixinNodePanel(node) {
             const safeValue = StringUtils.escapeHtml(String(value ?? ''));
 
             let inputHtml = '';
-            switch (param.type) {
+            if (param.name === 'branches' && targetNode.type === 'condition') {
+                let branches = [];
+                if (Array.isArray(value)) {
+                    branches = value;
+                } else if (typeof value === 'string') {
+                    try { branches = JSON.parse(value); } catch {}
+                }
+                if (!Array.isArray(branches)) branches = [];
+                if (branches.length === 0) {
+                    branches = [{ name: '是', condition: { logic: 1, conditions: [] } }, { name: '否', condition: { logic: 1, conditions: [] } }];
+                }
+                inputHtml = `<div class="branch-list" id="prop_${param.name}">`;
+                branches.forEach((branch, i) => {
+                    const name = (branch && branch.name) ? branch.name : (i === 0 ? 'True' : (i === 1 ? 'False' : `Branch ${i}`));
+                    const cond = (branch && branch.condition) ? branch.condition : { logic: 1, conditions: [] };
+                    const logic = cond.logic !== undefined ? cond.logic : 1;
+                    const conds = Array.isArray(cond.conditions) ? cond.conditions : [];
+                    let logicOptions = LOGIC_OPTIONS.map(o => {
+                        const sel = o.value === logic ? ' selected' : '';
+                        return `<option value="${o.value}"${sel}>${o.label}</option>`;
+                    }).join('');
+                    let condsHtml = conds.map((c, ci) => node._renderConditionItem(c, ci)).join('');
+                    inputHtml += `
+                        <div class="branch-item" data-index="${i}">
+                            <div class="branch-name-row">
+                                <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="分支名称">
+                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.branch-item').remove()">×</button>
+                            </div>
+                            <div class="branch-conditions">
+                                <div class="cond-logic">
+                                    <label class="cond-label">逻辑</label>
+                                    <select class="property-input cond-logic-select">${logicOptions}</select>
+                                </div>
+                                <div class="cond-list">${condsHtml}</div>
+                                <button type="button" class="btn btn-sm btn-add-cond" onclick="window._wfAddCondItem(this)">+ 条件</button>
+                            </div>
+                        </div>`;
+                });
+                inputHtml += `</div>
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="window._wfAddBranchItem('prop_${param.name}')">+ 添加分支</button>`;
+            } else if (param.name === 'options' && targetNode.type === 'question') {
+                let options = [];
+                if (Array.isArray(value)) {
+                    options = value;
+                } else if (typeof value === 'string') {
+                    try { options = JSON.parse(value); } catch {}
+                }
+                if (!Array.isArray(options)) options = [];
+                inputHtml = `<div class="branch-list" id="prop_${param.name}">`;
+                options.forEach((opt, i) => {
+                    const name = typeof opt === 'string' ? opt : (opt.name || opt);
+                    inputHtml += `
+                        <div class="branch-item" data-index="${i}">
+                            <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="选项名称">
+                            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>
+                        </div>`;
+                });
+                inputHtml += `</div>
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="(()=>{const list=document.getElementById('prop_${param.name}');const i=list.children.length;const item=document.createElement('div');item.className='branch-item';item.dataset.index=i;item.innerHTML='<input type=text class=property-input branch-name placeholder=选项名称><button type=button class=btn btn-sm btn-danger onclick=this.parentElement.remove()>×</button>';list.appendChild(item)})()">+ 添加选项</button>`;
+            } else if (param.name === 'categories' && targetNode.type === 'intent') {
+                let categories = [];
+                if (Array.isArray(value)) {
+                    categories = value;
+                } else if (typeof value === 'string') {
+                    try { categories = JSON.parse(value); } catch {}
+                }
+                if (!Array.isArray(categories)) categories = [];
+                inputHtml = `<div class="branch-list" id="prop_${param.name}">`;
+                categories.forEach((cat, i) => {
+                    const name = typeof cat === 'string' ? cat : (cat.name || cat);
+                    inputHtml += `
+                        <div class="branch-item" data-index="${i}">
+                            <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="分类名称">
+                            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>
+                        </div>`;
+                });
+                inputHtml += `</div>
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="(()=>{const list=document.getElementById('prop_${param.name}');const i=list.children.length;const item=document.createElement('div');item.className='branch-item';item.dataset.index=i;item.innerHTML='<input type=text class=property-input branch-name placeholder=分类名称><button type=button class=btn btn-sm btn-danger onclick=this.parentElement.remove()>×</button>';list.appendChild(item)})()">+ 添加分类</button>`;
+            } else {
+                switch (param.type) {
                 case 'string':
                 case 'number':
                     inputHtml = `<input class="property-input" id="prop_${param.name}" type="${param.type}" value="${safeValue}">`;
@@ -76,6 +270,7 @@ export function mixinNodePanel(node) {
                     break;
                 default:
                     inputHtml = `<input class="property-input" id="prop_${param.name}" type="text" value="${safeValue}">`;
+            }
             }
 
             paramsHtml += `
@@ -320,6 +515,7 @@ export function mixinNodePanel(node) {
             targetNode.height = rect.height;
         }
 
+        this._reRenderNode(nodeId);
         this.ui.updateEdges();
 
         document.querySelector('.node-editor-modal').remove();
@@ -361,6 +557,51 @@ export function mixinNodePanel(node) {
             if (!Object.prototype.hasOwnProperty.call(targetNode.parameters, param.name)) {
                 return;
             }
+
+            if ((param.name === 'branches' && targetNode.type === 'condition') ||
+                (param.name === 'options' && targetNode.type === 'question') ||
+                (param.name === 'categories' && targetNode.type === 'intent')) {
+                const list = document.getElementById(`prop_${param.name}`);
+                if (list) {
+                    let values = [];
+                    if (param.name === 'branches' && targetNode.type === 'condition') {
+                        const branchItems = list.querySelectorAll('.branch-item');
+                        values = Array.from(branchItems).map(item => {
+                            const nameInput = item.querySelector('.branch-name');
+                            const name = nameInput ? nameInput.value.trim() : '';
+                            if (!name) return null;
+                            const logicSelect = item.querySelector('.cond-logic-select');
+                            const logic = logicSelect ? parseInt(logicSelect.value) || 1 : 1;
+                            const condItems = item.querySelectorAll('.cond-item');
+                            const conditions = Array.from(condItems).map(ci => {
+                                const leftInput = ci.querySelector('.cond-left');
+                                const rightInput = ci.querySelector('.cond-right');
+                                const opSelect = ci.querySelector('.cond-operator');
+                                const left = leftInput ? node._textToConditionValue(leftInput.value) : { input: { type: 'string', value: { type: 'literal', content: '' } } };
+                                const right = rightInput ? node._textToConditionValue(rightInput.value) : { input: { type: 'string', value: { type: 'literal', content: '' } } };
+                                const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
+                                return { left, operator, right };
+                            }).filter(c => c.left.input.value.content || c.right.input.value.content);
+                            return { name, condition: { logic, conditions } };
+                        }).filter(Boolean);
+                    } else if (param.name === 'options' && targetNode.type === 'question') {
+                        const items = list.querySelectorAll('.branch-name');
+                        values = Array.from(items).map(input => {
+                            const name = input.value.trim();
+                            return name;
+                        }).filter(Boolean);
+                    } else if (param.name === 'categories' && targetNode.type === 'intent') {
+                        const items = list.querySelectorAll('.branch-name');
+                        values = Array.from(items).map(input => {
+                            const name = input.value.trim();
+                            return name;
+                        }).filter(Boolean);
+                    }
+                    targetNode.parameters[param.name] = values;
+                }
+                return;
+            }
+
             const input = document.getElementById(`prop_${param.name}`);
             if (input) {
                 let value;
@@ -385,6 +626,7 @@ export function mixinNodePanel(node) {
         this.saveDynamicParams(targetNode, 'output');
         this.saveMergeGroupVars(targetNode);
 
+        this._reRenderNode(nodeId);
         this.ui.updateEdges();
         this.core.saveHistory(t('actions.editNode'));
         this.ui.showMessage(t('actions.nodeSaved'), 'success');

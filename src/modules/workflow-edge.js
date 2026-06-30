@@ -33,7 +33,7 @@ export class WorkflowEdge {
                 const parent = this.core.nodes.find(n => n.id === node.parentId);
                 if (parent) {
                     absX = (parent.x || 0) + absX;
-                    absY = (parent.y || 0) + 58 + absY;
+                    absY = (parent.y || 0) + 56 + absY;
                 }
             }
             return { x: absX, y: absY };
@@ -125,28 +125,19 @@ export class WorkflowEdge {
      * @param {object} geom - 几何数据（来自 _computeEdgeGeometry）
      */
     _upsertEdgeElements(edge, geom) {
-        const isSelected = document.querySelector(`path[data-edge-id="${edge.id}"].selected`) !== null
-            || this.core.selectedEdge === edge.id;
-
         let path = this.svgLayer.querySelector(`path[data-edge-id="${edge.id}"]`);
         let arrow = this.svgLayer.querySelector(`polygon[data-edge-id="${edge.id}"]`);
         let hitPath = this.svgHitLayer.querySelector(`path[data-edge-id="${edge.id}"]`);
         let label = this.svgLayer.querySelector(`text[data-edge-id="${edge.id}"]`);
 
+        const isSelected = (path && path.classList.contains('selected')) || this.core.selectedEdge === edge.id;
+
         if (path) {
             path.setAttribute('d', geom.d);
-            path.setAttribute('stroke', isSelected ? '#F59E0B' : '#5C62FF');
-            path.setAttribute('stroke-width', isSelected ? '3' : '2');
-            if (isSelected) {
-                path.classList.add('selected');
-            } else {
-                path.classList.remove('selected');
-            }
+            path.classList.toggle('selected', isSelected);
         } else {
             path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             path.setAttribute('d', geom.d);
-            path.setAttribute('stroke', isSelected ? '#F59E0B' : '#5C62FF');
-            path.setAttribute('stroke-width', isSelected ? '3' : '2');
             path.setAttribute('fill', 'none');
             path.setAttribute('data-edge-id', edge.id);
             path.classList.add('workflow-edge');
@@ -156,12 +147,13 @@ export class WorkflowEdge {
 
         if (arrow) {
             arrow.setAttribute('points', geom.arrowPoints);
-            arrow.setAttribute('fill', isSelected ? '#F59E0B' : '#5C62FF');
+            arrow.classList.toggle('selected', isSelected);
         } else {
             arrow = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
             arrow.setAttribute('points', geom.arrowPoints);
-            arrow.setAttribute('fill', isSelected ? '#F59E0B' : '#5C62FF');
             arrow.setAttribute('data-edge-id', edge.id);
+            arrow.classList.add('workflow-edge');
+            if (isSelected) arrow.classList.add('selected');
             this.svgLayer.appendChild(arrow);
         }
 
@@ -209,6 +201,14 @@ export class WorkflowEdge {
      */
     updateAffectedEdges(nodeIds) {
         const affectedSet = new Set(nodeIds);
+        for (const nid of nodeIds) {
+            if (this.core.isContainerNode(nid)) {
+                const children = this.core.getChildNodes(nid);
+                for (const child of children) {
+                    affectedSet.add(child.id);
+                }
+            }
+        }
         const affectedEdges = this.core.edges.filter(e => affectedSet.has(e.source) || affectedSet.has(e.target));
 
         const currentIds = new Set(this.core.edges.map(e => e.id));
