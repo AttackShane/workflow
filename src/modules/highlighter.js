@@ -17,10 +17,10 @@ function highlightLineFast(line, isJson) {
         }
         
         if (isJson) {
-            if (match[1]) {
-                result.push(`<span class="hl-key">"${match[1]}":</span>`);
-            } else if (match[2]) {
-                result.push(`<span class="hl-string">"${match[2]}"</span>`);
+            if (match[1] !== undefined) {
+                result.push(`<span class="hl-key">"${StringUtils.escapeHtml(match[1])}":</span>`);
+            } else if (match[2] !== undefined) {
+                result.push(`<span class="hl-string">"${StringUtils.escapeHtml(match[2])}"</span>`);
             } else if (match[3]) {
                 result.push(`<span class="hl-bool">${match[3]}</span>`);
             } else if (match[4] !== undefined) {
@@ -28,13 +28,13 @@ function highlightLineFast(line, isJson) {
             }
         } else {
             if (match[1] !== undefined) {
-                result.push(`<span class="hl-list">${match[0]}</span>`);
-            } else if (match[2] || match[4]) {
+                result.push(`<span class="hl-list">${StringUtils.escapeHtml(match[0])}</span>`);
+            } else if (match[2] !== undefined || match[4] !== undefined) {
                 const key = match[3] || match[5];
                 result.push(StringUtils.escapeHtml(match[2] || match[4] || ''));
-                result.push(`<span class="hl-key">${key}:</span>`);
-            } else if (match[6]) {
-                result.push(`<span class="hl-string">${match[6]}</span>`);
+                result.push(`<span class="hl-key">${StringUtils.escapeHtml(key)}:</span>`);
+            } else if (match[6] !== undefined) {
+                result.push(`<span class="hl-string">${StringUtils.escapeHtml(match[6])}</span>`);
             } else if (match[7]) {
                 result.push(`<span class="hl-bool">${match[7]}</span>`);
             } else if (match[8] !== undefined) {

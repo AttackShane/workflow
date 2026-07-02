@@ -4,25 +4,6 @@ import path from 'path';
 const SRC_DIR = path.resolve(path.dirname(import.meta.url).replace('file:///', ''), '..');
 const OUTPUT_DIR = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../../dist');
 
-const BASE_MODULES = [
-  'src/config/constants.js',
-  'src/utils/types.js',
-  'src/utils/utils.js',
-  'src/utils/helpers.js',
-  'src/utils/logger.js',
-  'src/utils/refCache.js',
-  'src/i18n/zh-CN.js',
-  'src/i18n/en-US.js',
-  'src/i18n/i18n.js',
-];
-
-const COMPONENT_MODULES = [
-  'src/components/outputMapper.js',
-  'src/components/inputMapper.js',
-  'src/components/containerHandler.js',
-  'src/components/nodeHandlers.js',
-];
-
 function scanDependencies(entryFile) {
   const visited = new Set();
   const ordered = [];
@@ -39,12 +20,14 @@ function scanDependencies(entryFile) {
     const patterns = [
       /import\s+(?:.+\s+from\s+)?['"](\.\/[^'"]+|\.\.\/[^'"]+)['"]/g,
       /import\(['"](\.\/[^'"]+|\.\.\/[^'"]+)['"]\)/g,
+      /import\(`([^`]+)`\)/g,
     ];
 
     for (const regex of patterns) {
       let match;
       while ((match = regex.exec(code)) !== null) {
-        const importPath = match[1];
+        let importPath = match[1];
+        importPath = importPath.replace(/\?.*$/, '');
         const resolved = path.resolve(path.dirname(fullPath), importPath);
         if (!resolved.endsWith('.js')) continue;
         const relative = path.relative(SRC_DIR, resolved).replace(/\\/g, '/');
@@ -59,11 +42,7 @@ function scanDependencies(entryFile) {
   return ordered;
 }
 
-const converterModules = [
-  ...BASE_MODULES,
-  ...COMPONENT_MODULES,
-  ...scanDependencies('src/modules/app.js'),
-];
+const converterModules = scanDependencies('src/modules/app.js');
 
 const EDITOR_EXCLUDE = new Set([
   'converter.js', 'reverse.js', 'highlighter.js', 'highlighter-worker.js',
@@ -71,16 +50,9 @@ const EDITOR_EXCLUDE = new Set([
   'converter-keyboard.js', 'graph-view.js', 'virtual-scroll.js', 'converter-history.js',
 ]);
 
-const editorModules = [
-  ...BASE_MODULES,
-  ...COMPONENT_MODULES,
-  ...scanDependencies('src/modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m))),
-];
+const editorModules = scanDependencies('src/modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m)));
 
-const managerModules = [
-  ...BASE_MODULES,
-  ...scanDependencies('src/modules/workflow-manager.js'),
-];
+const managerModules = scanDependencies('src/modules/workflow-manager.js');
 
 function stripMultilineImports(code) {
   const lines = code.split('\n');

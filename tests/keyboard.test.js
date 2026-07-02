@@ -38,7 +38,42 @@ function setupMockDom(activeElementTag = 'BODY') {
     global.document = {
         activeElement: { tagName: activeElementTag, isContentEditable: false },
         querySelector: jest.fn(() => null),
-        addEventListener: jest.fn()
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        body: { style: {} }
+    };
+    global.window = {
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        location: { pathname: '/editor' }
+    };
+    global.sessionStorage = {
+        getItem: jest.fn(() => null),
+        setItem: jest.fn(),
+        removeItem: jest.fn()
+    };
+}
+
+function setupMockDOM() {
+    const mockNavConverterBtn = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    const mockNavManagerBtn = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
+    global.document.getElementById = jest.fn((id) => {
+        if (id === 'navConverterBtn') return mockNavConverterBtn;
+        if (id === 'navManagerBtn') return mockNavManagerBtn;
+        return null;
+    });
+    global.DOM = {
+        on: jest.fn(),
+        off: jest.fn(),
+        get: jest.fn((id) => {
+            if (id === 'navConverterBtn') return mockNavConverterBtn;
+            if (id === 'navManagerBtn') return mockNavManagerBtn;
+            return null;
+        }),
+        create: jest.fn(() => ({ style: {} })),
+        addClass: jest.fn(),
+        removeClass: jest.fn(),
+        setStyle: jest.fn()
     };
 }
 
@@ -286,6 +321,90 @@ describe('WorkflowKeyboard', () => {
             expect(mockUI.history.undo).not.toHaveBeenCalled();
             expect(mockUI.history.redo).not.toHaveBeenCalled();
             expect(mockUI.quickSave).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('setupEventListeners', () => {
+        it('should bind keydown handler', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+
+            expect(global.document.addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
+        });
+
+        it('should bind navConverterBtn click', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+
+            const navBtn = global.document.getElementById('navConverterBtn');
+            expect(navBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        it('should bind navManagerBtn click', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+
+            const navBtn = global.document.getElementById('navManagerBtn');
+            expect(navBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        it('should bind beforeunload', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+
+            expect(global.window.addEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+        });
+
+        it('should trigger navConverterBtn handler to clear sessionStorage', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+
+            const navBtn = global.document.getElementById('navConverterBtn');
+            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            handler();
+
+            expect(global.sessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
+        });
+    });
+
+    describe('destroy', () => {
+        it('should remove keydown handler', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+            keyboard.destroy();
+
+            expect(global.document.removeEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
+        });
+
+        it('should remove navConverterBtn handler', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+            keyboard.destroy();
+
+            const navBtn = global.document.getElementById('navConverterBtn');
+            expect(navBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        it('should remove navManagerBtn handler', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+            keyboard.destroy();
+
+            const navBtn = global.document.getElementById('navManagerBtn');
+            expect(navBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+        });
+
+        it('should remove beforeunload handler', () => {
+            setupMockDOM();
+            keyboard.setupEventListeners();
+            keyboard.destroy();
+
+            expect(global.window.removeEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+        });
+
+        it('should handle destroy when handlers are null', () => {
+            keyboard.destroy();
+            expect(keyboard._keydownHandler).toBeNull();
         });
     });
 });

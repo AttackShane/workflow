@@ -231,7 +231,7 @@ class GraphView {
                         <pattern id="grid-${uniqueId}" width="24" height="24" patternUnits="userSpaceOnUse">
                             <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(100, 116, 139, 0.15)" stroke-width="0.5"/>
                         </pattern>
-                        <filter id="nodeShadow-${uniqueId}" x="-20%" y="-20%" width="140%" height="140%">
+                    </defs>
                     <rect width="100%" height="100%" fill="url(#grid-${uniqueId})"/>
                     ${edgesSvg}
                     ${nodesSvg}

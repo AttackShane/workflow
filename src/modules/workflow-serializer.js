@@ -63,6 +63,42 @@ export function mixinSerializer(core) {
                     };
                     if (childNodeData.icon) child.icon = childNodeData.icon;
                     this.nodes.push(child);
+
+                    // Remap blockID for child loop_set_variable
+                    if (child.type === 'loop_set_variable' && Array.isArray(child.parameters?.variables)) {
+                        child.parameters.variables.forEach(v => {
+                            if (v.left?.value?.content?.blockID && typeof v.left.value.content.blockID === 'string') {
+                                const newBlockId = nodeIdMap.get(Number(v.left.value.content.blockID));
+                                if (newBlockId) {
+                                    v.left.value.content.blockID = newBlockId;
+                                }
+                            }
+                            if (v.right?.value?.content?.blockID && typeof v.right.value.content.blockID === 'string') {
+                                const newBlockId = nodeIdMap.get(Number(v.right.value.content.blockID));
+                                if (newBlockId) {
+                                    v.right.value.content.blockID = newBlockId;
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Remap blockID for loop_set_variable variables
+            if (node.type === 'loop_set_variable' && Array.isArray(node.parameters.variables)) {
+                node.parameters.variables.forEach(v => {
+                    if (v.left?.value?.content?.blockID && typeof v.left.value.content.blockID === 'string') {
+                        const newBlockId = nodeIdMap.get(Number(v.left.value.content.blockID));
+                        if (newBlockId) {
+                            v.left.value.content.blockID = newBlockId;
+                        }
+                    }
+                    if (v.right?.value?.content?.blockID && typeof v.right.value.content.blockID === 'string') {
+                        const newBlockId = nodeIdMap.get(Number(v.right.value.content.blockID));
+                        if (newBlockId) {
+                            v.right.value.content.blockID = newBlockId;
+                        }
+                    }
                 });
             }
 
@@ -266,6 +302,10 @@ export function mixinSerializer(core) {
                 newNode.parentId = parentId;
                 newNode.x = (cozeNode.meta?.position?.x || 0);
                 newNode.y = (cozeNode.meta?.position?.y || 0);
+            }
+
+            if (cozeNode.inputParams && Array.isArray(cozeNode.inputParams)) {
+                newNode.inputParams = deepClone(cozeNode.inputParams);
             }
 
             this.nodes.push(newNode);

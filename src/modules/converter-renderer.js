@@ -64,15 +64,6 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     const totalHeight = originalLineCount * lineHeight;
     lineNumbersContent.style.height = totalHeight + 'px';
 
-    const fragment = document.createDocumentFragment();
-    for (let i = 0; i < originalLineCount; i++) {
-        const div = document.createElement('div');
-        div.className = 'line-numbers-line';
-        fragment.appendChild(div);
-    }
-    lineNumbersContent.innerHTML = '';
-    lineNumbersContent.appendChild(fragment);
-
     if (ctrl._highlightCache.has(contentKey)) {
         const cached = getFromCache(ctrl._highlightCache, contentKey);
         ctrl._virtualScroll.setContent(cached, originalLineCount);

@@ -171,7 +171,6 @@ class UIController {
 
         try {
             const trimmedInput = input.trimStart();
-
             const isJsonLike = trimmedInput.startsWith('{') || trimmedInput.startsWith('[');
 
             if (isJsonLike) {

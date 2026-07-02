@@ -41,13 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const h1Element = document.querySelector('h1');
     const h1Text = h1Element ? h1Element.textContent.toLowerCase() : '';
     
+    const _v = Date.now();
     if (h1Text && (h1Text.includes('转换器') || h1Text.includes('converter'))) {
-        import('./ui-controller.js').then(m => m.initUI()).catch(e => { console.error('加载 UI 控制器失败:', e); showErrorBanner('页面功能加载失败，请刷新页面重试'); });
-        import('./converter-keyboard.js').then(m => m.initKeyboardShortcuts()).catch(e => { console.error('加载键盘快捷键失败:', e); showErrorBanner('快捷键功能加载失败，请刷新页面重试'); });
-        import('./stats-view.js').then(m => m.initHistoryPanel()).catch(e => console.error('加载统计视图失败:', e));
-        import('./graph-view.js').then(m => m.initGraphModal()).catch(e => console.error('加载图形视图失败:', e));
+        import(`./ui-controller.js?v=${_v}`).then(m => m.initUI()).catch(e => { console.error('加载 UI 控制器失败:', e); showErrorBanner('页面功能加载失败，请刷新页面重试'); });
+        import(`./converter-keyboard.js?v=${_v}`).then(m => m.initKeyboardShortcuts()).catch(e => { console.error('加载键盘快捷键失败:', e); showErrorBanner('快捷键功能加载失败，请刷新页面重试'); });
+        import(`./stats-view.js?v=${_v}`).then(m => m.initHistoryPanel()).catch(e => console.error('加载统计视图失败:', e));
+        import(`./graph-view.js?v=${_v}`).then(m => m.initGraphModal()).catch(e => console.error('加载图形视图失败:', e));
     } else if (h1Text && (h1Text.includes('工作流管理') || h1Text.includes('workflow manager'))) {
-        import('./workflow-manager.js').then(m => {
+        import(`./workflow-manager.js?v=${_v}`).then(m => {
             const manager = new m.WorkflowManager();
             manager.init();
         }).catch(e => { console.error('加载工作流管理器失败:', e); showErrorBanner('工作流管理器加载失败，请刷新页面重试'); });
