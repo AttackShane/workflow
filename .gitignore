@@ -50,6 +50,7 @@ coverage/
 
 # Test output files
 test_output.txt
+coverage_output.txt
 test_results.json
 jest_output.txt
 jest_result.txt
