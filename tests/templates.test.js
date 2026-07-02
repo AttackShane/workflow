@@ -1,7 +1,7 @@
 /**
  * 工作流模板库测试
  */
-import { WORKFLOW_TEMPLATES } from '../src/modules/templates.js';
+import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from '../src/modules/templates.js';
 
 describe('Workflow Templates', () => {
     describe('template structure', () => {
@@ -103,6 +103,81 @@ describe('Workflow Templates', () => {
             expect(tpl).toBeDefined();
             const hasParentId = tpl.nodes.some(n => n.parentId);
             expect(hasParentId).toBe(true);
+        });
+    });
+
+    describe('resolveTemplateI18n', () => {
+        const mockT = jest.fn(key => {
+            const map = {
+                'templates.tpl_welcome.name': '欢迎模板',
+                'templates.tpl_welcome.description': '快速开始',
+                'templates.tpl_welcome.nodes.start.title': '开始',
+                'templates.tpl_welcome.nodes.start.desc': '开始节点',
+                'templates.tpl_welcome.nodes.llm.title': 'AI助手',
+                'templates.tpl_welcome.nodes.llm.desc': '大模型',
+                'templates.tpl_welcome.nodes.end.title': '结束',
+                'templates.tpl_welcome.nodes.end.desc': '结束节点',
+                'templates.categories.basic': '基础'
+            };
+            return map[key] || key;
+        });
+
+        it('should resolve template name and description', () => {
+            const tpl = WORKFLOW_TEMPLATES.find(t => t.id === 'tpl_welcome');
+            const resolved = resolveTemplateI18n(tpl, mockT);
+            expect(resolved.name).toBe('欢迎模板');
+            expect(resolved.description).toBe('快速开始');
+            expect(resolved.category).toBe('基础');
+        });
+
+        it('should resolve node titles and descriptions', () => {
+            const tpl = WORKFLOW_TEMPLATES.find(t => t.id === 'tpl_welcome');
+            const resolved = resolveTemplateI18n(tpl, mockT);
+            expect(resolved.nodes[0].title).toBe('开始');
+            expect(resolved.nodes[0].description).toBe('开始节点');
+            expect(resolved.nodes[1].title).toBe('AI助手');
+            expect(resolved.nodes[1].description).toBe('大模型');
+            expect(resolved.nodes[2].title).toBe('结束');
+            expect(resolved.nodes[2].description).toBe('结束节点');
+        });
+
+        it('should fallback to original key when t() returns falsy', () => {
+            const tpl = { ...WORKFLOW_TEMPLATES[0], name: 'unknown.key' };
+            const emptyT = jest.fn(() => '');
+            const resolved = resolveTemplateI18n(tpl, emptyT);
+            expect(resolved.name).toBe('unknown.key');
+        });
+
+        it('should not mutate original template', () => {
+            const tpl = WORKFLOW_TEMPLATES[0];
+            const originalName = tpl.name;
+            resolveTemplateI18n(tpl, mockT);
+            expect(tpl.name).toBe(originalName);
+        });
+
+        it('should preserve non-i18n fields', () => {
+            const tpl = WORKFLOW_TEMPLATES.find(t => t.id === 'tpl_welcome');
+            const resolved = resolveTemplateI18n(tpl, mockT);
+            expect(resolved.id).toBe(tpl.id);
+            expect(resolved.icon).toBe(tpl.icon);
+            expect(resolved.nodes).toHaveLength(tpl.nodes.length);
+            expect(resolved.edges).toEqual(tpl.edges);
+        });
+
+        it('should handle fallback for unknown keys', () => {
+            const customTpl = {
+                id: 'custom',
+                name: 'unknown.template.name',
+                description: 'unknown.template.desc',
+                category: 'unknown.category',
+                nodes: [{ id: 'n1', title: 'unknown.node.title', description: 'unknown.node.desc' }],
+                edges: []
+            };
+            const t = jest.fn(() => null);
+            const resolved = resolveTemplateI18n(customTpl, t);
+            expect(resolved.name).toBe('unknown.template.name');
+            expect(resolved.description).toBe('unknown.template.desc');
+            expect(resolved.nodes[0].title).toBe('unknown.node.title');
         });
     });
 });
