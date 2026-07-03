@@ -362,6 +362,7 @@ export const zhCN = {
     },
     nodeParams: {
         inputVariables: '输入变量',
+        branches: '分支列表',
         description: '描述',
         imagePrompt: '描述词',
         outputVariable: '输出变量',
@@ -574,7 +575,8 @@ export const zhCN = {
         clickToSelect: '点击选择',
         variables: '变量设置',
         leftVariable: '目标变量',
-        rightValue: '新值'
+        rightValue: '新值',
+        intermediateVariables: '中间变量'
     },
     actions: {
         addNode: '添加节点: {type}',

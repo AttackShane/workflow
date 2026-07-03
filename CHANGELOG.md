@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.4.3 - 2026-07-03
+
+### 问答/选择器节点输出连接点缩放后布局修复
+
+- **根因**：`batchMeasureElements` 使用 `getBoundingClientRect()` 测量节点尺寸，该方法返回视觉坐标（含 CSS transform 缩放），导致 `nodeData.height` 被放大。后续 `_applyMeasurement` 基于错误的 `height` 计算分支端口 `top` 位置，`centerView()` 重置缩放后布局异常
+- **修复**：`getBoundingClientRect()` 返回值除以 `canvasScale`，确保分支端口始终基于节点真实 CSS 像素高度计算
+
+### 连接点过渡动画优化
+
+- **根因**：`.connection-point` 的 `transition: all 0.2s` 导致 `_applyMeasurement` 更新分支端口 `top` 值时产生回弹动画
+- **修复**：`transition` 从 `all` 改为仅对 `transform`、`border-color`、`background` 过渡，排除 `top` 属性
+
+### 容器内子节点连线可选中
+
+- **根因**：`canvas-content`（z-index: 20）在 `svg-hit-layer`（z-index: 15）上层，`.canvas-node.container` 的 `pointer-events: auto` 拦截了容器内部连线点击，事件无法到达 hit layer
+- **修复**：`.canvas-node.container` 设置 `pointer-events: none`，`.node-header` 显式恢复 `pointer-events: auto`；子节点和连接点自身已有 `pointer-events: auto`，不受影响
+
+### 容器内框选修复
+
+- **根因**：`pointer-events: none` 后 `e.target.closest('.container-body')` 失效，容器内框选退化为普通框选，错误选中容器本身
+- **修复**：`onCanvasMouseDown` 新增坐标检测：遍历容器元素，用 `getBoundingClientRect()` 判断点击是否落在容器 body 区域，命中则按容器内框选处理
+
+### 多选系统键位统一
+
+- **边点击**：`ctrlKey/metaKey` 改为 `shiftKey`，与整个多选系统保持一致
+- **移除冗余**：`isMultiSelectMode` 判断已由 `select()` 方法内部处理，点击处无需重复判断
+
 ## v1.4.2 - 2026-06-30
 
 ### loop_set_variable 节点完整修复

@@ -117,12 +117,16 @@ export class WorkflowClipboard {
                     if (output.schema && typeof output.schema === 'object') {
                         outEntry.schema = output.schema;
                     } else if (output.properties) {
-                        outEntry.schema = Object.entries(output.properties).map(([propName, prop]) => ({
-                            name: propName,
-                            type: prop.type || 'string',
-                            required: prop.required === true,
-                            description: prop.description || ''
-                        }));
+                        if (Array.isArray(output.properties)) {
+                            outEntry.schema = output.properties;
+                        } else {
+                            outEntry.schema = Object.entries(output.properties).map(([propName, prop]) => ({
+                                name: propName,
+                                type: prop.type || 'string',
+                                required: prop.required === true,
+                                description: prop.description || ''
+                            }));
+                        }
                     }
                     if (output.input && typeof output.input === 'object') {
                         outEntry.input = output.input;
@@ -166,21 +170,41 @@ export class WorkflowClipboard {
             // 写入动态出参
             if (node.outputParams && Array.isArray(node.outputParams)) {
                 node.outputParams.forEach(p => {
+                    const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
                     const exists = cozeNode.data.outputs.find(o => o.name === p.name);
                     if (exists) {
-                        if (p.value && p.value !== '') {
+                        if (isRef && !exists.input) {
+                            exists.input = {
+                                type: p.type || 'string',
+                                value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
+                            };
+                            delete exists.defaultValue;
+                        } else if (!isRef && p.value && p.value !== '') {
                             exists.defaultValue = p.value;
                         }
                     } else {
-                        const outEntry = {
-                            name: p.name,
-                            type: p.type || 'string',
-                            description: p.description || ''
-                        };
-                        if (p.value && p.value !== '') {
-                            outEntry.defaultValue = p.value;
+                        if (isRef) {
+                            const outEntry = {
+                                name: p.name,
+                                type: p.type || 'string',
+                                description: p.description || '',
+                                input: {
+                                    type: p.type || 'string',
+                                    value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
+                                }
+                            };
+                            cozeNode.data.outputs.push(outEntry);
+                        } else {
+                            const outEntry = {
+                                name: p.name,
+                                type: p.type || 'string',
+                                description: p.description || ''
+                            };
+                            if (p.value && p.value !== '') {
+                                outEntry.defaultValue = p.value;
+                            }
+                            cozeNode.data.outputs.push(outEntry);
                         }
-                        cozeNode.data.outputs.push(outEntry);
                     }
                 });
             }
@@ -352,6 +376,10 @@ export class WorkflowClipboard {
                     cozeNode.data.inputs.llmParam = llmParams;
                     cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
                     cozeNode.data.inputs.settingOnError = flatParams.settingOnError || { switch: false, processType: 1, timeoutMs: 600000, retryTimes: 0 };
+                    // 写入分支信息到 data.branches（Coze需要这个才能识别分支输出端口）
+                    if (flatParams.branches && Array.isArray(flatParams.branches)) {
+                        cozeNode.data.branches = deepClone(flatParams.branches);
+                    }
                 } else if (type === 'end') {
                     if (node.parameters._contentRaw) {
                         cozeNode.data.inputs.content = node.parameters._contentRaw;
@@ -455,25 +483,42 @@ export class WorkflowClipboard {
             const sourceIsChild = childNodeIds.has(e.source);
             const targetIsChild = childNodeIds.has(e.target);
             
-            if ((sourceInContainer && targetIsChild) || (sourceIsChild && targetInContainer) || (sourceIsChild && targetIsChild)) {
-                let containerId = null;
-                if (sourceInContainer) containerId = e.source;
-                else if (targetInContainer) containerId = e.target;
-                else {
-                    const childNode = this.core.nodes.find(n => n.id === e.source);
-                    containerId = childNode ? childNode.parentId : null;
+            let putInContainer = false;
+            let containerId = null;
+            
+            if (sourceIsChild && targetIsChild) {
+                const sourceNode = this.core.nodes.find(n => n.id === e.source);
+                containerId = sourceNode?.parentId;
+                putInContainer = !!containerId;
+            } else if ((sourceInContainer && targetIsChild) || (sourceIsChild && targetInContainer)) {
+                if (sourceInContainer) {
+                    containerId = e.source;
+                    const targetNode = this.core.nodes.find(n => n.id === e.target);
+                    if (targetNode?.parentId === containerId) {
+                        putInContainer = true;
+                    }
+                } else if (targetInContainer) {
+                    containerId = e.target;
+                    const sourceNode = this.core.nodes.find(n => n.id === e.source);
+                    if (sourceNode?.parentId === containerId) {
+                        putInContainer = true;
+                    }
                 }
-                
-                if (containerId) {
-                    if (!containerEdges[containerId]) containerEdges[containerId] = [];
-                    const edgeData = {
-                        sourceNodeID: e.source.replace('node_', ''),
-                        targetNodeID: e.target.replace('node_', ''),
-                        ...(e.sourcePort && { sourcePortID: containerPortMap[e.sourcePort] || e.sourcePort }),
-                        ...(e.targetPort && { targetPortID: containerPortMap[e.targetPort] || e.targetPort })
-                    };
-                    containerEdges[containerId].push(edgeData);
-                }
+            }
+            
+            if (putInContainer && containerId) {
+                if (!containerEdges[containerId]) containerEdges[containerId] = [];
+                const sourceNode = this.core.nodes.find(n => n.id === e.source);
+                const targetNode = this.core.nodes.find(n => n.id === e.target);
+                const rawSourcePort = containerPortMap[e.sourcePort] || e.sourcePort;
+                const rawTargetPort = containerPortMap[e.targetPort] || e.targetPort;
+                const edgeData = {
+                    sourceNodeID: e.source.replace('node_', ''),
+                    targetNodeID: e.target.replace('node_', ''),
+                    ...(rawSourcePort && { sourcePortID: this._convertPortToCoze(rawSourcePort, sourceNode) }),
+                    ...(rawTargetPort && { targetPortID: this._convertPortToCoze(rawTargetPort, targetNode) })
+                };
+                containerEdges[containerId].push(edgeData);
             } else {
                 globalEdges.push(e);
             }
@@ -526,20 +571,23 @@ export class WorkflowClipboard {
                     const childBlock = cn.blocks?.find(b => b.id === childBlockId);
                     if (childBlock && childBlock.data?.outputs?.length > 0) {
                         const outputName = childBlock.data.outputs[0].name;
-                        cn.data.outputs = cn.data.outputs.map(o => ({
-                            ...o,
-                            input: {
-                                type: o.type || 'list',
-                                value: {
-                                    type: 'ref',
-                                    content: {
-                                        source: 'block-output',
-                                        blockID: childBlockId,
-                                        name: outputName
-                                    }
+                        if (cn.data.outputs && cn.data.outputs.length > 0) {
+                            cn.data.outputs.forEach(o => {
+                                if (!o.input) {
+                                    o.input = {
+                                        type: o.type || 'list',
+                                        value: {
+                                            type: 'ref',
+                                            content: {
+                                                source: 'block-output',
+                                                blockID: childBlockId,
+                                                name: outputName
+                                            }
+                                        }
+                                    };
                                 }
-                            }
-                        }));
+                            });
+                        }
                     }
                 }
             }
@@ -556,12 +604,24 @@ export class WorkflowClipboard {
             },
             json: {
                 nodes: topLevelCozeNodes,
-                edges: globalEdges.map(e => ({
-                    sourceNodeID: e.source.replace('node_', ''),
-                    targetNodeID: e.target.replace('node_', ''),
-                    ...(e.sourcePort && { sourcePortID: e.sourcePort }),
-                    ...(e.targetPort && { targetPortID: e.targetPort })
-                }))
+                edges: globalEdges.map(e => {
+                    let sourcePortID = e.sourcePort;
+                    let targetPortID = e.targetPort;
+                    if (sourcePortID) {
+                        const sourceNode = this.core.nodes.find(n => n.id === e.source);
+                        sourcePortID = this._convertPortToCoze(sourcePortID, sourceNode);
+                    }
+                    if (targetPortID) {
+                        const targetNode = this.core.nodes.find(n => n.id === e.target);
+                        targetPortID = this._convertPortToCoze(targetPortID, targetNode);
+                    }
+                    return {
+                        sourceNodeID: e.source.replace('node_', ''),
+                        targetNodeID: e.target.replace('node_', ''),
+                        ...(sourcePortID && { sourcePortID }),
+                        ...(targetPortID && { targetPortID })
+                    };
+                })
             },
             bounds: {
                 x: minX - 100,
@@ -591,6 +651,20 @@ export class WorkflowClipboard {
         if (!await ClipboardUtils.copy(JSON.stringify(copyData, null, 2))) {
             this.copiedNode = copyData;
         }
+    }
+
+    _convertPortToCoze(port, node) {
+        if (!port || !node || node.type !== 'condition') return port;
+        const branches = node.parameters?.branches;
+        if (!Array.isArray(branches) || branches.length === 0) return port;
+        if (port.startsWith('branch_')) {
+            const idx = parseInt(port.replace('branch_', ''), 10);
+            if (isNaN(idx) || idx < 0 || idx >= branches.length) return port;
+            if (idx === branches.length - 1) return 'false';
+            if (idx === 0) return 'true';
+            return `true_${idx}`;
+        }
+        return port;
     }
 
     async paste() {

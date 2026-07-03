@@ -33,11 +33,6 @@ export function mixinNodePanel(node) {
     const OPS_OPTIONS_HTML = OPERATORS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
     const LOGIC_OPTIONS_HTML = LOGIC_OPTIONS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
 
-    const NEW_COND_ITEM_HTML = '<input type=text class=property-input cond-left placeholder="引用或值">' +
-        '<select class=property-input cond-operator>' + OPS_OPTIONS_HTML + '</select>' +
-        '<input type=text class=property-input cond-right placeholder="引用或值">' +
-        '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.cond-item\').remove()">×</button>';
-
     const NEW_BRANCH_ITEM_HTML = '<div class=branch-name-row>' +
         '<input type=text class=property-input branch-name placeholder="分支名称">' +
         '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.branch-item\').remove()">×</button>' +
@@ -61,10 +56,29 @@ export function mixinNodePanel(node) {
     node._wfAddCondItem = function(btn) {
         const list = btn.previousElementSibling;
         if (!list || !list.classList.contains('cond-list')) return;
+        const branchItem = btn.closest('.branch-item');
+        const branchIndex = branchItem ? parseInt(branchItem.dataset.index, 10) : 0;
+        const selectedEl = document.querySelector('.canvas-node.selected');
+        const nodeId = selectedEl ? selectedEl.dataset.nodeId : '';
+        const condIndex = list.children.length;
         const item = document.createElement('div');
         item.className = 'cond-item';
-        item.dataset.condIndex = list.children.length;
-        item.innerHTML = NEW_COND_ITEM_HTML;
+        item.dataset.condIndex = condIndex;
+        item.innerHTML = '<div class=cond-item-header>' +
+            '<span class=cond-item-title>条件</span>' +
+            '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.cond-item\').remove()">×</button>' +
+            '</div>' +
+            '<div class=cond-row><span class=cond-label>左值</span><div class=cond-side>' +
+            '<input type=text class=property-input cond-left placeholder="引用或值">' +
+            '<button class=btn btn-sm style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
+            'onclick="workflowUI.node.openConditionRefSelector(\'' + nodeId + '\',' + branchIndex + ',' + condIndex + ',\'left\')" title="选择引用">🔗</button>' +
+            '</div></div>' +
+            '<div class=cond-row><span class=cond-label>运算符</span><select class=property-input cond-operator>' + OPS_OPTIONS_HTML + '</select></div>' +
+            '<div class=cond-row><span class=cond-label>右值</span><div class=cond-side>' +
+            '<input type=text class=property-input cond-right placeholder="引用或值">' +
+            '<button class=btn btn-sm style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
+            'onclick="workflowUI.node.openConditionRefSelector(\'' + nodeId + '\',' + branchIndex + ',' + condIndex + ',\'right\')" title="选择引用">🔗</button>' +
+            '</div></div>';
         list.appendChild(item);
     };
 
@@ -81,48 +95,82 @@ export function mixinNodePanel(node) {
     };
 
     node._textToConditionValue = function(text) {
-        const trimmed = text.trim();
-        const match = trimmed.match(/^\{\{([^.}]+)\.([^}]+)\}\}$/);
-        if (match) {
+        if (!text) return { input: { type: 'string', value: { type: 'literal', content: '' } } };
+        const refMatch = text.match(/^\{\{(.+?)\.(.+?)\}\}$/);
+        if (refMatch) {
             return {
                 input: {
                     type: 'string',
                     value: {
                         type: 'ref',
                         content: {
-                            source: 'block-output',
-                            blockID: match[1],
-                            name: match[2]
+                            blockID: refMatch[1],
+                            name: refMatch[2]
                         }
                     }
                 }
             };
         }
         return {
-            input: {
-                type: 'string',
-                value: {
-                    type: 'literal',
-                    content: trimmed
-                }
-            }
+            input: { type: 'string', value: { type: 'literal', content: text } }
         };
     };
 
-    node._renderConditionItem = function(cond, i) {
+    node._conditionRefDisplay = function(valueObj) {
+        if (!valueObj || !valueObj.input || !valueObj.input.value) return '';
+        const v = valueObj.input.value;
+        if (v.type === 'ref' && v.content && v.content.blockID) {
+            const srcNode = this.core.nodes.find(n => n.id === v.content.blockID);
+            const nodeName = srcNode ? (srcNode.title || srcNode.id) : v.content.blockID;
+            return `${nodeName} → ${v.content.name || 'output'}`;
+        }
+        return '';
+    };
+
+    node._renderConditionItem = function(cond, i, branchIndex, nodeId) {
         const leftText = node._conditionValueToText(cond.left);
         const rightText = node._conditionValueToText(cond.right);
+        const leftIsRef = cond.left?.input?.value?.type === 'ref';
+        const rightIsRef = cond.right?.input?.value?.type === 'ref';
+        const leftRefDisplay = leftIsRef ? node._conditionRefDisplay(cond.left) : '';
+        const rightRefDisplay = rightIsRef ? node._conditionRefDisplay(cond.right) : '';
         const op = cond.operator !== undefined ? cond.operator : 1;
         let opsHtml = OPERATORS.map(o => {
             const sel = o.value === op ? ' selected' : '';
             return `<option value="${o.value}"${sel}>${o.label}</option>`;
         }).join('');
 
+        const renderSide = (side, text, isRef, refDisplay, label) => {
+            return `<div class="cond-row">
+                <span class="cond-label">${label}</span>
+                <div class="cond-side">
+                    <input type="text" class="property-input cond-${side}" value="${StringUtils.escapeHtml(text)}" 
+                           placeholder="引用或值" ${isRef ? 'disabled style="display:none;"' : ''}>
+                    <span class="cond-${side}-ref-display" 
+                          style="display:${isRef ? 'block' : 'none'}; flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                          onclick="workflowUI.node.openConditionRefSelector('${nodeId}', ${branchIndex}, ${i}, '${side}')"
+                          title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
+                    <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                            onclick="workflowUI.node.openConditionRefSelector('${nodeId}', ${branchIndex}, ${i}, '${side}')" 
+                            title="选择引用">🔗</button>
+                    ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                            onclick="workflowUI.node.clearConditionRef('${nodeId}', ${branchIndex}, ${i}, '${side}')" 
+                            title="清除引用">×</button>` : ''}
+                </div>
+            </div>`;
+        };
+
         return `<div class="cond-item" data-cond-index="${i}">
-            <input type="text" class="property-input cond-left" value="${StringUtils.escapeHtml(leftText)}" placeholder="引用或值">
-            <select class="property-input cond-operator">${opsHtml}</select>
-            <input type="text" class="property-input cond-right" value="${StringUtils.escapeHtml(rightText)}" placeholder="引用或值">
-            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.cond-item').remove()">×</button>
+            <div class="cond-item-header">
+                <span class="cond-item-title">条件 ${i + 1}</span>
+                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.cond-item').remove()">×</button>
+            </div>
+            ${renderSide('left', leftText, leftIsRef, leftRefDisplay, '左值')}
+            <div class="cond-row">
+                <span class="cond-label">运算符</span>
+                <select class="property-input cond-operator">${opsHtml}</select>
+            </div>
+            ${renderSide('right', rightText, rightIsRef, rightRefDisplay, '右值')}
         </div>`;
     };
 
@@ -136,12 +184,27 @@ export function mixinNodePanel(node) {
             return;
         }
 
-        if (!targetNode.outputParams || targetNode.outputParams.length === 0) {
+        if (targetNode.outputParams === undefined) {
+            targetNode.outputParams = [];
             if (targetNode.parameters?.node_outputs && typeof targetNode.parameters.node_outputs === 'object') {
                 targetNode.outputParams = this._paramsFromNodeOutputs(targetNode.parameters.node_outputs);
             }
+        } else if (targetNode.parameters?.node_outputs && typeof targetNode.parameters.node_outputs === 'object') {
+            // 同步 node_outputs 中的引用信息到 outputParams（outputParams 的 value 可能为空）
+            targetNode.outputParams.forEach(p => {
+                const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+                if (!isRef && p.name && targetNode.parameters.node_outputs[p.name]?.input?.value?.type === 'ref') {
+                    const od = targetNode.parameters.node_outputs[p.name];
+                    p.value = { type: 'ref', content: od.input.value.content };
+                    p.valueType = 'ref';
+                    if (od.input.value.rawMeta) {
+                        p.rawMeta = od.input.value.rawMeta;
+                    }
+                }
+            });
         }
-        if (!targetNode.inputParams || targetNode.inputParams.length === 0) {
+        if (targetNode.inputParams === undefined) {
+            targetNode.inputParams = [];
             if (targetNode.parameters?.node_inputs && typeof targetNode.parameters.node_inputs === 'object') {
                 targetNode.inputParams = this._paramsFromNodeOutputs(targetNode.parameters.node_inputs);
             }
@@ -182,7 +245,7 @@ export function mixinNodePanel(node) {
                         const sel = o.value === logic ? ' selected' : '';
                         return `<option value="${o.value}"${sel}>${o.label}</option>`;
                     }).join('');
-                    let condsHtml = conds.map((c, ci) => node._renderConditionItem(c, ci)).join('');
+                    let condsHtml = conds.map((c, ci) => node._renderConditionItem(c, ci, i, targetNode.id)).join('');
                     inputHtml += `
                         <div class="branch-item" data-index="${i}">
                             <div class="branch-name-row">
@@ -312,6 +375,8 @@ export function mixinNodePanel(node) {
                 ${this.renderMergeGroups(targetNode)}
 
                 ${this.renderLoopVariables(targetNode)}
+
+                ${this.renderLoopIntermediateVariables(targetNode)}
 
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
@@ -571,19 +636,27 @@ export function mixinNodePanel(node) {
                     let values = [];
                     if (param.name === 'branches' && targetNode.type === 'condition') {
                         const branchItems = list.querySelectorAll('.branch-item');
-                        values = Array.from(branchItems).map(item => {
+                        const existingBranches = targetNode.parameters.branches || [];
+                        values = Array.from(branchItems).map((item, branchIdx) => {
                             const nameInput = item.querySelector('.branch-name');
                             const name = nameInput ? nameInput.value.trim() : '';
                             if (!name) return null;
                             const logicSelect = item.querySelector('.cond-logic-select');
                             const logic = logicSelect ? parseInt(logicSelect.value) || 1 : 1;
                             const condItems = item.querySelectorAll('.cond-item');
-                            const conditions = Array.from(condItems).map(ci => {
+                            const existingBranch = existingBranches[branchIdx] || {};
+                            const existingConds = existingBranch.condition?.conditions || [];
+                            const conditions = Array.from(condItems).map((ci, condIdx) => {
                                 const leftInput = ci.querySelector('.cond-left');
                                 const rightInput = ci.querySelector('.cond-right');
                                 const opSelect = ci.querySelector('.cond-operator');
-                                const left = leftInput ? node._textToConditionValue(leftInput.value) : { input: { type: 'string', value: { type: 'literal', content: '' } } };
-                                const right = rightInput ? node._textToConditionValue(rightInput.value) : { input: { type: 'string', value: { type: 'literal', content: '' } } };
+                                const existingCond = existingConds[condIdx] || {};
+                                const left = (leftInput && !leftInput.disabled && leftInput.style.display !== 'none')
+                                    ? node._textToConditionValue(leftInput.value)
+                                    : (existingCond.left || { input: { type: 'string', value: { type: 'literal', content: '' } } });
+                                const right = (rightInput && !rightInput.disabled && rightInput.style.display !== 'none')
+                                    ? node._textToConditionValue(rightInput.value)
+                                    : (existingCond.right || { input: { type: 'string', value: { type: 'literal', content: '' } } });
                                 const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
                                 return { left, operator, right };
                             }).filter(c => c.left.input.value.content || c.right.input.value.content);
@@ -631,6 +704,7 @@ export function mixinNodePanel(node) {
         this.saveDynamicParams(targetNode, 'output');
         this.saveMergeGroupVars(targetNode);
         this.saveLoopVariables(targetNode);
+        this.saveLoopIntermediateVariables(targetNode);
 
         this._reRenderNode(nodeId);
         this.ui.updateEdges();

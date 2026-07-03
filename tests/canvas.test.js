@@ -780,7 +780,7 @@ describe('WorkflowCanvas', () => {
             expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
         });
 
-        it('should start marquee selection on ctrl+click canvas', () => {
+        it('should start marquee selection on shift+click canvas', () => {
             const core = createMockCore();
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
@@ -790,8 +790,7 @@ describe('WorkflowCanvas', () => {
             canvas.onCanvasMouseDown({
                 clientX: 100,
                 clientY: 100,
-                ctrlKey: true,
-                metaKey: false,
+                shiftKey: true,
                 target: { tagName: 'DIV', closest: () => null }
             });
 
@@ -1259,8 +1258,7 @@ describe('WorkflowCanvas', () => {
             const e = {
                 clientX: 100,
                 clientY: 100,
-                ctrlKey: true,
-                metaKey: false,
+                shiftKey: true,
                 target: {
                     closest: jest.fn((selector) => {
                         if (selector === '.canvas-node') return null;

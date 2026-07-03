@@ -42,7 +42,7 @@ export function mixinParamEditor(node) {
                                style="flex:1; ${isRef ? 'display:none;' : ''}"
                                ${isRef ? 'disabled' : ''}>
                         <span id="${prefix}RefDisplay_${i}" 
-                              style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.3rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 4px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                              style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                               onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})"
                               title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
                         <input type="hidden" id="${prefix}Ref_${i}" value="${refJson}">
@@ -55,9 +55,26 @@ export function mixinParamEditor(node) {
                     </div>
                 </div>
             ` : `
-                <div class="param-field">
+                <div class="param-field" style="flex: 1;">
                     <label class="param-label">${t('nodes.defaultValue')}</label>
-                    <input class="param-input" id="${prefix}Value_${i}" type="text" placeholder="${t('properties.defaultValue')}" value="${StringUtils.escapeHtml(String(p.value ?? ''))}">
+                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        <input class="param-input" id="${prefix}Value_${i}" type="text" 
+                               placeholder="${t('properties.defaultValue')}" 
+                               value="${literalValue}"
+                               style="flex:1; ${isRef ? 'display:none;' : ''}"
+                               ${isRef ? 'disabled' : ''}>
+                        <span id="${prefix}RefDisplay_${i}" 
+                              style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                              onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})"
+                              title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
+                        <input type="hidden" id="${prefix}Ref_${i}" value="${refJson}">
+                        <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})" 
+                                title="选择引用">🔗</button>
+                        ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                onclick="workflowUI.node.clearInputParamRef('${prefix}', ${i})" 
+                                title="清除引用">×</button>` : ''}
+                    </div>
                 </div>`;
 
             return `<div class="param-card" id="${prefix}Card_${i}">
@@ -107,7 +124,9 @@ export function mixinParamEditor(node) {
             type: def.type || 'string',
             description: def.description || '',
             required: def.required || false,
-            value: ''
+            value: def.value || '',
+            valueType: def.valueType || '',
+            rawMeta: def.rawMeta || undefined
         }));
     };
 
@@ -115,11 +134,25 @@ export function mixinParamEditor(node) {
         const result = {};
         paramsArr.forEach(p => {
             if (p.name) {
-                result[p.name] = {
+                const entry = {
                     type: p.type || 'string',
                     description: p.description || '',
                     required: p.required || false
                 };
+                if (p.value && typeof p.value === 'object' && p.value.type === 'ref') {
+                    entry.value = p.value;
+                    entry.input = {
+                        type: p.type || 'string',
+                        value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
+                    };
+                }
+                if (p.valueType) {
+                    entry.valueType = p.valueType;
+                }
+                if (p.rawMeta) {
+                    entry.rawMeta = p.rawMeta;
+                }
+                result[p.name] = entry;
             }
         });
         return result;
@@ -244,22 +277,15 @@ export function mixinParamEditor(node) {
                 value = valueEl ? valueEl.value : (p.value || '');
             }
 
+            const valueIsRef = value && typeof value === 'object' && value.type === 'ref';
             const result = {
                 name: nameEl ? nameEl.value.trim() : p.name,
                 type: typeEl ? typeEl.value : p.type,
                 value,
-                description: descEl ? descEl.value : (p.description || '')
+                description: descEl ? descEl.value : (p.description || ''),
+                valueType: valueIsRef ? 'ref' : '',
+                rawMeta: valueIsRef ? (value.rawMeta || undefined) : undefined
             };
-            if (p.valueType !== undefined) {
-                result.valueType = p.valueType;
-            } else if (value && typeof value === 'object' && value.type === 'ref') {
-                result.valueType = 'ref';
-            }
-            if (p.rawMeta !== undefined) {
-                result.rawMeta = p.rawMeta;
-            } else if (value && typeof value === 'object' && value.type === 'ref' && value.rawMeta) {
-                result.rawMeta = value.rawMeta;
-            }
             if (prefix === 'input' && reqEl) {
                 result.required = reqEl.checked;
             } else if (prefix === 'input') {
@@ -382,10 +408,10 @@ export function mixinParamEditor(node) {
                                        placeholder="${t('nodes.rightValue')}"
                                        style="flex:1; ${rightIsRef ? 'display:none;' : ''}"
                                        ${rightIsRef ? 'disabled' : ''}>
-                                <button class="btn" id="loopVarRightBtn_${vi}" style="flex:1; text-align: left; padding: 0.3rem 0.5rem; min-height: 28px; ${rightIsRef ? '' : 'display:none;'}" 
-                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')">
-                                    ${StringUtils.escapeHtml(rightDisplay)}
-                                </button>
+                                <span id="loopVarRightDisplay_${vi}" 
+                                      style="flex:1; display:${rightIsRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                      onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')"
+                                      title="${StringUtils.escapeHtml(rightDisplay)}">${StringUtils.escapeHtml(rightDisplay)}</span>
                                 <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
                                         onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')" 
                                         title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
@@ -420,6 +446,178 @@ export function mixinParamEditor(node) {
                 }
                 v.right.type = 'string';
                 v.right.value = { type: 'literal', content: val };
+            }
+        });
+    };
+
+    node.renderLoopIntermediateVariables = function(targetNode) {
+        if (targetNode.type !== 'loop') {
+            return '';
+        }
+
+        const variableParameters = targetNode.parameters?.variableParameters;
+        if (!Array.isArray(variableParameters)) {
+            if (!targetNode.parameters) targetNode.parameters = {};
+            targetNode.parameters.variableParameters = [];
+            return '';
+        }
+
+        let html = '<hr style="margin: 0.75rem 0; border-color: var(--border);">';
+        html += `<h4 style="display: flex; justify-content: space-between; align-items: center;">
+            ${t('nodes.intermediateVariables') || '中间变量'}
+            <button class="btn btn-sm" onclick="workflowUI.node.addLoopIntermediateVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
+        </h4>`;
+
+        if (variableParameters.length === 0) {
+            html += `<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">${t('properties.noParams')}</p>`;
+        } else {
+            variableParameters.forEach((v, vi) => {
+                const isRef = v.input?.value?.type === 'ref';
+                const refBlockId = isRef ? (v.input.value.content?.blockID || '') : '';
+                const refName = isRef ? (v.input.value.content?.name || '') : '';
+                const refDisplay = isRef ? this._getRefDisplayText(refBlockId, refName) : '';
+                const literalValue = isRef ? '' : StringUtils.escapeHtml(String(v.input?.value?.content ?? ''));
+
+                html += `<div class="property-group" style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <span style="font-weight: 600; color: var(--text-primary);">${t('nodes.parameter', { index: vi + 1 }) || `变量 ${vi + 1}`}</span>
+                        <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeLoopIntermediateVariable('${targetNode.id}', ${vi})">×</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <div class="param-field">
+                            <label class="param-label">${t('nodes.paramName')}</label>
+                            <input class="param-input" id="loopVarName_${vi}" type="text" value="${StringUtils.escapeHtml(v.name || '')}" placeholder="${t('common.paramName')}">
+                        </div>
+                        <div class="param-field">
+                            <label class="param-label">${t('nodes.paramType')}</label>
+                            <select class="param-select" id="loopVarType_${vi}">
+                                ${['string', 'number', 'boolean', 'object', 'array'].map(t => `<option value="${t}" ${(v.input?.type || 'string') === t ? 'selected' : ''}>${t}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="param-field" style="margin-top: 0.4rem;">
+                        <label class="param-label">${t('nodes.defaultValue')}</label>
+                        <div style="display: flex; align-items: center; gap: 0.25rem;">
+                            <input class="param-input" id="loopVarValue_${vi}" type="text" 
+                                   placeholder="${t('properties.defaultValue')}" 
+                                   value="${literalValue}"
+                                   style="flex:1; ${isRef ? 'display:none;' : ''}"
+                                   ${isRef ? 'disabled' : ''}>
+                            <span id="loopVarRefDisplay_${vi}" 
+                                  style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                  onclick="workflowUI.node.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})"
+                                  title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
+                            <input type="hidden" id="loopVarRef_${vi}" value="${isRef ? encodeURIComponent(JSON.stringify(v.input.value)) : ''}">
+                            <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                    onclick="workflowUI.node.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})" 
+                                    title="选择引用">🔗</button>
+                            ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                    onclick="workflowUI.node.clearLoopIntermediateVarRef('${targetNode.id}', ${vi})" 
+                                    title="清除引用">×</button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        html += '</div>';
+        return html;
+    };
+
+    node.addLoopIntermediateVariable = function(nodeId) {
+        try {
+            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            if (!targetNode) return;
+            if (!targetNode.parameters) targetNode.parameters = {};
+            if (!Array.isArray(targetNode.parameters.variableParameters)) {
+                targetNode.parameters.variableParameters = [];
+            }
+            targetNode.parameters.variableParameters.push({
+                name: '',
+                input: {
+                    type: 'string',
+                    value: { type: 'literal', content: '' }
+                }
+            });
+            this.renderPropertyPanel(targetNode);
+        } catch (e) {}
+    };
+
+    node.removeLoopIntermediateVariable = function(nodeId, vi) {
+        try {
+            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
+            targetNode.parameters.variableParameters.splice(vi, 1);
+            this.renderPropertyPanel(targetNode);
+        } catch (e) {}
+    };
+
+    node.openLoopIntermediateVarSelector = function(nodeId, vi) {
+        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
+        const variable = targetNode.parameters.variableParameters[vi];
+        if (!variable) return;
+
+        const currentBlockId = variable.input?.value?.content?.blockID || '';
+        const currentName = variable.input?.value?.content?.name || '';
+
+        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
+            variable.input = {
+                type: variable.input?.type || 'string',
+                value: {
+                    type: 'ref',
+                    content: {
+                        source: 'block-output',
+                        blockID: blockId,
+                        name: outputPath
+                    },
+                    rawMeta: { type: 1 }
+                }
+            };
+            this.renderPropertyPanel(targetNode);
+        });
+    };
+
+    node.clearLoopIntermediateVarRef = function(nodeId, vi) {
+        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
+        const variable = targetNode.parameters.variableParameters[vi];
+        if (!variable) return;
+
+        variable.input = {
+            type: variable.input?.type || 'string',
+            value: { type: 'literal', content: '' }
+        };
+        this.renderPropertyPanel(targetNode);
+    };
+
+    node.saveLoopIntermediateVariables = function(targetNode) {
+        if (targetNode.type !== 'loop') return;
+        const variableParameters = targetNode.parameters?.variableParameters;
+        if (!Array.isArray(variableParameters)) return;
+
+        variableParameters.forEach((v, vi) => {
+            const nameEl = document.getElementById(`loopVarName_${vi}`);
+            const typeEl = document.getElementById(`loopVarType_${vi}`);
+            const valueEl = document.getElementById(`loopVarValue_${vi}`);
+            const refEl = document.getElementById(`loopVarRef_${vi}`);
+
+            if (nameEl) v.name = nameEl.value.trim();
+            if (typeEl) v.input = v.input || {};
+            if (typeEl) v.input.type = typeEl.value;
+
+            if (refEl && refEl.value) {
+                try {
+                    v.input.value = JSON.parse(decodeURIComponent(refEl.value));
+                } catch (e) {
+                    try {
+                        v.input.value = JSON.parse(refEl.value);
+                    } catch (e2) {
+                        v.input.value = { type: 'literal', content: valueEl ? valueEl.value : '' };
+                    }
+                }
+            } else if (valueEl && !valueEl.disabled && valueEl.style.display !== 'none') {
+                v.input.value = { type: 'literal', content: valueEl.value };
             }
         });
     };

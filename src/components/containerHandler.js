@@ -28,6 +28,17 @@ export function processContainerNode(data, params, ctx, type) {
     const outputs = params.node_outputs;
     if (outputs) {
         for (const [on, od] of Object.entries(outputs)) {
+            // 如果已经有 input 结构，说明是 Coze 粘贴过来的，直接使用（已经包含正确的 blockID 引用）
+            if (od.input && typeof od.input === 'object' && od.input.value) {
+                contOuts.push({
+                    name: on,
+                    input: {
+                        type: od.input.type || (od.type || 'string'),
+                        value: od.input.value
+                    }
+                });
+                continue;
+            }
             const odValue = od.value;
             const ref = odValue ? findRef(odValue) || findRef(od) : findRef(od);
             const outputType = odValue?.type || od.type;

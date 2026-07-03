@@ -169,7 +169,7 @@ export class WorkflowEdge {
             hitPath.setAttribute('data-edge-id', edge.id);
             hitPath.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.select(edge.id, e.ctrlKey || e.metaKey);
+                this.select(edge.id, e.shiftKey);
             });
             this.svgHitLayer.appendChild(hitPath);
         }

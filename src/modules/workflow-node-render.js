@@ -192,9 +192,19 @@ export function mixinNodeRender(node) {
     node.batchMeasureElements = function(elements) {
         if (elements.length === 0) return;
 
+        const scale = this.ui.canvas.canvasScale || 1;
+
         elements.forEach(({el, nodeData}) => {
             const rect = el.getBoundingClientRect();
-            this._applyMeasurement(el, nodeData, rect);
+            const unscaledRect = {
+                width: rect.width / scale,
+                height: rect.height / scale,
+                left: rect.left,
+                top: rect.top,
+                right: rect.right,
+                bottom: rect.bottom
+            };
+            this._applyMeasurement(el, nodeData, unscaledRect);
         });
     };
 
@@ -266,10 +276,10 @@ export function mixinNodeRender(node) {
 
         const preSelectedNodes = document.querySelectorAll('.canvas-node.selected');
         const hasMultipleSelected = preSelectedNodes.length > 1;
-        const ctrlPressed = e.ctrlKey || e.metaKey;
+        const shiftPressed = e.shiftKey;
         const isAlreadySelected = el.classList.contains('selected');
 
-        if (ctrlPressed && isAlreadySelected) {
+        if (shiftPressed && isAlreadySelected) {
             el.classList.remove('selected');
             const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
             if (newSelectedNodes.length === 0) {
@@ -282,7 +292,7 @@ export function mixinNodeRender(node) {
                 const clickedNode = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
                 if (clickedNode) this.renderPropertyPanel(clickedNode);
             }
-        } else if (ctrlPressed && !isAlreadySelected) {
+        } else if (shiftPressed && !isAlreadySelected) {
             el.classList.add('selected');
             const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
             if (newSelectedNodes.length > 1) {
@@ -294,7 +304,7 @@ export function mixinNodeRender(node) {
                 const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
                 if (clickedNode) this.renderPropertyPanel(clickedNode);
             }
-        } else if (!this.ui.isMultiSelectMode && !ctrlPressed && !hasMultipleSelected) {
+        } else if (!this.ui.isMultiSelectMode && !shiftPressed && !hasMultipleSelected) {
             document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
             document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
             el.classList.add('selected');
@@ -302,7 +312,7 @@ export function mixinNodeRender(node) {
             this.core.selectNode(el.dataset.nodeId);
             const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
             if (clickedNode) this.renderPropertyPanel(clickedNode);
-        } else if (ctrlPressed && (this.ui.isMultiSelectMode || hasMultipleSelected)) {
+        } else if (shiftPressed && (this.ui.isMultiSelectMode || hasMultipleSelected)) {
             if (!isAlreadySelected) {
                 el.classList.add('selected');
             }
@@ -376,18 +386,26 @@ export function mixinNodeRender(node) {
                 const parentContainers = this.ui._pendingContainers;
                 const detachedSet = this.ui._ctrlDetached || (this.ui._ctrlDetached = new Set());
 
+                // 这三类节点不允许通过 Ctrl+拖动移出循环容器
+                const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
+
                 for (const nodeEl of selectedNodeEls) {
                     const startPos = nodeStartPositions[nodeEl.dataset.nodeId];
                     const newX = startPos.x + moveDx;
                     const newY = startPos.y + moveDy;
+                    const nodeId = nodeEl.dataset.nodeId;
+                    const nodeData = this.core.nodes.find(n => n.id === nodeId);
+
                     nodeEl.dataset.x = newX;
                     nodeEl.dataset.y = newY;
                     nodeEl.style.transform = `translate(${newX}px, ${newY}px)`;
 
-                    const nodeId = nodeEl.dataset.nodeId;
-                    const nodeData = this.core.nodes.find(n => n.id === nodeId);
-
                     if (ctrlHeld && nodeData && nodeData.parentId && !detachedSet.has(nodeId)) {
+                        // 循环专用节点不允许移出容器
+                        if (LOOP_ONLY_NODES.has(nodeData.type)) {
+                            parentContainers.add(nodeData.parentId);
+                            continue;
+                        }
                         const parent = this.core.nodes.find(n => n.id === nodeData.parentId);
                         if (parent) {
                             const absX = (parent.x || 0) + newX;
@@ -458,6 +476,15 @@ export function mixinNodeRender(node) {
                 if (finalTarget && !ctrlHeld && finalTarget.dataset.nodeId !== nodeId) {
                     const containerId = finalTarget.dataset.nodeId;
                     const containerNode = this.core.nodes.find(n => n.id === containerId);
+                    const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
+                    // 循环专用节点不能移入其他容器
+                    if (LOOP_ONLY_NODES.has(nodeData.type) && nodeData.parentId !== containerId) {
+                        if (nodeData.parentId) {
+                            this.updateContainerSize(nodeData.parentId);
+                            affectedNodeIds.add(nodeData.parentId);
+                        }
+                        return;
+                    }
                     if (nodeData.parentId !== containerId) {
                         const oldParentId = nodeData.parentId;
                         if (nodeData.parentId) {
@@ -505,6 +532,15 @@ export function mixinNodeRender(node) {
                         affectedNodeIds.add(containerId);
                     }
                 } else if (ctrlHeld && nodeData.parentId) {
+                    // 循环专用节点不允许移出容器
+                    const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
+                    if (LOOP_ONLY_NODES.has(nodeData.type)) {
+                        if (nodeData.parentId) {
+                            this.updateContainerSize(nodeData.parentId);
+                            affectedNodeIds.add(nodeData.parentId);
+                        }
+                        return;
+                    }
                     const oldParentId = nodeData.parentId;
                     const oldContainer = this.core.nodes.find(n => n.id === oldParentId);
                     const headerH = 36;
@@ -588,7 +624,7 @@ export function mixinNodeRender(node) {
         const hasMultipleSelected = selectedNodes.length > 1;
         const clickedNode = e.target.closest('.canvas-node');
 
-        if (!e.ctrlKey && !e.metaKey && (this.ui.isMultiSelectMode || hasMultipleSelected)) {
+        if (!e.shiftKey && (this.ui.isMultiSelectMode || hasMultipleSelected)) {
             if (clickedNode && clickedNode.classList.contains('selected')) {
                 return;
             } else if (clickedNode) {

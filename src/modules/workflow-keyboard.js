@@ -124,5 +124,10 @@ export class WorkflowKeyboard {
             e.preventDefault();
             this.ui.quickSave();
         }
+
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            this.ui.canvas.autoOptimizeLayout();
+        }
     }
 }

@@ -95,6 +95,7 @@ export function mixinContainerRender(node) {
             containerEl.style.height = `${minH}px`;
             containerNode.width = minW;
             containerNode.height = minH;
+            containerEl.offsetHeight;
             allTransitionEls.forEach(el => { el.style.transition = ''; });
             return;
         }
@@ -212,6 +213,7 @@ export function mixinContainerRender(node) {
             this.ui.edge.updateAffectedEdges([containerId]);
         }
 
+        containerEl.offsetHeight;
         allTransitionEls.forEach(el => { el.style.transition = ''; });
     };
 }

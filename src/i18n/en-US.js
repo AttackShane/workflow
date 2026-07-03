@@ -432,6 +432,7 @@ export const enUS = {
     },
     nodeParams: {
         inputVariables: 'Input Variables',
+        branches: 'Branches',
         description: 'Description',
         imagePrompt: 'Image Prompt',
         outputVariable: 'Output Variable',
@@ -574,7 +575,8 @@ export const enUS = {
         clickToSelect: 'Click to select',
         variables: 'Set Variables',
         leftVariable: 'Target Variable',
-        rightValue: 'New Value'
+        rightValue: 'New Value',
+        intermediateVariables: 'Intermediate Variables'
     },
     actions: {
         addNode: 'Add node: {type}',

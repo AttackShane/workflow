@@ -363,15 +363,44 @@ export class WorkflowCanvas {
             }
             const startX = e.clientX;
             const startY = e.clientY;
-            const isMarqueeMode = e.ctrlKey || e.metaKey;
+            const isMarqueeMode = e.shiftKey;
 
             if (isMarqueeMode) {
                 this.handleMarqueeSelection(startX, startY, true, containerId);
+            } else {
+                this.handleCanvasDrag(startX, startY);
             }
             return;
         }
 
         if (isNode || isEdge) return;
+
+        if (!isNode && !isEdge) {
+            const containers = document.querySelectorAll('.canvas-node.container');
+            for (const c of containers) {
+                const body = c.querySelector('.container-body');
+                if (body) {
+                    const rect = body.getBoundingClientRect();
+                    if (e.clientX >= rect.left && e.clientX <= rect.right &&
+                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
+                        containerId = c.dataset.nodeId;
+                        break;
+                    }
+                }
+            }
+            if (containerId) {
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const isMarqueeMode = e.shiftKey;
+
+                if (isMarqueeMode) {
+                    this.handleMarqueeSelection(startX, startY, true, containerId);
+                } else {
+                    this.handleCanvasDrag(startX, startY);
+                }
+                return;
+            }
+        }
         
         if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.length > 0) {
             return;
@@ -379,7 +408,7 @@ export class WorkflowCanvas {
         
         const startX = e.clientX;
         const startY = e.clientY;
-        const isMarqueeMode = e.ctrlKey || e.metaKey;
+        const isMarqueeMode = e.shiftKey;
         
         if (isMarqueeMode) {
             this.handleMarqueeSelection(startX, startY, true);
