@@ -33,14 +33,13 @@ export function mixinNodePanel(node) {
     const OPS_OPTIONS_HTML = OPERATORS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
     const LOGIC_OPTIONS_HTML = LOGIC_OPTIONS.map(o => '<option value=' + o.value + '>' + o.label + '</option>').join('');
 
-    const NEW_BRANCH_ITEM_HTML = '<div class=branch-name-row>' +
-        '<input type=text class=property-input branch-name placeholder="分支名称">' +
-        '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.branch-item\').remove()">×</button>' +
+    const NEW_BRANCH_ITEM_HTML = '<div class="branch-name-row">' +
+        '<input type="text" class="property-input branch-name" placeholder="分支名称">' +
+        '<button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>' +
         '</div>' +
-        '<div class=branch-conditions>' +
-        '<div class=cond-logic><label class=cond-label>逻辑</label><select class=property-input cond-logic-select>' + LOGIC_OPTIONS_HTML + '</select></div>' +
-        '<div class=cond-list></div>' +
-        '<button type=button class=btn btn-sm btn-add-cond data-action="wfAddCondItem">+ 条件</button>' +
+        '<div class="branch-conditions">' +
+        '<div class="cond-list"></div>' +
+        '<button type="button" class="btn btn-sm btn-add-cond" data-action="wfAddCondItem">+ 条件</button>' +
         '</div>';
 
     node._wfAddBranchItem = function(listId) {
@@ -64,22 +63,43 @@ export function mixinNodePanel(node) {
         const item = document.createElement('div');
         item.className = 'cond-item';
         item.dataset.condIndex = condIndex;
-        item.innerHTML = '<div class=cond-item-header>' +
-            '<span class=cond-item-title>条件</span>' +
-            '<button type=button class=btn btn-sm btn-danger onclick="this.closest(\'.cond-item\').remove()">×</button>' +
+        item.innerHTML = '<div class="cond-item-header">' +
+            '<span class="cond-item-title">条件 ' + (condIndex + 1) + '</span>' +
+            '<button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentCondItem">×</button>' +
             '</div>' +
-            '<div class=cond-row><span class=cond-label>左值</span><div class=cond-side>' +
-            '<input type=text class=property-input cond-left placeholder="引用或值">' +
-            '<button class=btn btn-sm style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
-            'onclick="workflowUI.node.openConditionRefSelector(\'' + nodeId + '\',' + branchIndex + ',' + condIndex + ',\'left\')" title="选择引用">🔗</button>' +
+            '<div class="cond-row"><span class="cond-label">左值</span><div class="cond-side">' +
+            '<input type="text" class="property-input cond-left" placeholder="引用或值">' +
+            '<button class="btn btn-sm" style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
+            'data-action="openConditionRef" data-node-id="' + nodeId + '" data-branch-index="' + branchIndex + '" data-cond-index="' + condIndex + '" data-side="left" title="选择引用">🔗</button>' +
             '</div></div>' +
-            '<div class=cond-row><span class=cond-label>运算符</span><select class=property-input cond-operator>' + OPS_OPTIONS_HTML + '</select></div>' +
-            '<div class=cond-row><span class=cond-label>右值</span><div class=cond-side>' +
-            '<input type=text class=property-input cond-right placeholder="引用或值">' +
-            '<button class=btn btn-sm style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
-            'onclick="workflowUI.node.openConditionRefSelector(\'' + nodeId + '\',' + branchIndex + ',' + condIndex + ',\'right\')" title="选择引用">🔗</button>' +
+            '<div class="cond-row"><span class="cond-label">运算符</span><select class="property-input cond-operator">' + OPS_OPTIONS_HTML + '</select></div>' +
+            '<div class="cond-row"><span class="cond-label">右值</span><div class="cond-side">' +
+            '<input type="text" class="property-input cond-right" placeholder="引用或值">' +
+            '<button class="btn btn-sm" style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
+            'data-action="openConditionRef" data-node-id="' + nodeId + '" data-branch-index="' + branchIndex + '" data-cond-index="' + condIndex + '" data-side="right" title="选择引用">🔗</button>' +
             '</div></div>';
         list.appendChild(item);
+        node._updateCondLogicVisibility(list);
+    };
+
+    node._updateCondLogicVisibility = function(condList) {
+        const branchConditions = condList.parentElement;
+        if (!branchConditions || !branchConditions.classList.contains('branch-conditions')) return;
+        let condLogic = branchConditions.querySelector('.cond-logic');
+        const count = condList.children.length;
+        if (count > 1) {
+            if (!condLogic) {
+                condLogic = document.createElement('div');
+                condLogic.className = 'cond-logic';
+                condLogic.innerHTML = '<label class="cond-label">逻辑</label><select class="property-input cond-logic-select">' + LOGIC_OPTIONS_HTML + '</select>';
+                branchConditions.insertBefore(condLogic, condList);
+            }
+            condLogic.style.display = '';
+        } else {
+            if (condLogic) {
+                condLogic.style.display = 'none';
+            }
+        }
     };
 
     node._conditionValueToText = function(valueObj) {
@@ -141,6 +161,8 @@ export function mixinNodePanel(node) {
         }).join('');
 
         const renderSide = (side, text, isRef, refDisplay, label) => {
+            const escNodeId = StringUtils.escapeHtml(nodeId);
+            const escRefDisplay = StringUtils.escapeHtml(refDisplay);
             return `<div class="cond-row">
                 <span class="cond-label">${label}</span>
                 <div class="cond-side">
@@ -148,13 +170,13 @@ export function mixinNodePanel(node) {
                            placeholder="引用或值" ${isRef ? 'disabled style="display:none;"' : ''}>
                     <span class="cond-${side}-ref-display" 
                           style="display:${isRef ? 'block' : 'none'}; flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                          onclick="workflowUI.node.openConditionRefSelector('${nodeId}', ${branchIndex}, ${i}, '${side}')"
-                          title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
+                          data-action="openConditionRef" data-node-id="${escNodeId}" data-branch-index="${branchIndex}" data-cond-index="${i}" data-side="${side}"
+                          title="${escRefDisplay}">${escRefDisplay}</span>
                     <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                            onclick="workflowUI.node.openConditionRefSelector('${nodeId}', ${branchIndex}, ${i}, '${side}')" 
+                            data-action="openConditionRef" data-node-id="${escNodeId}" data-branch-index="${branchIndex}" data-cond-index="${i}" data-side="${side}"
                             title="选择引用">🔗</button>
                     ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                            onclick="workflowUI.node.clearConditionRef('${nodeId}', ${branchIndex}, ${i}, '${side}')" 
+                            data-action="clearConditionRef" data-node-id="${escNodeId}" data-branch-index="${branchIndex}" data-cond-index="${i}" data-side="${side}"
                             title="清除引用">×</button>` : ''}
                 </div>
             </div>`;
@@ -163,7 +185,7 @@ export function mixinNodePanel(node) {
         return `<div class="cond-item" data-cond-index="${i}">
             <div class="cond-item-header">
                 <span class="cond-item-title">条件 ${i + 1}</span>
-                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.cond-item').remove()">×</button>
+                <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentCondItem">×</button>
             </div>
             ${renderSide('left', leftText, leftIsRef, leftRefDisplay, '左值')}
             <div class="cond-row">
@@ -246,24 +268,26 @@ export function mixinNodePanel(node) {
                         return `<option value="${o.value}"${sel}>${o.label}</option>`;
                     }).join('');
                     let condsHtml = conds.map((c, ci) => node._renderConditionItem(c, ci, i, targetNode.id)).join('');
+                    const condLogicHtml = conds.length > 1 ? `
+                                <div class="cond-logic">
+                                    <label class="cond-label">逻辑</label>
+                                    <select class="property-input cond-logic-select">${logicOptions}</select>
+                                </div>` : '';
                     inputHtml += `
                         <div class="branch-item" data-index="${i}">
                             <div class="branch-name-row">
                                 <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="分支名称">
-                                <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.branch-item').remove()">×</button>
+                                <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>
                             </div>
                             <div class="branch-conditions">
-                                <div class="cond-logic">
-                                    <label class="cond-label">逻辑</label>
-                                    <select class="property-input cond-logic-select">${logicOptions}</select>
-                                </div>
+                                ${condLogicHtml}
                                 <div class="cond-list">${condsHtml}</div>
                                 <button type="button" class="btn btn-sm btn-add-cond" data-action="wfAddCondItem">+ 条件</button>
                             </div>
                         </div>`;
                 });
                 inputHtml += `</div>
-                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddBranchItem" data-prop="prop_${param.name}">+ 添加分支</button>`;
+                    <button type="button" class="btn btn-sm btn-add-branch" style="margin-top:0.25rem" data-action="wfAddBranchItem" data-prop="prop_${param.name}">+ 添加分支</button>`;
             } else if (param.name === 'options' && targetNode.type === 'question') {
                 let options = [];
                 if (Array.isArray(value)) {
@@ -278,11 +302,11 @@ export function mixinNodePanel(node) {
                     inputHtml += `
                         <div class="branch-item" data-index="${i}">
                             <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="选项名称">
-                            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>
+                            <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>
                         </div>`;
                 });
                 inputHtml += `</div>
-                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="(()=>{const list=document.getElementById('prop_${param.name}');const i=list.children.length;const item=document.createElement('div');item.className='branch-item';item.dataset.index=i;item.innerHTML='<input type=text class=property-input branch-name placeholder=选项名称><button type=button class=btn btn-sm btn-danger onclick=this.parentElement.remove()>×</button>';list.appendChild(item)})()">+ 添加选项</button>`;
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddSimpleItem" data-prop="prop_${param.name}" data-placeholder="选项名称">+ 添加选项</button>`;
             } else if (param.name === 'categories' && targetNode.type === 'intent') {
                 let categories = [];
                 if (Array.isArray(value)) {
@@ -297,11 +321,11 @@ export function mixinNodePanel(node) {
                     inputHtml += `
                         <div class="branch-item" data-index="${i}">
                             <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="分类名称">
-                            <button type="button" class="btn btn-sm btn-danger" onclick="this.parentElement.remove()">×</button>
+                            <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>
                         </div>`;
                 });
                 inputHtml += `</div>
-                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" onclick="(()=>{const list=document.getElementById('prop_${param.name}');const i=list.children.length;const item=document.createElement('div');item.className='branch-item';item.dataset.index=i;item.innerHTML='<input type=text class=property-input branch-name placeholder=分类名称><button type=button class=btn btn-sm btn-danger onclick=this.parentElement.remove()>×</button>';list.appendChild(item)})()">+ 添加分类</button>`;
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddSimpleItem" data-prop="prop_${param.name}" data-placeholder="分类名称">+ 添加分类</button>`;
             } else {
                 switch (param.type) {
                 case 'string':
@@ -309,7 +333,8 @@ export function mixinNodePanel(node) {
                     inputHtml = `<input class="property-input" id="prop_${param.name}" type="${param.type}" value="${safeValue}">`;
                     break;
                 case 'textarea':
-                    inputHtml = `<textarea class="property-textarea" id="prop_${param.name}">${safeValue}</textarea>`;
+                    const commentRows = targetNode.type === 'comment' ? '8' : '3';
+                    inputHtml = `<textarea class="property-textarea" id="prop_${param.name}" rows="${commentRows}" style="height: auto; min-height: ${commentRows * 20}px; white-space: pre-wrap; overflow: auto;">${safeValue}</textarea>`;
                     break;
                 case 'select':
                     let selectOptions = (param.options || []).map(opt => {
@@ -367,7 +392,7 @@ export function mixinNodePanel(node) {
                     <label class="property-label">${t('nodes.type')}</label>
                     <div class="property-tag">${StringUtils.escapeHtml(targetNode.type)}</div>
                 </div>
-                ${paramsHtml ? `
+                ${paramsHtml && targetNode.type !== 'start' && targetNode.type !== 'input' && targetNode.type !== 'end' ? `
                 <hr style="margin: 0.75rem 0; border-color: var(--border);">
                 <h4>${t('nodes.nodeConfig')}</h4>
                 ${paramsHtml}` : ''}
@@ -396,208 +421,14 @@ export function mixinNodePanel(node) {
                     ${this.renderInputOutputParams(targetNode.outputParams || [], 'output', targetNode.id)}
                 </div>
 
-                <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary" data-action="saveNodeDetail" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">${t('nodes.saveChanges')}</button>
-                    <button class="btn btn-danger" data-action="deleteNode" data-node-id="${StringUtils.escapeHtml(targetNode.id)}">${t('nodes.deleteNode')}</button>
-                </div>
+                
             </div>
         `;
+
+        this._setupAutoSave(targetNode.id);
     };
 
-    node.openEditor = function(nodeId) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
-        if (!targetNode) return;
-
-        const info = this.core.nodeTypeInfo[targetNode.type] || {};
-        const params = info.parameters || [];
-
-        let paramsHtml = '';
-        params.forEach(param => {
-            const value = targetNode.parameters?.[param.name] ?? param.defaultValue;
-            paramsHtml += this.renderParamInput(param, value);
-        });
-
-        const modal = document.createElement('div');
-        modal.className = 'node-editor-modal';
-        modal.innerHTML = `
-            <div class="modal-overlay" onclick="this.parentElement.remove()"></div>
-            <div class="modal-content node-editor-content">
-                <div class="modal-header">
-                    <h3>${info.icon || '📦'} ${t('nodes.editNode')}</h3>
-                    <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">×</button>
-                </div>
-                <div class="modal-body">
-                    <div class="form-section">
-                        <h4>${t('nodes.basicInfo')}</h4>
-                        <div class="form-group">
-                            <label>${t('nodes.nodeTitle')}</label>
-                            <input type="text" class="form-input" id="editTitle" value="${StringUtils.escapeHtml(targetNode.title)}">
-                        </div>
-                        <div class="form-group">
-                            <label>${t('nodes.nodeDescription')}</label>
-                            <textarea class="form-textarea" id="editDescription">${StringUtils.escapeHtml(targetNode.description || '')}</textarea>
-                        </div>
-                    </div>
-                    ${params.length > 0 ? `
-                    <div class="form-section">
-                        <h4>${t('nodes.paramsConfig')}</h4>
-                        ${paramsHtml}
-                    </div>
-                    ` : ''}
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="this.parentElement.parentElement.parentElement.remove()">${t('nodes.cancel')}</button>
-                    <button class="btn btn-primary" data-action="saveNodeEdit" data-node-id="${StringUtils.escapeHtml(nodeId)}">${t('nodes.save')}</button>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
-    };
-
-    node.renderParamInput = function(param, value) {
-        const required = param.required ? '<span class="required">*</span>' : '';
-        let displayValue = value;
-        if (param.type === 'json' && typeof value === 'object') {
-            displayValue = JSON.stringify(value, null, 2);
-        }
-        const safeValue = StringUtils.escapeHtml(String(displayValue ?? ''));
-        let inputHtml = '';
-
-        switch (param.type) {
-            case 'select':
-                let dynSelectOptions = (param.options || []).map(opt => {
-                    if (typeof opt === 'object') {
-                        return { val: String(opt.value ?? opt), label: String(opt.label ?? opt.value ?? opt) };
-                    }
-                    return { val: String(opt), label: String(opt) };
-                });
-                const dynHasMatch = dynSelectOptions.some(o => o.val === String(value ?? ''));
-                if (!dynHasMatch && value !== undefined && value !== null && String(value).trim() !== '') {
-                    dynSelectOptions.unshift({ val: String(value), label: String(value) });
-                }
-                const dynOptionsHtml = dynSelectOptions.map(o =>
-                    `<option value="${StringUtils.escapeHtml(o.val)}" ${o.val === String(value ?? '') ? 'selected' : ''}>${StringUtils.escapeHtml(o.label)}</option>`
-                ).join('');
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <select class="form-select" id="param_${param.name}">${dynOptionsHtml}</select>
-                    </div>
-                `;
-                break;
-
-            case 'number':
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <input type="number" class="form-input" id="param_${param.name}" 
-                               value="${safeValue}" min="${param.min}" max="${param.max}" step="${param.step || 1}">
-                    </div>
-                `;
-                break;
-
-            case 'textarea':
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <textarea class="form-textarea" id="param_${param.name}">${safeValue}</textarea>
-                    </div>
-                `;
-                break;
-
-            case 'json':
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <textarea class="form-textarea form-textarea-code" id="param_${param.name}" placeholder="{}">${safeValue}</textarea>
-                    </div>
-                `;
-                break;
-
-            case 'code':
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <textarea class="form-textarea form-textarea-code" rows="8" id="param_${param.name}">${safeValue}</textarea>
-                    </div>
-                `;
-                break;
-
-            default:
-                inputHtml = `
-                    <div class="form-group">
-                        <label>${param.label}${required}</label>
-                        <input type="text" class="form-input" id="param_${param.name}" value="${safeValue}">
-                    </div>
-                `;
-        }
-
-        return inputHtml;
-    };
-
-    node.saveEdit = function(nodeId) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
-        if (!targetNode) return;
-
-        const title = document.getElementById('editTitle').value;
-        const description = document.getElementById('editDescription').value;
-
-        if (title) {
-            targetNode.title = title;
-            const el = document.querySelector(`[data-node-id="${nodeId}"] .node-title`);
-            if (el) el.textContent = title;
-        }
-
-        targetNode.description = description;
-        const descEl = document.querySelector(`[data-node-id="${nodeId}"] .node-description`);
-        if (descEl) descEl.textContent = description;
-
-        const info = this.core.nodeTypeInfo[targetNode.type] || {};
-        const params = info.parameters || [];
-
-        if (!targetNode.parameters) {
-            targetNode.parameters = {};
-        }
-
-        params.forEach(param => {
-            const input = document.getElementById(`param_${param.name}`);
-            if (input) {
-                let value = input.value;
-
-                if (param.type === 'number') {
-                    value = parseFloat(value);
-                } else if (param.type === 'json') {
-                    try {
-                        value = JSON.parse(value);
-                    } catch {
-                        value = input.value;
-                    }
-                }
-
-                targetNode.parameters[param.name] = value;
-            }
-        });
-
-        const el = document.querySelector(`[data-node-id="${nodeId}"]`);
-        if (el) {
-            const rect = el.getBoundingClientRect();
-            targetNode.width = rect.width;
-            targetNode.height = rect.height;
-        }
-
-        this._reRenderNode(nodeId);
-        this.ui.updateEdges();
-
-        document.querySelector('.node-editor-modal').remove();
-
-        if (this.core.selectedNode === nodeId) {
-            this.renderPropertyPanel(targetNode);
-        }
-
-        this.core.saveHistory('actions.editNode');
-    };
-
-    node.saveNodeDetail = function(nodeId) {
+    node.saveNodeDetail = function(nodeId, silent) {
         const targetNode = this.core.nodes.find(n => n.id === nodeId);
         if (!targetNode) return;
 
@@ -709,7 +540,53 @@ export function mixinNodePanel(node) {
         this._reRenderNode(nodeId);
         this.ui.updateEdges();
         this.core.saveHistory('actions.editNode');
-        this.ui.showMessage(t('actions.nodeSaved'), 'success');
+        if (!silent) {
+            this.ui.showMessage(t('actions.nodeSaved'), 'success');
+        }
+    };
+
+    node._autoSaveTimer = null;
+    node._autoSaveNodeId = null;
+
+    node._setupAutoSave = function(nodeId) {
+        if (this._autoSaveNodeId && this._autoSaveNodeId !== nodeId && this._autoSaveTimer) {
+            clearTimeout(this._autoSaveTimer);
+            this._autoSaveTimer = null;
+            this._autoSavePropertyPanel(this._autoSaveNodeId);
+        }
+
+        this._autoSaveNodeId = nodeId;
+        const detail = document.getElementById('nodeDetail');
+        if (!detail) return;
+
+        const handler = () => {
+            this._scheduleAutoSave(nodeId);
+        };
+
+        if (this._autoSaveHandler) {
+            detail.removeEventListener('input', this._autoSaveHandler);
+            detail.removeEventListener('change', this._autoSaveHandler);
+        }
+
+        this._autoSaveHandler = handler;
+        detail.addEventListener('input', handler);
+        detail.addEventListener('change', handler);
+    };
+
+    node._scheduleAutoSave = function(nodeId) {
+        if (this._autoSaveTimer) {
+            clearTimeout(this._autoSaveTimer);
+        }
+        this._autoSaveTimer = setTimeout(() => {
+            this._autoSavePropertyPanel(nodeId);
+            this._autoSaveTimer = null;
+        }, 500);
+    };
+
+    node._autoSavePropertyPanel = function(nodeId) {
+        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+        if (!targetNode) return;
+        this.saveNodeDetail(nodeId, true);
     };
 
     node._handleAction = function(e) {
@@ -720,28 +597,68 @@ export function mixinNodePanel(node) {
         const nodeId = btn.dataset.nodeId;
         const prop = btn.dataset.prop;
 
+        const activeNodeId = nodeId || this.core.selectedNode;
+
         switch (action) {
             case 'addInputParam':
                 this.addInputParam(nodeId);
+                this._scheduleAutoSave(nodeId);
                 break;
             case 'addOutputParam':
                 this.addOutputParam(nodeId);
-                break;
-            case 'saveNodeDetail':
-                this.saveNodeDetail(nodeId);
-                break;
-            case 'deleteNode':
-                this.ui.deleteNode(nodeId);
-                break;
-            case 'saveNodeEdit':
-                this.ui.saveNodeEdit(nodeId);
+                this._scheduleAutoSave(nodeId);
                 break;
             case 'wfAddCondItem':
                 this._wfAddCondItem(btn);
+                this._scheduleAutoSave(activeNodeId);
                 break;
             case 'wfAddBranchItem':
                 this._wfAddBranchItem(prop);
+                this._scheduleAutoSave(activeNodeId);
                 break;
+            case 'wfAddSimpleItem': {
+                const list = document.getElementById(btn.dataset.prop);
+                if (list) {
+                    const placeholder = btn.dataset.placeholder || '';
+                    const i = list.children.length;
+                    const item = document.createElement('div');
+                    item.className = 'branch-item';
+                    item.dataset.index = i;
+                    item.innerHTML = '<input type="text" class="property-input branch-name" placeholder="' + StringUtils.escapeHtml(placeholder) + '"><button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>';
+                    list.appendChild(item);
+                }
+                this._scheduleAutoSave(activeNodeId);
+                break;
+            }
+            case 'wfRemoveParentBranchItem': {
+                const branchItem = btn.closest('.branch-item');
+                if (branchItem) branchItem.remove();
+                this._scheduleAutoSave(activeNodeId);
+                break;
+            }
+            case 'wfRemoveParentCondItem': {
+                const condItem = btn.closest('.cond-item');
+                if (condItem) {
+                    const condList = condItem.parentElement;
+                    condItem.remove();
+                    if (condList && condList.classList.contains('cond-list')) {
+                        node._updateCondLogicVisibility(condList);
+                    }
+                }
+                this._scheduleAutoSave(activeNodeId);
+                break;
+            }
+            case 'openConditionRef': {
+                const { nodeId, branchIndex, condIndex, side } = btn.dataset;
+                this.openConditionRefSelector(nodeId, parseInt(branchIndex, 10), parseInt(condIndex, 10), side);
+                break;
+            }
+            case 'clearConditionRef': {
+                const { nodeId, branchIndex, condIndex, side } = btn.dataset;
+                this.clearConditionRef(nodeId, parseInt(branchIndex, 10), parseInt(condIndex, 10), side);
+                this._scheduleAutoSave(nodeId);
+                break;
+            }
         }
     };
 

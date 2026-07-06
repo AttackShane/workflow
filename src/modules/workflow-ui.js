@@ -300,16 +300,20 @@ export class WorkflowUI {
     showSummaryPanel() {
         const summary = DOM.get('workflowSummary');
         const detail = DOM.get('nodeDetail');
+        const hint = DOM.get('propertyHint');
         if (summary) summary.style.display = 'block';
         if (detail) detail.style.display = 'none';
+        if (hint) hint.style.display = 'block';
         this.updateSummary();
     }
 
     showDetailPanel() {
         const summary = DOM.get('workflowSummary');
         const detail = DOM.get('nodeDetail');
+        const hint = DOM.get('propertyHint');
         if (summary) summary.style.display = 'none';
         if (detail) detail.style.display = 'block';
+        if (hint) hint.style.display = 'none';
     }
     
     /**
@@ -399,14 +403,6 @@ export class WorkflowUI {
      */
     deleteNode(nodeId) {
         this.node.delete(nodeId);
-    }
-    
-    /**
-     * 保存节点编辑（供外部调用）
-     * @param {string} nodeId - 节点 ID
-     */
-    saveNodeEdit(nodeId) {
-        this.node.saveEdit(nodeId);
     }
     
     /**

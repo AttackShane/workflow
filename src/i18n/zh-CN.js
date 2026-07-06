@@ -171,7 +171,7 @@ export const zhCN = {
         tips: '使用提示',
         tip1: '🖱️ 拖拽节点到画布创建',
         tip2: '🔗 点击输出点拖拽创建连接',
-        tip3: '🖼️ 双击节点编辑属性',
+        tip3: '🖼️ 点击节点查看属性',
         tip4: '🗑️ Delete键删除选中节点',
         alignCenterH: '水平居中',
         alignCenterV: '垂直居中',
@@ -513,6 +513,7 @@ export const zhCN = {
         editWorkflow: '编辑工作流',
         nameRequired: '请输入工作流名称',
         jsonParseError: 'JSON格式错误',
+        fileReadError: '文件读取失败，请检查文件格式',
         selectFileOrPaste: '请先选择文件或粘贴JSON内容',
         provideData: '请提供工作流数据',
         invalidData: '无效的工作流数据',
@@ -576,7 +577,9 @@ export const zhCN = {
         variables: '变量设置',
         leftVariable: '目标变量',
         rightValue: '新值',
-        intermediateVariables: '中间变量'
+        intermediateVariables: '中间变量',
+        selectReference: '选择引用',
+        clearReference: '清除引用'
     },
     actions: {
         addNode: '添加节点: {type}',

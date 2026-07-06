@@ -75,9 +75,8 @@ export class WorkflowKeyboard {
         const activeEl = document.activeElement;
         const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
         const isContentEditable = activeEl.isContentEditable;
-        const isModalOpen = document.querySelector('.node-editor-modal') !== null;
 
-        if (isModalOpen || isInput || isContentEditable) {
+        if (isInput || isContentEditable) {
             return;
         }
 

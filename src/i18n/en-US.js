@@ -171,7 +171,7 @@ export const enUS = {
         tips: 'Tips',
         tip1: '🖱️ Drag nodes to canvas to create',
         tip2: '🔗 Click output port to create connection',
-        tip3: '🖼️ Double-click to edit properties',
+        tip3: '🖼️ Click node to view properties',
         tip4: '🗑️ Delete key to remove selected nodes',
         alignCenterH: 'Center Horizontal',
         alignCenterV: 'Center Vertical',
@@ -335,6 +335,7 @@ export const enUS = {
         editWorkflow: 'Edit Workflow',
         nameRequired: 'Please enter workflow name',
         jsonParseError: 'JSON format error',
+        fileReadError: 'Failed to read file, please check the file format',
         selectFileOrPaste: 'Please select a file or paste JSON content',
         provideData: 'Please provide workflow data',
         invalidData: 'Invalid workflow data',
@@ -576,7 +577,9 @@ export const enUS = {
         variables: 'Set Variables',
         leftVariable: 'Target Variable',
         rightValue: 'New Value',
-        intermediateVariables: 'Intermediate Variables'
+        intermediateVariables: 'Intermediate Variables',
+        selectReference: 'Select Reference',
+        clearReference: 'Clear Reference'
     },
     actions: {
         addNode: 'Add node: {type}',

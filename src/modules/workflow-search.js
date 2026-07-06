@@ -49,6 +49,7 @@ export function mixinSearch(ui) {
                 DOM.setStyle(el, 'opacity', '');
                 DOM.setStyle(el, 'visibility', '');
                 DOM.setStyle(el, 'pointerEvents', '');
+                DOM.setStyle(el, 'display', '');
             });
             edgeEls.forEach(el => {
                 DOM.removeClass(el, 'search-dimmed');
@@ -126,6 +127,7 @@ export function mixinSearch(ui) {
                 DOM.setStyle(el, 'opacity', '');
                 DOM.setStyle(el, 'visibility', '');
                 DOM.setStyle(el, 'pointerEvents', '');
+                DOM.setStyle(el, 'display', '');
                 matchCount++;
             } else {
                 DOM.removeClass(el, 'search-highlight');
@@ -137,6 +139,7 @@ export function mixinSearch(ui) {
                 DOM.setStyle(el, 'opacity', '');
                 DOM.setStyle(el, 'visibility', '');
                 DOM.setStyle(el, 'pointerEvents', '');
+                DOM.setStyle(el, 'display', '');
             }
         });
 

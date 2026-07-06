@@ -123,6 +123,7 @@ export function mixinNodeSelector(node) {
             }
 
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         });
     };
 
@@ -141,6 +142,7 @@ export function mixinNodeSelector(node) {
                 }
             });
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -152,6 +154,7 @@ export function mixinNodeSelector(node) {
             if (!group || !group.variables) return;
             group.variables.splice(vi, 1);
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -471,6 +474,7 @@ export function mixinNodeSelector(node) {
                 }
             });
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -480,6 +484,7 @@ export function mixinNodeSelector(node) {
             if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
             targetNode.parameters.variables.splice(vi, 1);
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -508,20 +513,23 @@ export function mixinNodeSelector(node) {
             }
 
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         });
     };
 
-    node.clearLoopVarRef = function(nodeId, vi) {
+    node.clearLoopVarRef = function(nodeId, vi, side) {
         const targetNode = this.core.nodes.find(n => n.id === nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
         const variable = targetNode.parameters.variables[vi];
         if (!variable) return;
 
-        variable.right = {
+        const clearSide = side || 'right';
+        variable[clearSide] = {
             type: 'string',
             value: { type: 'literal', content: '' }
         };
         this.renderPropertyPanel(targetNode);
+        this._scheduleAutoSave(nodeId);
     };
 
     node.openConditionRefSelector = function(nodeId, branchIndex, condIndex, side) {
@@ -554,6 +562,7 @@ export function mixinNodeSelector(node) {
                 }
             };
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         });
     };
 
@@ -574,5 +583,6 @@ export function mixinNodeSelector(node) {
             }
         };
         this.renderPropertyPanel(targetNode);
+        this._scheduleAutoSave(nodeId);
     };
 }

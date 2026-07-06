@@ -328,9 +328,159 @@ export class WorkflowManager {
         this.closeModal();
     }
 
+    normalizeImportedWorkflow(workflowData) {
+        const expandedNodes = [];
+        const expandedEdges = [];
+        const idMap = {};
+
+        const processNode = (node, parentId = null) => {
+            if (!node.id) return;
+
+            const originalId = String(node.id);
+            const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            idMap[originalId] = newId;
+
+            const expandedNode = {
+                id: newId,
+                parentId: parentId,
+                type: node.type,
+                title: node.title || node.data?.nodeMeta?.title || '',
+                description: node.description || node.data?.nodeMeta?.description || '',
+                icon: node.icon || node.data?.nodeMeta?.icon || '',
+                x: (node.position?.x ?? node.x ?? 0) + (parentId ? 0 : 100),
+                y: (node.position?.y ?? node.y ?? 0) + (parentId ? 0 : 100),
+                width: node.width || 300,
+                height: node.height || 200,
+                parameters: node.parameters || {}
+            };
+
+            if (node.data?.inputs && typeof node.data.inputs === 'object') {
+                expandedNode.parameters = expandedNode.parameters || {};
+                Object.entries(node.data.inputs).forEach(([key, value]) => {
+                    if (key !== 'inputParameters' && key !== 'schemaType') {
+                        expandedNode.parameters[key] = value;
+                    }
+                });
+                if (Array.isArray(node.data.inputs.inputParameters)) {
+                    expandedNode.inputParams = node.data.inputs.inputParameters.map(p => ({
+                        name: p.name || '',
+                        type: p.type || p.input?.type || 'string',
+                        value: p.input?.value?.type === 'ref'
+                            ? { type: 'ref', content: p.input.value.content }
+                            : (p.input?.value?.content ?? p.defaultValue ?? ''),
+                        valueType: p.input?.value?.type || 'literal',
+                        rawMeta: p.input?.value?.rawMeta || null,
+                        schema: p.input?.schema || null,
+                        required: p.required === true,
+                        description: p.description || ''
+                    }));
+                }
+            }
+            if (node.data?.outputs && Array.isArray(node.data.outputs)) {
+                expandedNode.outputParams = node.data.outputs.map(o => {
+                    const isRef = o.input?.value?.type === 'ref';
+                    return {
+                        name: o.name || '',
+                        type: o.type || 'string',
+                        value: isRef
+                            ? { type: 'ref', content: o.input.value.content }
+                            : (o.defaultValue || ''),
+                        valueType: isRef ? 'ref' : 'literal',
+                        rawMeta: isRef ? (o.input.value.rawMeta || null) : null,
+                        required: o.required === true,
+                        description: o.description || ''
+                    };
+                });
+                const nodeOutputs = {};
+                node.data.outputs.forEach(output => {
+                    if (output.defaultValue !== undefined) {
+                        expandedNode.parameters[output.name] = output.defaultValue;
+                    }
+                    nodeOutputs[output.name] = {
+                        type: output.type || 'string',
+                        description: output.description || '',
+                        required: output.required || false
+                    };
+                    if (output.schema) nodeOutputs[output.name].properties = output.schema;
+                });
+                if (Object.keys(nodeOutputs).length > 0) {
+                    expandedNode.parameters.node_outputs = nodeOutputs;
+                }
+            }
+
+            expandedNodes.push(expandedNode);
+
+            if (node.edges && Array.isArray(node.edges)) {
+                node.edges.forEach(edge => {
+                    expandedEdges.push(edge);
+                });
+            }
+
+            if (node.blocks && Array.isArray(node.blocks)) {
+                node.blocks.forEach(block => {
+                    processNode(block, newId);
+                });
+            }
+        };
+
+        workflowData.nodes.forEach(node => processNode(node));
+
+        (workflowData.edges || []).forEach(edge => expandedEdges.push(edge));
+
+        const convertedEdges = expandedEdges.map(edge => {
+            const sourceId = idMap[String(edge.sourceNodeID || edge.source_node || edge.source)];
+            const targetId = idMap[String(edge.targetNodeID || edge.target_node || edge.target)];
+            if (!sourceId || !targetId) return null;
+
+            let sourcePort = edge.sourcePortID || edge.source_port || edge.sourcePort;
+            let targetPort = edge.targetPortID || edge.target_port || edge.targetPort;
+
+            const portReverseMap = {
+                'loop-function-inline-output': 'container_start',
+                'loop-function-inline-input': 'container_end',
+                'batch-function-inline-output': 'container_start',
+                'batch-function-inline-input': 'container_end'
+            };
+            if (portReverseMap[sourcePort]) sourcePort = portReverseMap[sourcePort];
+            if (portReverseMap[targetPort]) targetPort = portReverseMap[targetPort];
+
+            return {
+                id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                source: sourceId,
+                target: targetId,
+                ...(sourcePort && { sourcePort }),
+                ...(targetPort && { targetPort })
+            };
+        }).filter(e => e !== null);
+
+        const remapBlockIds = (obj) => {
+            if (!obj || typeof obj !== 'object') return;
+            if (Array.isArray(obj)) {
+                obj.forEach(item => remapBlockIds(item));
+                return;
+            }
+            for (const key of Object.keys(obj)) {
+                if (key === 'blockID' && typeof obj[key] === 'string') {
+                    const newId = idMap[String(obj[key])];
+                    if (newId) obj[key] = newId;
+                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                    remapBlockIds(obj[key]);
+                }
+            }
+        };
+
+        expandedNodes.forEach(node => {
+            remapBlockIds(node.parameters);
+            remapBlockIds(node.inputParams);
+            remapBlockIds(node.outputParams);
+        });
+
+        return { nodes: expandedNodes, edges: convertedEdges };
+    }
+
     async importWorkflow() {
         let workflowData = null;
-        
+
         if (this.elements.importText.value.trim()) {
             try {
                 workflowData = JSON.parse(this.elements.importText.value);
@@ -339,11 +489,47 @@ export class WorkflowManager {
                 return;
             }
         } else if (this.elements.importFile.files[0]) {
-            await Dialog.alert(t('manager.selectFileOrPaste'));
-            return;
+            const file = this.elements.importFile.files[0];
+            const reader = new FileReader();
+            try {
+                workflowData = await new Promise((resolve, reject) => {
+                    reader.onload = (e) => {
+                        try {
+                            const content = e.target.result;
+                            if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
+                                resolve(getJsyaml().load(content));
+                            } else {
+                                resolve(JSON.parse(content));
+                            }
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = () => reject(reader.error);
+                    reader.readAsText(file);
+                });
+            } catch (e) {
+                await Dialog.error(t('manager.fileReadError'));
+                return;
+            }
         } else {
             await Dialog.alert(t('manager.provideData'));
             return;
+        }
+
+        if (workflowData.graph && !workflowData.nodes) {
+            if (workflowData.graph.nodes) {
+                workflowData.nodes = workflowData.graph.nodes;
+            }
+            if (workflowData.graph.edges) {
+                workflowData.edges = workflowData.graph.edges;
+            }
+            if (workflowData.graph.name) {
+                workflowData.name = workflowData.name || workflowData.graph.name;
+            }
+            if (workflowData.graph.description) {
+                workflowData.description = workflowData.description || workflowData.graph.description;
+            }
         }
 
         if (!workflowData.nodes || !Array.isArray(workflowData.nodes)) {
@@ -351,12 +537,22 @@ export class WorkflowManager {
             return;
         }
 
+        let nodes, edges;
+        if (workflowData.schema_version) {
+            const normalized = this.normalizeImportedWorkflow(workflowData);
+            nodes = normalized.nodes;
+            edges = normalized.edges;
+        } else {
+            nodes = deepClone(workflowData.nodes);
+            edges = deepClone(workflowData.edges || []);
+        }
+
         const newWorkflow = {
             id: `wf_${Date.now()}`,
             name: workflowData.name || t('manager.importedWorkflowName'),
             description: workflowData.description || '',
-            nodes: deepClone(workflowData.nodes),
-            edges: deepClone(workflowData.edges || []),
+            nodes: nodes,
+            edges: edges,
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -598,7 +794,7 @@ export class WorkflowManager {
             id: 'wf_' + Date.now(),
             name: resolved.name,
             description: resolved.description,
-            nodes: deepClone(template.nodes),
+            nodes: deepClone(resolved.nodes),
             edges: deepClone(template.edges),
             createdAt: Date.now(),
             updatedAt: Date.now()

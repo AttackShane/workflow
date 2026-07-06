@@ -128,16 +128,6 @@ describe('WorkflowKeyboard', () => {
             expect(mockUI.selection.deleteSelected).not.toHaveBeenCalled();
         });
 
-        it('should ignore keystrokes when modal is open', () => {
-            const mockModal = { className: 'node-editor-modal' };
-            global.document.querySelector = jest.fn(() => mockModal);
-            const event = createMockEvent({ key: 'Delete' });
-
-            keyboard.handleKeydown(event);
-
-            expect(mockUI.selection.deleteSelected).not.toHaveBeenCalled();
-        });
-
         it('should handle Delete key', () => {
             const event = createMockEvent({ key: 'Delete' });
 

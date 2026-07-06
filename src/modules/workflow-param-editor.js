@@ -249,6 +249,7 @@ export function mixinParamEditor(node) {
                 targetNode.outputParams.splice(index, 1);
             }
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -392,31 +393,38 @@ export function mixinParamEditor(node) {
                         <span style="font-weight: 600; color: var(--text-primary);">${t('nodes.parameter', { index: vi + 1 }) || `变量 ${vi + 1}`}</span>
                         <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeLoopVariable('${targetNode.id}', ${vi})">×</button>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                        <div>
-                            <label style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; display: block;">${t('nodes.leftVariable') || '目标变量'}</label>
-                            <button class="btn" style="width: 100%; text-align: left; padding: 0.3rem 0.5rem; min-height: 28px;" 
-                                    onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')">
-                                ${StringUtils.escapeHtml(leftDisplay)}
-                            </button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div class="cond-row">
+                            <span class="cond-label">${t('nodes.leftVariable') || '目标变量'}</span>
+                            <div class="cond-side">
+                                <span style="flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                      onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')"
+                                      title="${StringUtils.escapeHtml(leftDisplay)}">${StringUtils.escapeHtml(leftDisplay)}</span>
+                                <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')" 
+                                        title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
+                                <button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi}, 'left')" 
+                                        title="${t('nodes.clearReference') || '清除引用'}">×</button>
+                            </div>
                         </div>
-                        <div>
-                            <label style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.25rem; display: block;">${t('nodes.rightValue') || '新值'}</label>
-                            <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        <div class="cond-row">
+                            <span class="cond-label">${t('nodes.rightValue') || '新值'}</span>
+                            <div class="cond-side">
                                 <input class="property-input" id="loopVarRight_${vi}" type="text" 
                                        value="${StringUtils.escapeHtml(String(rightLiteral))}" 
-                                       placeholder="${t('nodes.rightValue')}"
+                                       placeholder="引用或值"
                                        style="flex:1; ${rightIsRef ? 'display:none;' : ''}"
                                        ${rightIsRef ? 'disabled' : ''}>
                                 <span id="loopVarRightDisplay_${vi}" 
-                                      style="flex:1; display:${rightIsRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                                      style="display:${rightIsRef ? 'block' : 'none'}; flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
                                       onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')"
                                       title="${StringUtils.escapeHtml(rightDisplay)}">${StringUtils.escapeHtml(rightDisplay)}</span>
-                                <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
                                         onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')" 
                                         title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
-                                ${rightIsRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi})" 
+                                ${rightIsRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi}, 'right')" 
                                         title="${t('nodes.clearReference') || '清除引用'}">×</button>` : ''}
                             </div>
                         </div>
@@ -540,6 +548,7 @@ export function mixinParamEditor(node) {
                 }
             });
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -549,6 +558,7 @@ export function mixinParamEditor(node) {
             if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
             targetNode.parameters.variableParameters.splice(vi, 1);
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         } catch (e) {}
     };
 
@@ -575,6 +585,7 @@ export function mixinParamEditor(node) {
                 }
             };
             this.renderPropertyPanel(targetNode);
+            this._scheduleAutoSave(nodeId);
         });
     };
 
@@ -589,6 +600,7 @@ export function mixinParamEditor(node) {
             value: { type: 'literal', content: '' }
         };
         this.renderPropertyPanel(targetNode);
+        this._scheduleAutoSave(nodeId);
     };
 
     node.saveLoopIntermediateVariables = function(targetNode) {

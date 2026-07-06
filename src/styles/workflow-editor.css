@@ -944,7 +944,7 @@ polygon.workflow-edge.selected {
     color: var(--text-primary);
     font-size: 0.875rem;
     outline: none;
-    resize: vertical;
+    resize: none;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1105,7 +1105,8 @@ polygon.workflow-edge.selected {
     line-height: 1;
 }
 
-.btn-add-cond {
+.btn-add-cond,
+.btn-add-branch {
     font-size: 0.7rem;
     padding: 0.15rem 0.5rem;
     align-self: flex-start;

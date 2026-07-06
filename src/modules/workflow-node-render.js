@@ -103,7 +103,6 @@ export function mixinNodeRender(node) {
 
         el.addEventListener('mousedown', (e) => this.onMouseDown(e, el));
         el.addEventListener('click', (e) => this.onClick(e, el));
-        el.addEventListener('dblclick', () => this.openEditor(nodeData.id));
 
         const outputPoints = el.querySelectorAll('.connection-point.output');
         outputPoints.forEach(point => {
