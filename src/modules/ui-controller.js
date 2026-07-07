@@ -141,7 +141,7 @@ class UIController {
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            DOM.setText(inputText, e.target?.result || '');
+            DOM.setText(inputText, String(e.target?.result || ''));
             this.handleConvert();
         };
         reader.readAsText(file);
@@ -151,7 +151,7 @@ class UIController {
         const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
         if (!inputText) return;
 
-        const input = inputText.value.trim();
+        const input = /** @type {HTMLInputElement} */ (inputText).value.trim();
         if (!input) {
             this.msg(t('converter.emptyInput'), true);
             return;
@@ -181,13 +181,13 @@ class UIController {
                     type = 'yaml';
                 } catch (jsonError) {
                     const yamlData = _loadYamlWithStringIds(input);
-                    const clipboardData = convertYamlToClipboard(yamlData);
+                    const clipboardData = convertYamlToClipboard(/** @type {any} */ (yamlData));
                     result = JSON.stringify(clipboardData, null, 2);
                     type = 'json';
                 }
             } else {
                 const yamlData = _loadYamlWithStringIds(input);
-                const clipboardData = convertYamlToClipboard(yamlData, input);
+                const clipboardData = convertYamlToClipboard(/** @type {any} */ (yamlData), input);
                 result = JSON.stringify(clipboardData, null, 2);
                 type = 'json';
             }
@@ -402,7 +402,7 @@ class UIController {
             e.stopPropagation();
             uploadArea.classList.remove('dragover');
 
-            const files = e.dataTransfer?.files;
+            const files = /** @type {DragEvent} */ (e).dataTransfer?.files;
             if (files && files.length > 0) {
                 const file = files[0];
                 if (this._isValidFile(file)) {
@@ -441,7 +441,7 @@ class UIController {
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            DOM.setText(inputText, e.target?.result || '');
+            DOM.setText(inputText, String(e.target?.result || ''));
             this.handleConvert();
         };
         reader.readAsText(file);
@@ -464,12 +464,21 @@ class UIController {
 const _instance = new UIController();
 export const getCurData = () => _instance.getCurData();
 export const getCurDataType = () => _instance.getCurDataType();
+// @ts-ignore
 export const msg = (...args) => _instance.msg(...args);
+// @ts-ignore
 export const resetUI = (...args) => _instance.resetUI(...args);
+// @ts-ignore
 export const updateLineNumbers = (...args) => _instance.updateLineNumbers(...args);
+// @ts-ignore
 export const handleFileSelect = (...args) => _instance.handleFileSelect(...args);
+// @ts-ignore
 export const handleConvert = (...args) => _instance.handleConvert(...args);
+// @ts-ignore
 export const displayOutput = (...args) => _instance.displayOutput(...args);
+// @ts-ignore
 export const copyOutput = (...args) => _instance.copyOutput(...args);
+// @ts-ignore
 export const downloadOutput = (...args) => _instance.downloadOutput(...args);
+// @ts-ignore
 export const initUI = (...args) => _instance.initUI(...args);

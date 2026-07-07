@@ -309,7 +309,7 @@ class GraphView {
 
             this._workflowGraph.querySelectorAll('.workflow-graph-node').forEach(nodeEl => {
                 nodeEl.addEventListener('click', () => {
-                    const nodeId = nodeEl.dataset.nodeId;
+                    const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
                     const node = nodeMap.get(nodeId);
                     if (node) {
                         const displayNode = { ...node };
@@ -404,5 +404,7 @@ class GraphView {
 }
 
 const _instance = new GraphView();
+// @ts-ignore
 export const renderWorkflowGraph = (...args) => _instance.renderWorkflowGraph(...args);
+// @ts-ignore
 export const initGraphModal = (...args) => _instance.initGraphModal(...args);

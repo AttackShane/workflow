@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * 工作流节点渲染模块
  * 负责节点 DOM 元素创建、canvas 交互（拖拽、点击、选择、删除）
@@ -334,6 +335,9 @@ export function mixinNodeRender(node) {
         el.classList.add('dragging');
         el.style.zIndex = 1000;
 
+        const guidesEl = document.getElementById('alignmentGuides');
+        if (guidesEl) guidesEl.innerHTML = '';
+
         const nodeStartPositions = {};
         const selectedNodeEls = Array.from(document.querySelectorAll('.canvas-node.selected'));
         selectedNodeEls.forEach(nodeEl => {
@@ -354,12 +358,24 @@ export function mixinNodeRender(node) {
         };
 
         const findDropTarget = (clientX, clientY) => {
-            selectedNodeEls.forEach(el => el.style.pointerEvents = 'none');
-            const elem = document.elementFromPoint(clientX, clientY);
-            selectedNodeEls.forEach(el => el.style.pointerEvents = '');
-            if (!elem) return null;
-            const container = elem.closest('.canvas-node.container');
-            if (container && !selectedNodeEls.includes(container)) return container;
+            const canvasRect = this.ui.canvas.canvas.getBoundingClientRect();
+            const screenX = clientX - canvasRect.left;
+            const screenY = clientY - canvasRect.top;
+            const { canvasX, canvasY } = this.ui.canvas.screenToCanvas(screenX, screenY);
+
+            const containers = this.core.nodes.filter(n => this.core.isContainerNode(n.id));
+            for (const c of containers) {
+                if (selectedNodeEls.some(el => el.dataset.nodeId === c.id)) continue;
+                const cx = c.x || 0;
+                const cy = c.y || 0;
+                const cInfo = this.core.nodeTypeInfo[c.type] || {};
+                const cw = c.width || (cInfo.containerMinWidth || 300);
+                const ch = c.height || (cInfo.containerMinHeight || 200);
+                const headerH = 58;
+                if (canvasX >= cx && canvasX <= cx + cw && canvasY >= cy + headerH && canvasY <= cy + ch) {
+                    return this._elMap.get(c.id) || null;
+                }
+            }
             return null;
         };
 
@@ -388,10 +404,17 @@ export function mixinNodeRender(node) {
                 // 这三类节点不允许通过 Ctrl+拖动移出循环容器
                 const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
 
+                // 智能对齐：计算辅助线和吸附偏移
+                const primaryEl = selectedNodeEls[0];
+                const primaryStartPos = nodeStartPositions[primaryEl.dataset.nodeId];
+                const snapOffsets = this.computeAlignment(primaryEl, primaryStartPos.x + moveDx, primaryStartPos.y + moveDy, selectedNodeEls);
+                const snapDX = snapOffsets.snapX;
+                const snapDY = snapOffsets.snapY;
+
                 for (const nodeEl of selectedNodeEls) {
                     const startPos = nodeStartPositions[nodeEl.dataset.nodeId];
-                    const newX = startPos.x + moveDx;
-                    const newY = startPos.y + moveDy;
+                    const newX = startPos.x + moveDx + snapDX;
+                    const newY = startPos.y + moveDy + snapDY;
                     const nodeId = nodeEl.dataset.nodeId;
                     const nodeData = this.core.nodes.find(n => n.id === nodeId);
 
@@ -446,6 +469,18 @@ export function mixinNodeRender(node) {
                         parentContainers.add(nodeData.parentId);
                     }
                 }
+
+                // 拖拽高亮：检查是否悬停在容器上方
+                const target = findDropTarget(e.clientX, e.clientY);
+                if (target !== dropTarget) {
+                    if (dropTarget) {
+                        dropTarget.classList.remove('drop-target');
+                    }
+                    dropTarget = target;
+                    if (dropTarget) {
+                        dropTarget.classList.add('drop-target');
+                    }
+                }
             });
         };
 
@@ -486,6 +521,8 @@ export function mixinNodeRender(node) {
                     }
                     if (nodeData.parentId !== containerId) {
                         const oldParentId = nodeData.parentId;
+                        const oldParent = oldParentId ? this.core.nodes.find(n => n.id === oldParentId) : null;
+                        const oldHeaderH = oldParent ? 58 : 0;
                         if (nodeData.parentId) {
                             nodeData.parentId = null;
                         }
@@ -495,8 +532,10 @@ export function mixinNodeRender(node) {
                         const descH = 20;
                         const containerAbsX = containerNode.x;
                         const containerAbsY = containerNode.y;
-                        const relX = newX - containerAbsX;
-                        const relY = newY - containerAbsY - headerH - descH;
+                        const canvasX = oldParent ? (oldParent.x + newX) : newX;
+                        const canvasY = oldParent ? (oldParent.y + oldHeaderH + newY) : newY;
+                        const relX = canvasX - containerAbsX;
+                        const relY = canvasY - containerAbsY - headerH - descH;
                         nodeData.parentId = containerId;
                         nodeData.x = Math.max(5, Math.round(relX));
                         nodeData.y = Math.max(5, Math.round(relY));
@@ -605,10 +644,153 @@ export function mixinNodeRender(node) {
 
             this.ui.edge.updateAffectedEdges(Array.from(affectedNodeIds));
             this.ui.canvas.updateSvgSize();
+
+            const guidesEl = document.getElementById('alignmentGuides');
+            if (guidesEl) guidesEl.innerHTML = '';
         };
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
+    };
+
+    /**
+     * 计算智能对齐辅助线
+     * @param {HTMLElement} draggedEl - 拖拽的主节点元素
+     * @param {number} dragX - 拖拽节点当前 X 坐标
+     * @param {number} dragY - 拖拽节点当前 Y 坐标
+     * @param {HTMLElement[]} selectedNodeEls - 所有被选中拖拽的节点元素
+     * @returns {{ snapX: number, snapY: number }}
+     */
+    node.computeAlignment = function(draggedEl, dragX, dragY, selectedNodeEls) {
+        const guidesEl = document.getElementById('alignmentGuides');
+        if (!guidesEl) return { snapX: 0, snapY: 0 };
+
+        guidesEl.innerHTML = '';
+
+        const SNAP_THRESHOLD = 5;
+        const selectedIds = new Set(selectedNodeEls.map(el => el.dataset.nodeId));
+
+        const dw = draggedEl.offsetWidth || 200;
+        const dh = draggedEl.offsetHeight || 100;
+
+        // 将拖拽节点坐标转为画布坐标
+        let draggedCanvasX = dragX;
+        let draggedCanvasY = dragY;
+        const draggedContainer = draggedEl.closest('.container-body');
+        if (draggedContainer) {
+            const containerNode = draggedContainer.closest('.canvas-node.container');
+            if (containerNode) {
+                const containerData = this.core.nodes.find(n => n.id === containerNode.dataset.nodeId);
+                if (containerData) {
+                    draggedCanvasX = (containerData.x || 0) + dragX;
+                    draggedCanvasY = (containerData.y || 0) + 58 + dragY;
+                }
+            }
+        }
+
+        const draggedEdges = {
+            left: draggedCanvasX,
+            centerX: draggedCanvasX + dw / 2,
+            right: draggedCanvasX + dw,
+            top: draggedCanvasY,
+            centerY: draggedCanvasY + dh / 2,
+            bottom: draggedCanvasY + dh
+        };
+
+        let bestSnapX = null;
+        let bestSnapY = null;
+        let bestDistX = SNAP_THRESHOLD;
+        let bestDistY = SNAP_THRESHOLD;
+        const guideLines = [];
+
+        const allNodeEls = document.querySelectorAll('#canvasContent .canvas-node');
+
+        for (const otherEl of allNodeEls) {
+            if (selectedIds.has(otherEl.dataset.nodeId)) continue;
+
+            let ox = parseFloat(otherEl.dataset.x) || 0;
+            let oy = parseFloat(otherEl.dataset.y) || 0;
+            const otherContainer = otherEl.closest('.container-body');
+            if (otherContainer) {
+                const otherContainerNode = otherContainer.closest('.canvas-node.container');
+                if (otherContainerNode) {
+                    const otherContainerData = this.core.nodes.find(n => n.id === otherContainerNode.dataset.nodeId);
+                    if (otherContainerData) {
+                        ox = (otherContainerData.x || 0) + ox;
+                        oy = (otherContainerData.y || 0) + 58 + oy;
+                    }
+                }
+            }
+
+            const ow = otherEl.offsetWidth || 200;
+            const oh = otherEl.offsetHeight || 100;
+
+            const otherEdges = {
+                left: ox,
+                centerX: ox + ow / 2,
+                right: ox + ow,
+                top: oy,
+                centerY: oy + oh / 2,
+                bottom: oy + oh
+            };
+
+            const xChecks = [
+                { d: 'left', o: 'left' },
+                { d: 'centerX', o: 'centerX' },
+                { d: 'right', o: 'right' },
+                { d: 'left', o: 'right' },
+                { d: 'right', o: 'left' }
+            ];
+
+            for (const c of xChecks) {
+                const diff = Math.abs(draggedEdges[c.d] - otherEdges[c.o]);
+                if (diff < bestDistX) {
+                    bestDistX = diff;
+                    bestSnapX = otherEdges[c.o] - (draggedEdges[c.d] - draggedCanvasX);
+                    guideLines.push({ axis: 'x', pos: otherEdges[c.o] });
+                }
+            }
+
+            const yChecks = [
+                { d: 'top', o: 'top' },
+                { d: 'centerY', o: 'centerY' },
+                { d: 'bottom', o: 'bottom' },
+                { d: 'top', o: 'bottom' },
+                { d: 'bottom', o: 'top' }
+            ];
+
+            for (const c of yChecks) {
+                const diff = Math.abs(draggedEdges[c.d] - otherEdges[c.o]);
+                if (diff < bestDistY) {
+                    bestDistY = diff;
+                    bestSnapY = otherEdges[c.o] - (draggedEdges[c.d] - draggedCanvasY);
+                    guideLines.push({ axis: 'y', pos: otherEdges[c.o] });
+                }
+            }
+        }
+
+        const uniqueXLines = [...new Set(guideLines.filter(g => g.axis === 'x').map(g => g.pos))];
+        const uniqueYLines = [...new Set(guideLines.filter(g => g.axis === 'y').map(g => g.pos))];
+
+        if (uniqueXLines.length > 0 || uniqueYLines.length > 0) {
+            const svgW = guidesEl.getAttribute('width') || 5000;
+            const svgH = guidesEl.getAttribute('height') || 5000;
+
+            let svgContent = '';
+            for (const x of uniqueXLines) {
+                svgContent += `<line x1="${x}" y1="0" x2="${x}" y2="${svgH}" stroke="#ff3366" stroke-width="1" />`;
+            }
+            for (const y of uniqueYLines) {
+                svgContent += `<line x1="0" y1="${y}" x2="${svgW}" y2="${y}" stroke="#ff3366" stroke-width="1" />`;
+            }
+
+            guidesEl.innerHTML = svgContent;
+        }
+
+        return {
+            snapX: bestSnapX !== null ? bestSnapX - draggedCanvasX : 0,
+            snapY: bestSnapY !== null ? bestSnapY - draggedCanvasY : 0
+        };
     };
 
     node.onClick = function(e, el) {

@@ -22,7 +22,7 @@ export class WorkflowAlign {
         if (!toolbar) return;
 
         DOM.on(toolbar, 'click', (e) => {
-            const btn = e.target.closest('.align-btn');
+            const btn = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (e.target).closest('.align-btn'));
             if (!btn) return;
             const mode = btn.dataset.align;
             if (mode) this.alignNodes(mode);
@@ -84,7 +84,7 @@ export class WorkflowAlign {
 
         const nodes = [];
         selectedEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
+            const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
             const node = this.core.nodes.find(n => n.id === nodeId);
             if (node) {
                 nodes.push({

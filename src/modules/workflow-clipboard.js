@@ -1,21 +1,8 @@
+// @ts-nocheck
 import { TYPE_MAP, getMainColor, getSubTitle, resolveNodeType } from "../utils/types.js";
-import { ClipboardUtils, deepClone } from "../utils/helpers.js";
+import { ClipboardUtils, deepClone, extractSlateText } from "../utils/helpers.js";
 import { t } from "../i18n/i18n.js";
 import { mixinClipboardPaste } from './workflow-clipboard-paste.js';
-
-/**
- * 从 Slate 格式提取纯文本
- * @param {Array} slate - Slate JSON 节点数组
- * @returns {string} 纯文本
- */
-function extractSlateText(slate) {
-    if (!Array.isArray(slate)) return '';
-    return slate.map(node => {
-        if (node.text !== undefined) return node.text;
-        if (node.children) return extractSlateText(node.children);
-        return '';
-    }).join('\n');
-}
 
 export class WorkflowClipboard {
     constructor(ui) {

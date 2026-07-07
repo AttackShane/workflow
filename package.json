@@ -7,12 +7,16 @@
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.7",
+    "@types/node": "^26.1.0",
     "babel-jest": "^30.4.1",
     "eslint": "^8.57.1",
     "http-server": "^14.1.1",
     "husky": "^9.1.7",
     "jest": "^30.4.2",
-    "lint-staged": "^16.4.0"
+    "jest-environment-jsdom": "^30.4.1",
+    "lint-staged": "^16.4.0",
+    "terser": "^5.48.0",
+    "typescript": "^6.0.3"
   },
   "scripts": {
     "dev": "node src/scripts/server.js",
@@ -20,6 +24,10 @@
     "convert": "node src/scripts/batch-convert.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
+    "check:types": "node check_types.cjs",
+    "check:i18n": "node check_i18n.cjs",
+    "check": "node check_types.cjs && node check_i18n.cjs",
+    "typecheck": "tsc --noEmit --project jsconfig.json",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix",
     "prepare": "husky"

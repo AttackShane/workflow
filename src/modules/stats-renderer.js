@@ -67,7 +67,7 @@ export function renderStats(container, data, isJson) {
 export function renderStatsDetail(container, data, isJson) {
     if (!container) return;
     
-    let detailStats = {};
+    let detailStats = /** @type {*} */ ({});
     
     try {
         const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));

@@ -32,11 +32,13 @@ function showErrorBanner(message) {
     }, 8000);
 }
 
+// 在所有页面上立即初始化 i18n 和 theme
+// 模块脚本延迟执行，此时 DOM 已就绪，无需等待 DOMContentLoaded
+// 必须在编辑器内联脚本之前执行，确保页面首次渲染时主题已正确应用
+initI18nController();
+initThemeController();
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 在所有页面上都初始化 i18n 和 theme
-    initI18nController();
-    initThemeController();
-    
     // 检查当前页面类型并初始化对应的模块
     const h1Element = document.querySelector('h1');
     const h1Text = h1Element ? h1Element.textContent.toLowerCase() : '';

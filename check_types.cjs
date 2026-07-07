@@ -5,11 +5,10 @@ const typesContent = fs.readFileSync('src/utils/types.js', 'utf8');
 const typeMapMatch = typesContent.match(/export const TYPE_MAP = \{([\s\S]*?)\};/);
 const typeMapKeys = [];
 if (typeMapMatch) {
-  const lines = typeMapMatch[1].split('\n');
-  lines.forEach(line => {
-    const match = line.match(/(\w+):\s*"/);
-    if (match) typeMapKeys.push(match[1]);
-  });
+  const matches = typeMapMatch[1].matchAll(/(\w+):\s*"/g);
+  for (const m of matches) {
+    typeMapKeys.push(m[1]);
+  }
 }
 
 // 读取workflow-node-types

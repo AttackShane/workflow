@@ -126,9 +126,9 @@ export class ConversionError extends Error {
         if (lineMatch) line = parseInt(lineMatch[1], 10);
         if (columnMatch) column = parseInt(columnMatch[1], 10);
 
-        if (error.mark) {
-            line = error.mark.line + 1;
-            column = error.mark.column + 1;
+        if (/** @type {*} */(error).mark) {
+            line = /** @type {*} */(error).mark.line + 1;
+            column = /** @type {*} */(error).mark.column + 1;
         }
 
         return new ConversionError(
@@ -373,7 +373,7 @@ export function validateClipboardInput(clip) {
  */
 export function getNodeTypeName(type) {
     const typeName = REV_TYPE_MAP[String(type)];
-    return typeName ? NODE_DISPLAY_NAMES[typeName] : (type || 'Unknown');
+    return typeName ? NODE_DISPLAY_NAMES[/** @type {keyof typeof NODE_DISPLAY_NAMES} */ (typeName)] : String(type || 'Unknown');
 }
 
 /**
@@ -383,7 +383,7 @@ export function getNodeTypeName(type) {
  */
 export function getNodeColor(type) {
     const typeName = REV_TYPE_MAP[String(type)];
-    return typeName ? NODE_COLORS[typeName] : '#00B2B2';
+    return typeName ? NODE_COLORS[/** @type {keyof typeof NODE_COLORS} */ (typeName)] : '#00B2B2';
 }
 
 /**
@@ -410,4 +410,32 @@ export function safeParseJson(jsonString) {
     } catch (error) {
         throw ConversionError.fromJsonError(error);
     }
+}
+
+/**
+ * 将 UTF-8 字符串编码为 Base64（替代废弃的 btoa(unescape(encodeURIComponent(...))) ）
+ * @param {string} str - UTF-8 字符串
+ * @returns {string} Base64 编码字符串
+ */
+export function utf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+/**
+ * 将 Base64 解码为 UTF-8 字符串（替代废弃的 decodeURIComponent(escape(atob(...))) ）
+ * @param {string} base64 - Base64 编码字符串
+ * @returns {string} UTF-8 字符串
+ */
+export function base64ToUtf8(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder().decode(bytes);
 }

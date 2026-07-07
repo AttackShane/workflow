@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { DOM, deepClone } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 

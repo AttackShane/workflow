@@ -98,6 +98,9 @@ export class Dialog {
         }
     }
 
+    /**
+     * @param {*} [result=false]
+     */
     static #close(result = false) {
         if (this.#isClosing) return;
         this.#isClosing = true;
@@ -352,8 +355,8 @@ export class Dialog {
                 </div>
             `;
 
-            const nameInput = this.#container.querySelector('#dialog-prompt-name');
-            const descInput = this.#container.querySelector('#dialog-prompt-desc');
+            const nameInput = /** @type {HTMLInputElement} */ (this.#container.querySelector('#dialog-prompt-name'));
+            const descInput = /** @type {HTMLInputElement} */ (this.#container.querySelector('#dialog-prompt-desc'));
 
             nameInput.addEventListener('focus', () => { nameInput.style.borderColor = '#667eea'; nameInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'; });
             nameInput.addEventListener('blur', () => { nameInput.style.borderColor = '#ddd'; nameInput.style.boxShadow = 'none'; });

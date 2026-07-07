@@ -12,7 +12,7 @@ import { t } from "../i18n/i18n.js";
 
 /**
  * 默认节点标题映射
- * @type {Object.<string, string>}
+ * @type {Object<string, () => string>}
  */
 const DEFAULT_TITLES = { start: () => t('nodeTypes.start'), end: () => t('nodeTypes.end') };
 
@@ -212,7 +212,7 @@ export function convertYamlToClipboard(yaml, rawYaml) {
             const lineInfo = line ? `（第 ${line} 行附近）` : '';
             const nodeInfo = t('converter.nodeConvertError', { title: n.title || '', id: n.id, type: n.type, lineInfo, message: e.message });
             const enrichedError = new Error(nodeInfo);
-            enrichedError.nodeInfo = { id: n.id, title: n.title, type: n.type, line };
+            /** @type {any} */ (enrichedError).nodeInfo = { id: n.id, title: n.title, type: n.type, line };
             throw enrichedError;
         }
     }

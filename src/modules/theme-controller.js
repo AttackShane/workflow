@@ -1,6 +1,7 @@
 import { APP_CONFIG } from '../config/constants.js';
 import { DOM, Storage } from '../utils/helpers.js';
 import { Logger } from '../utils/logger.js';
+import { t } from '../i18n/i18n.js';
 
 class ThemeController {
     constructor() {
@@ -8,10 +9,6 @@ class ThemeController {
         this._currentFontSize = Storage.get(APP_CONFIG.THEME.FONT_SIZE_KEY, APP_CONFIG.THEME.DEFAULT_FONT_SIZE);
         this._currentTheme = null;
         this._storageTimeout = null;
-        this._themeTextCache = {
-            light: '☀️ 浅色模式',
-            dark: '🌙 深色模式'
-        };
     }
 
     initThemeController = () => {
@@ -29,34 +26,24 @@ class ThemeController {
 
         document.documentElement.setAttribute('data-theme', this._currentTheme);
 
-        DOM.setText(this._elements.themeBtn, this._currentTheme === 'dark' ? this._themeTextCache.light : this._themeTextCache.dark);
+        this._updateThemeButtonText();
 
         this._updateFontSize();
 
         const showLineNumbers = Storage.get('workflow-converter-linenumbers', 'true') === 'true';
-        DOM.setAttr(this._elements.lineNumbersToggle, 'checked', showLineNumbers);
+        DOM.setAttr(this._elements.lineNumbersToggle, 'checked', String(showLineNumbers));
         DOM.setStyle(this._elements.lineNumbers, 'display', showLineNumbers ? 'block' : 'none');
 
         DOM.on(this._elements.themeBtn, 'click', this._toggleTheme);
         DOM.on(this._elements.fontSmallBtn, 'click', this._decreaseFontSize);
         DOM.on(this._elements.fontLargeBtn, 'click', this._increaseFontSize);
         DOM.on(this._elements.lineNumbersToggle, 'change', this._toggleLineNumbers);
-
-        this._loadTranslations();
     };
 
-    async _loadTranslations() {
-        try {
-            const { t } = await import('../i18n/i18n.js');
-            this._themeTextCache.light = t('converter.themeLight');
-            this._themeTextCache.dark = t('converter.themeDark');
-
-            if (this._elements.themeBtn) {
-                DOM.setText(this._elements.themeBtn, this._currentTheme === 'dark' ? this._themeTextCache.light : this._themeTextCache.dark);
-            }
-        } catch (e) {
-            Logger.warn('Failed to load translations:', e);
-        }
+    _updateThemeButtonText() {
+        if (!this._elements.themeBtn) return;
+        const text = this._currentTheme === 'dark' ? t('converter.themeLight') : t('converter.themeDark');
+        DOM.setText(this._elements.themeBtn, text);
     }
 
     _toggleTheme = () => {
@@ -65,7 +52,7 @@ class ThemeController {
         this._currentTheme = newTheme;
 
         document.documentElement.setAttribute('data-theme', newTheme);
-        DOM.setText(this._elements.themeBtn, newTheme === 'dark' ? this._themeTextCache.light : this._themeTextCache.dark);
+        DOM.setText(this._elements.themeBtn, newTheme === 'dark' ? t('converter.themeLight') : t('converter.themeDark'));
 
         this._saveThemeToStorage(newTheme);
     };
@@ -86,8 +73,7 @@ class ThemeController {
     }
 
     updateThemeButtonText = () => {
-        if (!this._elements.themeBtn) return;
-        this._loadTranslations();
+        this._updateThemeButtonText();
     };
 
     _updateFontSize = () => {
@@ -131,5 +117,7 @@ class ThemeController {
 }
 
 const _instance = new ThemeController();
+// @ts-ignore
 export const initThemeController = (...args) => _instance.initThemeController(...args);
+// @ts-ignore
 export const updateThemeButtonText = (...args) => _instance.updateThemeButtonText(...args);

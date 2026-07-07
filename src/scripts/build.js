@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { minify } from 'terser';
 
 const SRC_DIR = path.resolve(path.dirname(import.meta.url).replace('file:///', ''), '..');
 const OUTPUT_DIR = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../../dist');
@@ -42,7 +43,7 @@ function scanDependencies(entryFile) {
   return ordered;
 }
 
-const converterModules = scanDependencies('src/modules/app.js');
+const converterModules = scanDependencies('modules/app.js');
 
 const EDITOR_EXCLUDE = new Set([
   'converter.js', 'reverse.js', 'highlighter.js', 'highlighter-worker.js',
@@ -50,9 +51,13 @@ const EDITOR_EXCLUDE = new Set([
   'converter-keyboard.js', 'graph-view.js', 'virtual-scroll.js', 'converter-history.js',
 ]);
 
-const editorModules = scanDependencies('src/modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m)));
+const editorModules = Array.from(new Set([
+  ...scanDependencies('modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m))),
+  ...scanDependencies('modules/workflow-ui.js'),
+  ...scanDependencies('modules/workflow-core.js'),
+]));
 
-const managerModules = scanDependencies('src/modules/workflow-manager.js');
+const managerModules = scanDependencies('modules/workflow-manager.js');
 
 function stripMultilineImports(code) {
   const lines = code.split('\n');
@@ -191,6 +196,41 @@ function ensureOutputDir() {
 
 ensureOutputDir();
 
+function minifyCss(css) {
+    return css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*([{},;:>+~])\s*/g, '$1')
+        .replace(/;\}/g, '}')
+        .replace(/^\s+|\s+$/gm, '')
+        .replace(/\n/g, '')
+        .trim();
+}
+
+async function minifyJs(code) {
+    const result = await minify(code, {
+        compress: {
+            drop_console: false,
+            drop_debugger: true,
+            passes: 2
+        },
+        mangle: {
+            reserved: ['WorkflowCore', 'WorkflowUI', 'WorkflowCanvas', 'WorkflowNode', 'WorkflowEdge',
+                'WorkflowClipboard', 'WorkflowHistory', 'WorkflowAlign', 'WorkflowKeyboard',
+                'init', 'core', 'nodes', 'edges', 'selectedNode', 'selectedEdge', 'id', 'type', 'title',
+                'DOMContentLoaded', 'addEventListener', 'sessionStorage', 'localStorage', 'document',
+                'window', 'deepClone', 'editingWorkflow', 'editingWorkflowId', 'workflowUI',
+                'workflowManager', 'WorkflowManager', 'workflow_editor', 'workflow_manager',
+                'workflow_converter', 'createInlineHighlighterWorker', 'highlightJson', 'highlightYaml'
+            ]
+        },
+        format: {
+            comments: false
+        }
+    });
+    return result.code;
+}
+
 const cssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/style.css');
 if (!fs.existsSync(cssPath)) {
   console.error(`缺少文件: ${cssPath}`);
@@ -216,6 +256,8 @@ function stripAppInitWrapper(script) {
     '$1\n'
   );
 }
+
+async function buildAll() {
 
 let converterScript = stripAppInitWrapper(buildScript(converterModules, true));
 
@@ -273,8 +315,8 @@ if (!fs.existsSync(converterHtmlPath)) {
 let converterHtml = fs.readFileSync(converterHtmlPath, 'utf8');
 
 converterHtml = converterHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
-converterHtml = converterHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/style\.css">/, `<style>${cssContent}</style>`);
-converterHtml = converterHtml.replace(/<script\s+type="module"\s+src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${converterScript}\n});</script>`);
+converterHtml = converterHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/style\.css">/, `<style>${minifyCss(cssContent)}</style>`);
+converterHtml = converterHtml.replace(/<script\s+type="module"\s+src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${await minifyJs(converterScript)}\n});</script>`);
 
 const converterOutFile = path.join(OUTPUT_DIR, 'workflow_converter.html');
 fs.writeFileSync(converterOutFile, converterHtml, 'utf8');
@@ -286,8 +328,8 @@ const editorHtmlPath = path.join(path.dirname(import.meta.url).replace('file:///
 let editorHtml = fs.readFileSync(editorHtmlPath, 'utf8');
 
 editorHtml = editorHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
-editorHtml = editorHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/workflow-editor\.css">/, `<style>${editorCssContent}</style>`);
-editorHtml = editorHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${editorScript}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {\n        core.nodes = deepClone(workflow.nodes);\n        core.edges = deepClone(workflow.edges || []);\n        core.selectedNode = workflow.selectedNode || null;\n        core.selectedEdge = workflow.selectedEdge || null;\n    }\n    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name; document.getElementById('workflowName').removeAttribute('data-i18n');\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                document.getElementById('workflowName').removeAttribute('data-i18n');\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`);
+editorHtml = editorHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/workflow-editor\.css">/, `<style>${minifyCss(editorCssContent)}</style>`);
+editorHtml = editorHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${await minifyJs(editorScript)}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nvar _pendingDescription = '';\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {\n        core.nodes = deepClone(workflow.nodes);\n        core.edges = deepClone(workflow.edges || []);\n        core.selectedNode = workflow.selectedNode || null;\n        core.selectedEdge = workflow.selectedEdge || null;\n    }\n    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name;\n    if (workflow.description) _pendingDescription = workflow.description;\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                if (found.description) _pendingDescription = found.description;\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.currentDescription = _pendingDescription;\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`);
 
 editorHtml = editorHtml.replace(/<script type="module">[\s\S]*?<\/script>/, '');
 
@@ -305,8 +347,8 @@ if (!fs.existsSync(managerHtmlPath)) {
 let managerHtml = fs.readFileSync(managerHtmlPath, 'utf8');
 
 managerHtml = managerHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
-managerHtml = managerHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/workflow-manager\.css">/, `<style>${managerCssContent}</style>`);
-managerHtml = managerHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${managerScript}\nwindow.workflowManager.init();\n});</script>`);
+managerHtml = managerHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/workflow-manager\.css">/, `<style>${minifyCss(managerCssContent)}</style>`);
+managerHtml = managerHtml.replace(/<script type="module" src="\/modules\/app\.js"><\/script>/, `<script>document.addEventListener('DOMContentLoaded', function() {\n${await minifyJs(managerScript)}\nwindow.workflowManager.init();\n});</script>`);
 
 managerHtml = managerHtml.replace(/<script type="module">[\s\S]*?<\/script>/, '');
 
@@ -320,3 +362,9 @@ console.log('   - workflow_converter.html  (工作流转换器)');
 console.log('   - workflow_editor.html     (工作流编辑器)');
 console.log('   - workflow_manager.html    (工作流管理器)');
 console.log('📌 双击任意一个 HTML 文件即可开始使用');
+}
+
+buildAll().catch(err => {
+    console.error('构建失败:', err);
+    process.exit(1);
+});

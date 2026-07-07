@@ -497,9 +497,9 @@ export class WorkflowManager {
                         try {
                             const content = e.target.result;
                             if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
-                                resolve(getJsyaml().load(content));
+                                resolve(getJsyaml().load(/** @type {string} */ (content)));
                             } else {
-                                resolve(JSON.parse(content));
+                                resolve(JSON.parse(/** @type {string} */ (content)));
                             }
                         } catch (err) {
                             reject(err);
@@ -710,7 +710,7 @@ export class WorkflowManager {
         });
 
         card.addEventListener('click', (e) => {
-            if (!e.target.closest('.action-btn')) {
+            if (!(/** @type {HTMLElement} */ (e.target).closest('.action-btn'))) {
                 this.openWorkflowEditor(workflow);
             }
         });
@@ -721,7 +721,7 @@ export class WorkflowManager {
     formatDate(timestamp) {
         const date = new Date(timestamp);
         const now = new Date();
-        const diff = now - date;
+        const diff = now.getTime() - date.getTime();
 
         if (diff < 60000) {
             return t('manager.justNow');
@@ -809,4 +809,5 @@ export class WorkflowManager {
     }
 }
 
+// @ts-ignore
 window.workflowManager = new WorkflowManager();

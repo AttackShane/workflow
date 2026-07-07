@@ -69,11 +69,11 @@ class StatsView {
 
         const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
         if (selectedId !== null && selectedId !== undefined) {
-            historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(el, 'active'));
+            historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
 
             const selectedItem = historyList.querySelector(`[data-id="${selectedId}"]`);
             if (selectedItem) {
-                DOM.addClass(selectedItem, 'active');
+                DOM.addClass(/** @type {HTMLElement} */ (selectedItem), 'active');
             }
         }
     };
@@ -83,19 +83,19 @@ class StatsView {
         if (!historyList) return;
 
         historyList.querySelectorAll('.history-item').forEach(item => {
-            const id = parseInt(item.dataset.id);
+            const id = parseInt(/** @type {HTMLElement} */ (item).dataset.id);
 
             const content = item.querySelector('.history-content');
-            DOM.on(content, 'click', () => this._handleHistoryItemClick(id));
+            DOM.on(/** @type {HTMLElement} */ (content), 'click', () => this._handleHistoryItemClick(id));
 
             const editBtn = item.querySelector('.edit-btn');
-            DOM.on(editBtn, 'click', (e) => {
+            DOM.on(/** @type {HTMLElement} */ (editBtn), 'click', (e) => {
                 e.stopPropagation();
                 this._handleHistoryItemEdit(id);
             });
 
             const deleteBtn = item.querySelector('.delete-btn');
-            DOM.on(deleteBtn, 'click', (e) => {
+            DOM.on(/** @type {HTMLElement} */ (deleteBtn), 'click', (e) => {
                 e.stopPropagation();
                 this._handleHistoryItemDelete(id);
             });
@@ -157,7 +157,7 @@ class StatsView {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const imported = JSON.parse(e.target?.result || '[]');
+                const imported = JSON.parse(String(e.target?.result || '[]'));
                 if (Array.isArray(imported)) {
                     const importedCount = importData(imported);
                     this.updateHistoryPanel();
@@ -208,11 +208,11 @@ class StatsView {
                 displayOutput(entry.data, entry.isJson, false);
 
                 const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
-                historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(el, 'active'));
+                historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
 
                 const item = historyList.querySelector(`[data-id="${id}"]`);
                 if (item) {
-                    DOM.addClass(item, 'active');
+                    DOM.addClass(/** @type {HTMLElement} */ (item), 'active');
                     Storage.set(APP_CONFIG.HISTORY.SELECTED_KEY, id.toString());
                 }
             });
@@ -286,7 +286,7 @@ class StatsView {
         DOM.on(exportHistoryBtn, 'click', this.exportHistory);
 
         DOM.on(historySearchInput, 'input', (e) => {
-            this.updateHistoryPanel(e.target.value);
+            this.updateHistoryPanel(/** @type {HTMLInputElement} */ (e.target).value);
         });
 
         this.updateHistoryPanel();
@@ -295,7 +295,7 @@ class StatsView {
 
         this._languageChangeHandler = () => {
             const searchInput = DOM.get(SELECTORS.CONVERTER.HISTORY_SEARCH);
-            this.updateHistoryPanel(searchInput ? searchInput.value : '');
+            this.updateHistoryPanel(searchInput ? /** @type {HTMLInputElement} */ (searchInput).value : '');
         };
         document.addEventListener('languagechange', this._languageChangeHandler);
         window.addEventListener('beforeunload', () => {
@@ -322,13 +322,23 @@ class StatsView {
 
 const _instance = new StatsView();
 export const getHistory = () => _instance._getHistory();
+// @ts-ignore
 export const updateHistoryPanel = (...args) => _instance.updateHistoryPanel(...args);
+// @ts-ignore
 export const saveToHistory = (...args) => _instance.saveToHistory(...args);
+// @ts-ignore
 export const deleteHistoryItem = (...args) => _instance.deleteHistoryItem(...args);
+// @ts-ignore
 export const updateHistoryItem = (...args) => _instance.updateHistoryItem(...args);
+// @ts-ignore
 export const exportHistory = (...args) => _instance.exportHistory(...args);
+// @ts-ignore
 export const importHistory = (...args) => _instance.importHistory(...args);
+// @ts-ignore
 export const clearHistory = (...args) => _instance.clearHistory(...args);
+// @ts-ignore
 export const showStats = (...args) => _instance.showStats(...args);
+// @ts-ignore
 export const showStatsDetail = (...args) => _instance.showStatsDetail(...args);
+// @ts-ignore
 export const initHistoryPanel = (...args) => _instance.initHistoryPanel(...args);

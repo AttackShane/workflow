@@ -143,7 +143,7 @@ export class I18nController {
         // 更新带有 data-i18n-placeholder 属性的元素
         const placeholderLen = placeholderElements.length;
         for (let i = 0; i < placeholderLen; i++) {
-            const el = placeholderElements[i];
+            const el = /** @type {HTMLInputElement} */ (placeholderElements[i]);
             const key = el.getAttribute('data-i18n-placeholder');
             if (key) {
                 const text = i18n.t(key);
@@ -156,7 +156,7 @@ export class I18nController {
         // 更新带有 data-i18n-title 属性的元素
         const titleLen = titleElements.length;
         for (let i = 0; i < titleLen; i++) {
-            const el = titleElements[i];
+            const el = /** @type {HTMLElement} */ (titleElements[i]);
             const key = el.getAttribute('data-i18n-title');
             if (key) {
                 const text = i18n.t(key);

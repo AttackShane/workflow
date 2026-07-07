@@ -1,7 +1,11 @@
 {
     "compilerOptions": {
-        "checkJs": false,
+        "checkJs": true,
         "noEmit": true,
+        "skipLibCheck": true,
+        "strict": false,
+        "maxNodeModuleJsDepth": 0,
+        "types": ["node"],
         "target": "ESNext",
         "module": "ESNext",
         "moduleResolution": "bundler"

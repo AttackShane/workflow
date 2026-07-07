@@ -22,7 +22,7 @@ export class WorkflowKeyboard {
      */
     setupEventListeners() {
         this._keydownHandler = (e) => this.handleKeydown(e);
-        DOM.on(document, 'keydown', this._keydownHandler);
+        DOM.on(/** @type {*} */ (document), 'keydown', this._keydownHandler);
 
         this._navConverterHandler = () => {
             sessionStorage.removeItem('editingWorkflowId');
@@ -50,7 +50,7 @@ export class WorkflowKeyboard {
      */
     destroy() {
         if (this._keydownHandler) {
-            DOM.off(document, 'keydown', this._keydownHandler);
+            DOM.off(/** @type {*} */ (document), 'keydown', this._keydownHandler);
             this._keydownHandler = null;
         }
         if (this._navConverterHandler) {
@@ -74,7 +74,7 @@ export class WorkflowKeyboard {
     handleKeydown(e) {
         const activeEl = document.activeElement;
         const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
-        const isContentEditable = activeEl.isContentEditable;
+        const isContentEditable = /** @type {HTMLElement} */ (activeEl).isContentEditable;
 
         if (isInput || isContentEditable) {
             return;

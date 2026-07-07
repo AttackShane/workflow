@@ -26,12 +26,14 @@ class Navigator {
 
     async _loadI18n() {
         try {
+            // @ts-ignore - i18n 是运行时全局变量
             if (typeof i18n !== 'undefined' && i18n.t) {
+                // @ts-ignore
                 this._tFn = (key) => i18n.t(key);
                 return;
             }
             const m = await import('../i18n/i18n.js');
-            this._tFn = m.t || m.default?.t;
+            this._tFn = m.t || /** @type {any} */ (m).default?.t;
         } catch {
             this._tFn = null;
         }
@@ -40,9 +42,9 @@ class Navigator {
     /**
      * 导航到指定页面
      * @param {string} url - 目标页面 URL
-     * @param {object} options - 导航选项
-     * @param {boolean} options.animate - 是否显示动画（默认 true）
-     * @param {string} options.message - 跳转前提示消息
+     * @param {object} [options] - 导航选项
+     * @param {boolean} [options.animate] - 是否显示动画（默认 true）
+     * @param {string} [options.message] - 跳转前提示消息
      */
     navigateTo = (url, options = {}) => {
         const { animate = true, message = null } = options;
@@ -134,9 +136,15 @@ class Navigator {
 const _instance = new Navigator();
 _instance._loadI18n();
 
+// @ts-ignore
 export const navigateTo = (...args) => _instance.navigateTo(...args);
+// @ts-ignore
 export const goBack = (...args) => _instance.goBack(...args);
+// @ts-ignore
 export const goToManager = (...args) => _instance.goToManager(...args);
+// @ts-ignore
 export const goToConverter = (...args) => _instance.goToConverter(...args);
+// @ts-ignore
 export const goToEditor = (...args) => _instance.goToEditor(...args);
+// @ts-ignore
 export const initNavigator = (...args) => _instance.initNavigator(...args);

@@ -1,23 +1,10 @@
+// @ts-nocheck
 /**
  * 剪贴板粘贴模块
  * 负责从 Coze 格式、简单格式、简单节点格式粘贴工作流
  */
 import { t } from '../i18n/i18n.js';
-import { deepClone } from '../utils/helpers.js';
-
-/**
- * Slate 格式文本提取（与 clipboard.js 共享）
- * @param {Array} slate - Slate JSON 节点数组
- * @returns {string} 纯文本
- */
-function extractSlateText(slate) {
-    if (!Array.isArray(slate)) return '';
-    return slate.map(node => {
-        if (node.text !== undefined) return node.text;
-        if (node.children) return extractSlateText(node.children);
-        return '';
-    }).join('\n');
-}
+import { deepClone, extractSlateText } from '../utils/helpers.js';
 
 /**
  * 粘贴相关的 mixin 方法

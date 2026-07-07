@@ -378,7 +378,7 @@ export class WorkflowEdge {
             const inputPort = target?.closest('.input-port');
             
             if (inputPort) {
-                const targetNode = inputPort.closest('.canvas-node');
+                const targetNode = /** @type {HTMLElement|null} */ (inputPort.closest('.canvas-node'));
                 if (targetNode) {
                     const targetId = targetNode.dataset.nodeId;
                     const sourceId = this.ui.connectingFrom;

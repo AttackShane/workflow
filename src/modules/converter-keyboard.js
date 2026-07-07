@@ -17,7 +17,7 @@ class KeyboardShortcuts {
         const el = document.activeElement;
         if (!el) return false;
         const tag = el.tagName;
-        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || /** @type {HTMLElement} */ (el).isContentEditable;
     }
 
     initKeyboardShortcuts = () => {
@@ -80,5 +80,6 @@ class KeyboardShortcuts {
 }
 
 const _instance = new KeyboardShortcuts();
+// @ts-ignore
 export const initKeyboardShortcuts = (...args) => _instance.initKeyboardShortcuts(...args);
 export const destroyKeyboardShortcuts = () => _instance.destroy();

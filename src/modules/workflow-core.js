@@ -99,9 +99,6 @@ export class WorkflowCore {
     /**
      * 创建新节点
      * @param {string} type - 节点类型
-     * @param {number} x - 节点X坐标
-     * @param {number} y - 节点Y坐标
-     * @param {object|null} [data] - 节点初始数据
      * @returns {object} 创建的节点对象
      */
     _getDefaultParameters(type) {

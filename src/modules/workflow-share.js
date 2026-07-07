@@ -1,9 +1,11 @@
+// @ts-nocheck
 /**
  * 工作流导出和分享模块
  * 负责导出 YAML 文件和生成分享链接
  */
 import { Dialog } from './dialog.js';
 import { getJsyaml } from '../utils/helpers.js';
+import { utf8ToBase64 } from '../utils/utils.js';
 import { t } from '../i18n/i18n.js';
 
 /**
@@ -17,7 +19,7 @@ export function mixinShare(ui) {
     ui.exportWorkflow = function() {
         const workflowName = document.getElementById('workflowName')?.textContent || '';
         const workflowId = document.getElementById('workflowId')?.textContent || '';
-        const workflowDesc = document.getElementById('workflowDescription')?.textContent || '';
+        const workflowDesc = ui.currentDescription || '';
 
         const workflow = this.core.exportWorkflow({
             name: workflowName || 'my_workflow',
@@ -50,7 +52,7 @@ export function mixinShare(ui) {
         });
 
         const json = JSON.stringify(workflow);
-        const encoded = btoa(unescape(encodeURIComponent(json)));
+        const encoded = utf8ToBase64(json);
         const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encoded}`;
 
         if (shareUrl.length > 2000) {

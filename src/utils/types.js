@@ -32,7 +32,8 @@ export const TYPE_MAP = {
     json_serialize: "58", json_deserialize: "59", knowledge_delete: "60",
     video_extract_audio: "63", video_extract_frame: "64",
     video_generation: "65", memory_write: "66", memory_read: "67",
-    async_task: "72"
+    async_task: "72", delay: "73", database: "74",
+    email: "75", webhook: "76"
 };
 
 // 反向类型映射（ID -> 名称）

@@ -4,10 +4,10 @@
 import { Logger } from './logger.js';
 
 export function getJsyaml() {
-    if (!window.jsyaml) {
+    if (!window['jsyaml']) {
         throw new Error('js-yaml 库未加载，请检查网络连接并刷新页面');
     }
-    return window.jsyaml;
+    return window['jsyaml'];
 }
 
 export const DOM = {
@@ -28,7 +28,7 @@ export const DOM = {
     setText(element, text) {
         if (element) {
             if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-                element.value = text;
+                /** @type {*} */ (element).value = text;
             } else {
                 element.textContent = text;
             }
@@ -77,7 +77,7 @@ export const DOM = {
      */
     setDisabled(element, disabled) {
         if (element) {
-            element.disabled = disabled;
+            /** @type {*} */ (element).disabled = disabled;
         }
     },
     
@@ -85,7 +85,7 @@ export const DOM = {
      * 添加事件监听器
      * @param {HTMLElement|null} element - 元素
      * @param {string} event - 事件名
-     * @param {Function} handler - 事件处理函数
+     * @param {EventListenerOrEventListenerObject} handler - 事件处理函数
      */
     on(element, event, handler) {
         if (element) {
@@ -97,7 +97,7 @@ export const DOM = {
      * 移除事件监听器
      * @param {HTMLElement|null} element - 元素
      * @param {string} event - 事件名
-     * @param {Function} handler - 事件处理函数
+     * @param {EventListenerOrEventListenerObject} handler - 事件处理函数
      */
     off(element, event, handler) {
         if (element) {
@@ -166,7 +166,7 @@ export const DOM = {
         
         // 处理 value 属性（用于 input、textarea 等元素）
         if (options.value !== undefined) {
-            element.value = options.value;
+            /** @type {*} */ (element).value = options.value;
         }
         
         if (options.style) {
@@ -315,7 +315,7 @@ export const ArrayUtils = {
     /**
      * 查找数组元素
      * @param {Array} array - 数组
-     * @param {Function} predicate - 条件函数
+     * @param {function(*, number, *[]): *} predicate - 条件函数
      * @returns {*}
      */
     find(array, predicate) {
@@ -326,7 +326,7 @@ export const ArrayUtils = {
     /**
      * 过滤数组
      * @param {Array} array - 数组
-     * @param {Function} predicate - 条件函数
+     * @param {function(*, number, *[]): *} predicate - 条件函数
      * @returns {Array}
      */
     filter(array, predicate) {
@@ -449,4 +449,18 @@ export function deepClone(obj) {
     } catch {
         return JSON.parse(JSON.stringify(obj));
     }
+}
+
+/**
+ * 从 Slate 格式提取纯文本
+ * @param {Array} slate - Slate JSON 节点数组
+ * @returns {string} 纯文本
+ */
+export function extractSlateText(slate) {
+    if (!Array.isArray(slate)) return '';
+    return slate.map(node => {
+        if (node.text !== undefined) return node.text;
+        if (node.children) return extractSlateText(node.children);
+        return '';
+    }).join('\n');
 }
