@@ -1,5 +1,5 @@
 import { Dialog } from './dialog.js';
-import { goToConverter, goToEditor, initNavigator } from './navigator.js';
+import { goToConverter, goToEditor } from './navigator.js';
 import { StringUtils, Storage, deepClone, getJsyaml } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
@@ -9,6 +9,8 @@ export class WorkflowManager {
     constructor() {
         this.workflows = [];
         this.currentEditingId = null;
+        this.batchMode = false;
+        this.selectedIds = new Set();
         
         this.elements = {
             workflowList: null,
@@ -69,12 +71,13 @@ export class WorkflowManager {
                     if (index !== -1) {
                         this.workflows[index] = {
                             ...this.workflows[index],
-                            nodes: workflow.nodes,
-                            edges: workflow.edges,
+                            nodes: Array.isArray(workflow.nodes) ? workflow.nodes : [],
+                            edges: Array.isArray(workflow.edges) ? workflow.edges : [],
                             selectedNode: workflow.selectedNode,
                             selectedEdge: workflow.selectedEdge,
                             updatedAt: workflow.updatedAt
                         };
+                        this.saveWorkflowVersion(editingWorkflowId, this.workflows[index]);
                         this.saveWorkflows();
                         this.renderWorkflowList();
                     }
@@ -94,6 +97,7 @@ export class WorkflowManager {
                             selectedEdge: workflow.selectedEdge,
                             updatedAt: workflow.updatedAt || Date.now()
                         };
+                        this.saveWorkflowVersion(workflow.id, this.workflows[existingIndex]);
                     } else {
                         const newWorkflow = {
                             id: workflow.id,
@@ -105,6 +109,7 @@ export class WorkflowManager {
                             updatedAt: workflow.updatedAt || Date.now()
                         };
                         this.workflows.push(newWorkflow);
+                        this.saveWorkflowVersion(workflow.id, newWorkflow);
                     }
                     this.saveWorkflows();
                     this.renderWorkflowList();
@@ -139,6 +144,11 @@ export class WorkflowManager {
         this.elements.templateGrid = document.getElementById('templateGrid');
         this.elements.workflowSearch = document.getElementById('workflowSearch');
         this.elements.workflowSort = document.getElementById('workflowSort');
+        this.elements.batchToolbar = document.getElementById('batchToolbar');
+        this.elements.selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        this.elements.batchCount = document.getElementById('batchCount');
+        this.elements.btnBatchDelete = document.getElementById('btnBatchDelete');
+        this.elements.btnCancelBatch = document.getElementById('btnCancelBatch');
     }
 
     loadWorkflows() {
@@ -195,6 +205,196 @@ export class WorkflowManager {
         Storage.set('workflows', this.workflows);
     }
 
+    saveWorkflowVersion(workflowId, workflowData) {
+        const versions = Storage.get('workflowVersions') || {};
+        if (!versions[workflowId]) {
+            versions[workflowId] = [];
+        }
+        versions[workflowId].push({
+            versionId: `v_${Date.now()}`,
+            nodes: deepClone(workflowData.nodes || []),
+            edges: deepClone(workflowData.edges || []),
+            timestamp: Date.now()
+        });
+        if (versions[workflowId].length > 50) {
+            versions[workflowId] = versions[workflowId].slice(-50);
+        }
+        Storage.set('workflowVersions', versions);
+    }
+
+    getWorkflowVersions(workflowId) {
+        const versions = Storage.get('workflowVersions') || {};
+        return versions[workflowId] || [];
+    }
+
+    showVersionCompare(workflowId) {
+        const workflow = this.workflows.find(w => w.id === workflowId);
+        if (!workflow) return;
+        const versions = this.getWorkflowVersions(workflowId);
+        if (versions.length === 0) {
+            alert(t('manager.versionCompareNoHistory'));
+            return;
+        }
+        this.renderVersionCompareModal(workflow, versions);
+    }
+
+    renderVersionCompareModal(workflow, versions) {
+        const existingOverlay = document.getElementById('versionCompareOverlay');
+        if (existingOverlay) existingOverlay.remove();
+
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.id = 'versionCompareOverlay';
+
+        const versionOptions = versions.map((v, i) => {
+            const d = new Date(v.timestamp);
+            const ts = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+            const nodeCount = v.nodes ? v.nodes.length : 0;
+            return `<option value="${i}">${t('manager.versionOption', { index: i + 1, time: ts, count: nodeCount })}</option>`;
+        }).join('');
+
+        overlay.innerHTML = `
+            <div class="modal" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h2>📊 ${t('manager.versionCompareTitle', { name: StringUtils.escapeHtml(workflow.name) })}</h2>
+                    <button class="modal-close" id="versionCompareClose">×</button>
+                </div>
+                <div class="modal-body" style="max-height: 65vh;">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-end;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem;color:var(--text-secondary);">${t('manager.versionAOld')}</label>
+                            <select id="versionA" style="width:100%;padding:0.5rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">${versionOptions}</select>
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.8rem;color:var(--text-secondary);">${t('manager.versionBNew')}</label>
+                            <select id="versionB" style="width:100%;padding:0.5rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">${versionOptions}</select>
+                        </div>
+                        <button class="btn btn-primary" id="btnCompareRun">${t('manager.versionCompareRun')}</button>
+                    </div>
+                    <div id="versionCompareResult" style="font-size:0.85rem;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" id="btnVersionCompareClose">${t('manager.versionCompareClose')}</button>
+                </div>
+            </div>`;
+
+        document.body.appendChild(overlay);
+        overlay.style.display = 'flex';
+
+        const closeBtn = overlay.querySelector('#versionCompareClose');
+        const closeBtn2 = overlay.querySelector('#btnVersionCompareClose');
+        const compareBtn = overlay.querySelector('#btnCompareRun');
+        const closeFn = () => { overlay.style.display = 'none'; overlay.remove(); };
+
+        closeBtn.addEventListener('click', closeFn);
+        closeBtn2.addEventListener('click', closeFn);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeFn(); });
+
+        compareBtn.addEventListener('click', () => {
+            const idxA = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value);
+            const idxB = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionB')).value);
+            const resultDiv = overlay.querySelector('#versionCompareResult');
+            if (idxA === idxB) {
+                resultDiv.innerHTML = '<p style="color:var(--text-secondary);text-align:center;">' + t('manager.versionCompareSelect') + '</p>';
+                return;
+            }
+            resultDiv.innerHTML = this._generateVersionDiff(versions[idxA], versions[idxB]);
+        });
+
+        if (versions.length >= 2) {
+            /** @type {HTMLSelectElement} */ (overlay.querySelector('#versionB')).value = String(versions.length - 1);
+            /** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value = String(Math.max(0, versions.length - 2));
+        }
+    }
+
+    _generateVersionDiff(versionA, versionB) {
+        const nodesA = versionA.nodes || [];
+        const nodesB = versionB.nodes || [];
+        const edgesA = versionA.edges || [];
+        const edgesB = versionB.edges || [];
+
+        const mapA = new Map(nodesA.map(n => [n.id, n]));
+        const mapB = new Map(nodesB.map(n => [n.id, n]));
+
+        const addedNodes = nodesB.filter(n => !mapA.has(n.id));
+        const removedNodes = nodesA.filter(n => !mapB.has(n.id));
+        const modifiedNodes = [];
+        const unchangedNodes = [];
+
+        nodesB.forEach(n => {
+            if (mapA.has(n.id)) {
+                const a = mapA.get(n.id);
+                const changes = [];
+                if (a.title !== n.title) changes.push(t('manager.versionChangeTitle', { old: a.title, new: n.title }));
+                if (a.type !== n.type) changes.push(t('manager.versionChangeType', { old: a.type, new: n.type }));
+                if (a.x !== n.x || a.y !== n.y) changes.push(t('manager.versionChangePosition', { x1: a.x, y1: a.y, x2: n.x, y2: n.y }));
+                if (JSON.stringify(a.data) !== JSON.stringify(n.data)) changes.push(t('manager.versionChangeParams'));
+                if (changes.length > 0) {
+                    modifiedNodes.push({ id: n.id, title: n.title, changes });
+                } else {
+                    unchangedNodes.push(n);
+                }
+            }
+        });
+
+        const edgeIdsA = new Set(edgesA.map(e => `${e.source}-${e.target}`));
+        const edgeIdsB = new Set(edgesB.map(e => `${e.source}-${e.target}`));
+        const addedEdges = edgesB.filter(e => !edgeIdsA.has(`${e.source}-${e.target}`));
+        const removedEdges = edgesA.filter(e => !edgeIdsB.has(`${e.source}-${e.target}`));
+
+        let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">';
+
+        const summaryItems = [
+            [t('editor.nodeCount'), nodesA.length, nodesB.length],
+            [t('editor.edgeCount'), edgesA.length, edgesB.length],
+            [t('manager.versionNewNodes').replace('{count}', '{0}').replace('{list}', ''), '-', addedNodes.length],
+            [t('manager.versionDeletedNodes').replace('{count}', '{0}').replace('{list}', ''), removedNodes.length, '-'],
+            [t('manager.versionModifiedNodes').replace('{count}', '{0}'), '-', modifiedNodes.length],
+            [t('manager.versionNewEdges').replace('{count}', '{0}'), '-', addedEdges.length],
+            [t('manager.versionDeletedEdges').replace('{count}', '{0}'), removedEdges.length, '-'],
+        ];
+
+        html += '<div><h4 style="margin:0 0 0.5rem;">📊 ' + t('manager.versionSummary') + '</h4>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
+        html += '<tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionItem') + '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionAOld') + '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionBNew') + '</th></tr>';
+        for (const [label, a, b] of summaryItems) {
+            const aClass = typeof a === 'number' && typeof b === 'number' && a !== b ? 'color:#F59E0B;' : '';
+            const bClass = typeof a === 'number' && typeof b === 'number' && a !== b ? 'color:#F59E0B;' : '';
+            html += `<tr><td style="padding:4px;border-bottom:1px solid var(--border);">${label}</td><td style="text-align:center;padding:4px;border-bottom:1px solid var(--border);${aClass}">${a}</td><td style="text-align:center;padding:4px;border-bottom:1px solid var(--border);${bClass}">${b}</td></tr>`;
+        }
+        html += '</table></div>';
+
+        html += '<div>';
+        html += '<h4 style="margin:0 0 0.5rem;">📝 ' + t('manager.versionDetail') + '</h4>';
+
+        if (addedNodes.length > 0) {
+            html += `<div style="margin-bottom:0.5rem;color:#4CAF50;">✅ ${t('manager.versionNewNodes', { count: addedNodes.length, list: addedNodes.map(n => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
+        }
+        if (removedNodes.length > 0) {
+            html += `<div style="margin-bottom:0.5rem;color:#EF4444;">❌ ${t('manager.versionDeletedNodes', { count: removedNodes.length, list: removedNodes.map(n => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
+        }
+        if (modifiedNodes.length > 0) {
+            html += `<div style="margin-bottom:0.5rem;color:#F59E0B;">✏️ ${t('manager.versionModifiedNodes', { count: modifiedNodes.length })}</div>`;
+            modifiedNodes.forEach(n => {
+                html += `<div style="margin-left:1rem;margin-bottom:0.3rem;font-size:0.8rem;">• <b>${StringUtils.escapeHtml(n.title)}</b>: ${n.changes.join('; ')}</div>`;
+            });
+        }
+        if (addedEdges.length > 0) {
+            html += `<div style="margin-bottom:0.5rem;color:#4CAF50;">🔗 ${t('manager.versionNewEdges', { count: addedEdges.length })}</div>`;
+        }
+        if (removedEdges.length > 0) {
+            html += `<div style="margin-bottom:0.5rem;color:#EF4444;">🔗 ${t('manager.versionDeletedEdges', { count: removedEdges.length })}</div>`;
+        }
+        if (addedNodes.length === 0 && removedNodes.length === 0 && modifiedNodes.length === 0 && addedEdges.length === 0 && removedEdges.length === 0) {
+            html += '<div style="color:var(--text-secondary);">' + t('manager.versionNoDiff') + '</div>';
+        }
+
+        html += '</div>';
+        html += '</div>';
+
+        return html;
+    }
+
     bindEvents() {
         this.elements.btnNewWorkflow.addEventListener('click', () => this.openNewWorkflowModal());
         this.elements.btnImport.addEventListener('click', () => this.openImportModal());
@@ -216,6 +416,55 @@ export class WorkflowManager {
         if (this.elements.workflowSort) {
             this.elements.workflowSort.addEventListener('change', () => this.renderWorkflowList());
         }
+
+        if (this.elements.btnBatchDelete) {
+            this.elements.btnBatchDelete.addEventListener('click', () => this.batchDeleteWorkflows());
+        }
+        if (this.elements.btnCancelBatch) {
+            this.elements.btnCancelBatch.addEventListener('click', () => this.exitBatchMode());
+        }
+        if (this.elements.selectAllCheckbox) {
+            this.elements.selectAllCheckbox.addEventListener('change', () => this.toggleSelectAll());
+        }
+
+        // 长按卡片进入批量模式
+        let longPressTimer = null;
+        this.elements.workflowList.addEventListener('mousedown', (e) => {
+            const card = e.target.closest('.workflow-card');
+            if (!card || e.target.closest('.action-btn') || e.target.closest('.workflow-checkbox') || e.target.closest('.drag-handle')) return;
+            longPressTimer = setTimeout(() => {
+                if (!this.batchMode) {
+                    this.enterBatchMode();
+                    const checkbox = card.querySelector('.workflow-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        this.selectedIds.add(checkbox.dataset.id);
+                        this.updateBatchCount();
+                    }
+                }
+            }, 600);
+        });
+        this.elements.workflowList.addEventListener('mouseup', () => {
+            clearTimeout(longPressTimer);
+        });
+        this.elements.workflowList.addEventListener('mouseleave', () => {
+            clearTimeout(longPressTimer);
+        });
+
+        // 卡片内 checkbox 点击
+        this.elements.workflowList.addEventListener('change', (e) => {
+            if (!e.target.classList.contains('workflow-checkbox')) return;
+            const id = e.target.dataset.id;
+            if (e.target.checked) {
+                this.selectedIds.add(id);
+            } else {
+                this.selectedIds.delete(id);
+            }
+            this.updateBatchCount();
+            if (this.elements.selectAllCheckbox) {
+                this.elements.selectAllCheckbox.checked = this.selectedIds.size === this.workflows.length;
+            }
+        });
         
         // 导航按钮
         const navConverterBtn = document.getElementById('navConverterBtn');
@@ -576,6 +825,106 @@ export class WorkflowManager {
         this.renderWorkflowList();
     }
 
+    async duplicateWorkflow(id) {
+        const original = this.workflows.find(w => w.id === id);
+        if (!original) return;
+
+        const newId = `workflow_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const duplicated = {
+            ...deepClone(original),
+            id: newId,
+            name: `${original.name} ${t('messages.duplicateNodeSuffix')}`,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        };
+
+        if (duplicated.nodes) {
+            const idMap = new Map();
+            duplicated.nodes = duplicated.nodes.map(n => {
+                const oldId = n.id;
+                const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                idMap.set(oldId, newId);
+                return { ...n, id: newId };
+            });
+            duplicated.edges = (duplicated.edges || []).map(e => ({
+                ...e,
+                id: `edge_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+                source: idMap.get(e.source) || e.source,
+                target: idMap.get(e.target) || e.target
+            }));
+        }
+
+        this.workflows.push(duplicated);
+        this.saveWorkflows();
+        this.renderWorkflowList();
+        await Dialog.success(t('manager.duplicateSuccess'));
+    }
+
+    enterBatchMode() {
+        this.batchMode = true;
+        this.selectedIds.clear();
+        if (this.elements.batchToolbar) {
+            this.elements.batchToolbar.style.display = 'flex';
+        }
+        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+            /** @type {HTMLInputElement} */ (cb).style.display = '';
+        });
+        if (this.elements.selectAllCheckbox) {
+            this.elements.selectAllCheckbox.checked = false;
+        }
+        this.updateBatchCount();
+    }
+
+    exitBatchMode() {
+        this.batchMode = false;
+        this.selectedIds.clear();
+        if (this.elements.batchToolbar) {
+            this.elements.batchToolbar.style.display = 'none';
+        }
+        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+            const input = /** @type {HTMLInputElement} */ (cb);
+            input.style.display = 'none';
+            input.checked = false;
+        });
+    }
+
+    toggleSelectAll() {
+        const checked = this.elements.selectAllCheckbox?.checked;
+        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+            const input = /** @type {HTMLInputElement} */ (cb);
+            input.checked = !!checked;
+            if (checked) {
+                this.selectedIds.add(input.dataset.id);
+            } else {
+                this.selectedIds.delete(input.dataset.id);
+            }
+        });
+        this.updateBatchCount();
+    }
+
+    updateBatchCount() {
+        if (this.elements.batchCount) {
+            this.elements.batchCount.textContent = t('manager.batchCount', { count: this.selectedIds.size });
+        }
+    }
+
+    async batchDeleteWorkflows() {
+        if (this.selectedIds.size === 0) return;
+
+        const confirmed = await Dialog.confirm(
+            t('manager.batchDeleteConfirm', { count: this.selectedIds.size }),
+            t('manager.batchDeleteTitle'),
+            { danger: true }
+        );
+        if (!confirmed) return;
+
+        this.workflows = this.workflows.filter(w => !this.selectedIds.has(w.id));
+        this.saveWorkflows();
+        this.exitBatchMode();
+        this.renderWorkflowList();
+        await Dialog.success(t('manager.batchDeleteSuccess'));
+    }
+
     exportWorkflow(workflow) {
         const exportData = {
             schema_version: "1.0.0",
@@ -671,11 +1020,99 @@ export class WorkflowManager {
             const card = this.createWorkflowCard(workflow);
             this.elements.workflowList.appendChild(card);
         });
+
+        this._attachCardEvents();
+    }
+
+    _attachCardEvents() {
+        const cards = this.elements.workflowList.querySelectorAll('.workflow-card');
+        let draggedCard = null;
+
+        cards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.action-btn') || e.target.closest('.drag-handle') || e.target.closest('.workflow-checkbox')) return;
+                if (this.batchMode) return;
+                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                if (wf) this.openWorkflowEditor(wf);
+            });
+
+            card.querySelector('.edit-btn')?.addEventListener('click', () => {
+                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                if (wf) this.openEditModal(wf);
+            });
+
+            card.querySelector('.duplicate-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.duplicateWorkflow(card.dataset.workflowId);
+            });
+
+            card.querySelector('.export-btn')?.addEventListener('click', () => {
+                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                if (wf) this.exportWorkflow(wf);
+            });
+
+            card.querySelector('.delete-btn')?.addEventListener('click', () => {
+                this.deleteWorkflow(card.dataset.workflowId);
+            });
+
+            card.querySelector('.version-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showVersionCompare(card.dataset.workflowId);
+            });
+
+            const dragHandle = card.querySelector('.drag-handle');
+            if (dragHandle) {
+                dragHandle.addEventListener('dragstart', (e) => {
+                    draggedCard = card;
+                    card.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', card.dataset.workflowId);
+                });
+
+                dragHandle.addEventListener('dragend', () => {
+                    card.classList.remove('dragging');
+                    cards.forEach(c => c.classList.remove('drag-over'));
+                    draggedCard = null;
+                });
+            }
+
+            card.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (card !== draggedCard) {
+                    card.classList.add('drag-over');
+                }
+            });
+
+            card.addEventListener('dragleave', () => {
+                card.classList.remove('drag-over');
+            });
+
+            card.addEventListener('drop', (e) => {
+                e.preventDefault();
+                card.classList.remove('drag-over');
+                if (card === draggedCard || !draggedCard) return;
+
+                const fromId = draggedCard.dataset.workflowId;
+                const toId = card.dataset.workflowId;
+
+                const fromIndex = this.workflows.findIndex(w => w.id === fromId);
+                const toIndex = this.workflows.findIndex(w => w.id === toId);
+
+                if (fromIndex !== -1 && toIndex !== -1) {
+                    const [moved] = this.workflows.splice(fromIndex, 1);
+                    this.workflows.splice(toIndex, 0, moved);
+                    this.saveWorkflows();
+                    this.renderWorkflowList();
+                }
+            });
+        });
     }
 
     createWorkflowCard(workflow) {
         const card = document.createElement('div');
         card.className = 'workflow-card';
+        card.dataset.workflowId = workflow.id;
         
         const nodeCount = workflow.nodes?.length || 0;
         const edgeCount = workflow.edges?.length || 0;
@@ -683,10 +1120,14 @@ export class WorkflowManager {
 
         card.innerHTML = `
             <div class="workflow-card-header">
+                <span class="drag-handle" draggable="true" title="${t('manager.dragHandle')}">⠿</span>
+                <input type="checkbox" class="workflow-checkbox" data-id="${StringUtils.escapeHtml(workflow.id)}" style="display: none;">
                 <h3 class="workflow-card-title">${StringUtils.escapeHtml(workflow.name)}</h3>
                 <div class="workflow-card-actions">
+                    <button class="action-btn duplicate-btn" title="${t('manager.duplicateWorkflowTip')}">📋</button>
                     <button class="action-btn edit-btn" title="${t('manager.editTooltip')}">✏️</button>
                     <button class="action-btn export-btn" title="${t('manager.exportTooltip')}">📥</button>
+                    <button class="action-btn version-btn" title="${t('manager.versionCompare')}">📊</button>
                     <button class="action-btn delete-btn" title="${t('manager.deleteTooltip')}">🗑️</button>
                 </div>
             </div>
@@ -696,24 +1137,6 @@ export class WorkflowManager {
                 <span>${updatedTime}</span>
             </div>
         `;
-
-        card.querySelector('.edit-btn').addEventListener('click', () => {
-            this.openEditModal(workflow);
-        });
-
-        card.querySelector('.export-btn').addEventListener('click', () => {
-            this.exportWorkflow(workflow);
-        });
-
-        card.querySelector('.delete-btn').addEventListener('click', () => {
-            this.deleteWorkflow(workflow.id);
-        });
-
-        card.addEventListener('click', (e) => {
-            if (!(/** @type {HTMLElement} */ (e.target).closest('.action-btn'))) {
-                this.openWorkflowEditor(workflow);
-            }
-        });
 
         return card;
     }

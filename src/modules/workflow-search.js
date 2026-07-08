@@ -48,7 +48,7 @@ export function mixinSearch(ui) {
      */
     ui.setupSearchHandler = function() {
         const searchInput = DOM.get('nodeSearchInput');
-        const searchCount = DOM.get('nodeSearchCount');
+        const _searchCount = DOM.get('nodeSearchCount');
         if (!searchInput) return;
 
         DOM.on(searchInput, 'input', () => {
@@ -187,7 +187,18 @@ export function mixinSearch(ui) {
                 }
             }
             if (targetEl) {
-                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const nodeData = this.core.nodes.find(n => n.id === firstMatchId);
+                if (nodeData && this.canvas) {
+                    const canvasRect = this.canvas.canvas.getBoundingClientRect();
+                    const nodeCenterX = nodeData.x + (nodeData.width || 200) / 2;
+                    const nodeCenterY = nodeData.y + (nodeData.height || 100) / 2;
+                    const scale = this.canvas.canvasScale || 1;
+                    const newTranslateX = canvasRect.width / 2 - nodeCenterX * scale;
+                    const newTranslateY = canvasRect.height / 2 - nodeCenterY * scale;
+                    this.canvas.applyTransform(newTranslateX, newTranslateY, scale);
+                    this.canvas.updateSvgSize();
+                    this.canvas.scheduleRenderUpdate();
+                }
             }
         }
     };

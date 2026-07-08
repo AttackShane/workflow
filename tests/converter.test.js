@@ -870,5 +870,89 @@ describe('Converter Module', () => {
       const result = convertYamlToClipboard(yaml);
       expect(result.json.nodes[0].type).toBe('23');
     });
+
+    it('should find node line when id starts with prefix in rawYaml', () => {
+      const rawYaml = 'id: wf\nnodes:\nid: 123 extra\n  type: 1\n  title: Test';
+      const yaml = {
+        id: 'wf',
+        nodes: [
+          { id: 123, type: 1, title: 'Test' }
+        ],
+        edges: []
+      };
+      try {
+        convertYamlToClipboard(yaml, rawYaml);
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e.nodeInfo).toBeDefined();
+        expect(e.nodeInfo.line).toBe(3);
+      }
+    });
+
+    it('should return null when id and title not found in rawYaml lines', () => {
+      const rawYaml = 'id: wf\nnodes:\n- type: 1';
+      const yaml = {
+        id: 'wf',
+        nodes: [
+          { id: 'missing', type: 1, title: 'NotFound' }
+        ],
+        edges: []
+      };
+      try {
+        convertYamlToClipboard(yaml, rawYaml);
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e.nodeInfo).toBeDefined();
+        expect(e.nodeInfo.line).toBeNull();
+      }
+    });
+
+    it('should find node line by title when id not found in rawYaml', () => {
+      const rawYaml = 'id: wf\nnodes:\n- id: other_id\n  type: 1\n  title: MyTitle';
+      const yaml = {
+        id: 'wf',
+        nodes: [
+          { id: 'other_id', type: 1, title: 'MyTitle' }
+        ],
+        edges: []
+      };
+      try {
+        convertYamlToClipboard(yaml, rawYaml);
+        fail('Should have thrown');
+      } catch (e) {
+        expect(e.nodeInfo).toBeDefined();
+        expect(e.nodeInfo.line).toBe(5);
+      }
+    });
+
+    it('should sort outputs in correct order', () => {
+      const yaml = {
+        id: 'wf',
+        nodes: [
+          {
+            id: 'n1', type: 'question', title: 'Question', position: { x: 0, y: 0 },
+            parameters: {
+              question: 'What?',
+              options: ['A', 'B']
+            }
+          }
+        ],
+        edges: []
+      };
+      const result = convertYamlToClipboard(yaml);
+      const outputs = result.json.nodes[0].data.outputs;
+      expect(outputs).toBeDefined();
+      expect(Array.isArray(outputs)).toBe(true);
+      const outputNames = outputs.map(o => o.name);
+      const orderIdx = outputNames.map(n => {
+        const order = ['optionId', 'optionContent', 'QUESTION_DATA'];
+        return order.indexOf(n);
+      });
+      for (let i = 1; i < orderIdx.length; i++) {
+        if (orderIdx[i - 1] !== -1 && orderIdx[i] !== -1) {
+          expect(orderIdx[i - 1]).toBeLessThanOrEqual(orderIdx[i]);
+        }
+      }
+    });
   });
 });

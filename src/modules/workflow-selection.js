@@ -173,6 +173,8 @@ export class WorkflowSelection {
 
         selectedNodes.forEach(nodeEl => {
             const nodeId = nodeEl.dataset.nodeId;
+            const nodeData = this.core.nodes.find(n => n.id === nodeId);
+            if (nodeData && nodeData.locked) return;
             this.ui.node.delete(nodeId, false, false);
         });
 

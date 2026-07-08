@@ -1,5 +1,4 @@
 import { DOM } from '../utils/helpers.js';
-import { t } from '../i18n/i18n.js';
 
 /**
  * 对齐与分布模块
@@ -100,6 +99,8 @@ export class WorkflowAlign {
 
         if (nodes.length < 2) return;
 
+        const isDistribute = mode === 'distH' || mode === 'distV';
+
         switch (mode) {
             case 'left':   this.alignLeft(nodes);   break;
             case 'centerH': this.alignCenterH(nodes); break;
@@ -111,7 +112,9 @@ export class WorkflowAlign {
             case 'distV':  this.distributeVertical(nodes);   break;
         }
 
-        this.core.saveHistory('messages.alignNodes');
+        if (!isDistribute) {
+            this.core.saveHistory('messages.alignNodes');
+        }
     }
 
     alignLeft(nodes) {

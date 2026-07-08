@@ -202,6 +202,11 @@ export function mixinNodePanel(node) {
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
         const selectedCount = selectedNodes.length + selectedEdges.length;
 
+        if (selectedCount > 1 && selectedNodes.length > 1) {
+            this.renderBatchEditPanel(selectedNodes);
+            return;
+        }
+
         if (selectedCount !== 1 || !targetNode) {
             this.ui.showSummaryPanel();
             return;
@@ -380,7 +385,12 @@ export function mixinNodePanel(node) {
 
         detailContainer.innerHTML = `
             <div class="property-panel-section">
-                <h4>${info.icon || '📦'} ${StringUtils.escapeHtml(targetNode.title)}</h4>
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${info.icon || '📦'} ${StringUtils.escapeHtml(targetNode.title)}</span>
+                    <button class="btn btn-sm lock-toggle-btn" data-action="toggleLock" data-node-id="${StringUtils.escapeHtml(targetNode.id)}" title="${targetNode.locked ? '解锁节点' : '锁定节点'}">
+                        ${targetNode.locked ? '🔒 解锁' : '🔓 锁定'}
+                    </button>
+                </h4>
                 <div class="property-group">
                     <label class="property-label">${t('nodes.nodeName')}</label>
                     <input class="property-input" id="prop_nodeTitle" type="text" value="${StringUtils.escapeHtml(targetNode.title || '')}">
@@ -427,6 +437,129 @@ export function mixinNodePanel(node) {
         `;
 
         this._setupAutoSave(targetNode.id);
+    };
+
+    node.renderBatchEditPanel = function(selectedNodes) {
+        const detailContainer = document.getElementById('detailContainer');
+        if (!detailContainer) return;
+
+        const nodeCount = selectedNodes.length;
+        const nodeTypes = new Set();
+        const nodeIds = [];
+
+        selectedNodes.forEach(el => {
+            const nodeId = el.dataset.nodeId;
+            if (nodeId) {
+                nodeIds.push(nodeId);
+                const nodeData = this.core.nodes.find(n => n.id === nodeId);
+                if (nodeData) nodeTypes.add(nodeData.type);
+            }
+        });
+
+        const uniqueTypes = Array.from(nodeTypes);
+
+        const commonParams = new Map();
+        uniqueTypes.forEach(type => {
+            const info = this.core.nodeTypeInfo[type] || {};
+            const params = info.parameters || [];
+            params.forEach(p => {
+                if (p.name === 'branches' || p.name === 'options' || p.name === 'categories' || p.name === 'variables') return;
+                const key = p.name;
+                if (!commonParams.has(key)) {
+                    commonParams.set(key, { ...p, types: [type] });
+                } else {
+                    commonParams.get(key).types.push(type);
+                }
+            });
+        });
+
+        const sharedParams = [];
+        commonParams.forEach((param, _key) => {
+            if (param.types.length >= uniqueTypes.length) {
+                sharedParams.push(param);
+            }
+        });
+
+        let paramsHtml = '';
+        if (sharedParams.length === 0) {
+            paramsHtml = '<p style="color:var(--text-secondary);padding:1rem;text-align:center;">所选节点没有公共参数可批量修改</p>';
+        } else {
+            paramsHtml = sharedParams.map(param => {
+                const label = param.label || param.name;
+                const hint = param.description ? `<div class="hint">${StringUtils.escapeHtml(param.description)}</div>` : '';
+                let inputHtml = '';
+                if (param.type === 'string' || param.type === 'textarea') {
+                    inputHtml = `<textarea class="property-input batch-param-input" data-param="${param.name}" rows="2" placeholder="留空则不修改"></textarea>`;
+                } else if (param.type === 'number') {
+                    inputHtml = `<input type="number" class="property-input batch-param-input" data-param="${param.name}" value="" placeholder="留空则不修改">`;
+                } else {
+                    inputHtml = `<input type="text" class="property-input batch-param-input" data-param="${param.name}" value="" placeholder="留空则不修改">`;
+                }
+                return `<div class="property-group">
+                    <label class="property-label">${StringUtils.escapeHtml(label)}${hint}</label>
+                    ${inputHtml}
+                </div>`;
+            }).join('');
+        }
+
+        detailContainer.innerHTML = `
+            <div class="property-panel-section">
+                <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>📦 批量编辑 (${nodeCount} 个节点)</span>
+                </h4>
+                <div style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                    类型: ${uniqueTypes.join(', ')}
+                </div>
+                ${paramsHtml}
+                ${sharedParams.length > 0 ? `
+                <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+                    <button class="btn btn-primary btn-sm" id="btnBatchApply">应用修改</button>
+                    <button class="btn btn-secondary btn-sm" id="btnBatchCancel">取消</button>
+                </div>` : ''}
+            </div>
+        `;
+
+        const btnApply = document.getElementById('btnBatchApply');
+        const btnCancel = document.getElementById('btnBatchCancel');
+
+        if (btnApply) {
+            btnApply.addEventListener('click', () => {
+                const inputs = detailContainer.querySelectorAll('.batch-param-input');
+                const changes = {};
+                let hasChanges = false;
+                inputs.forEach(input => {
+                    const val = input.value.trim();
+                    if (val !== '') {
+                        changes[input.dataset.param] = val;
+                        hasChanges = true;
+                    }
+                });
+
+                if (!hasChanges) {
+                    return;
+                }
+
+                nodeIds.forEach(nodeId => {
+                    const nodeData = this.core.nodes.find(n => n.id === nodeId);
+                    if (nodeData) {
+                        if (!nodeData.parameters) nodeData.parameters = {};
+                        for (const [key, val] of Object.entries(changes)) {
+                            nodeData.parameters[key] = val;
+                        }
+                    }
+                });
+
+                this.core.saveHistory('messages.batchEditParams');
+                this.ui.showMessage(`已批量修改 ${nodeCount} 个节点的参数`, 'success');
+                this.ui.showSummaryPanel();
+            });
+        }
+
+        if (btnCancel) {
+            btnCancel.addEventListener('click', () => {
+                this.ui.showSummaryPanel();
+            });
+        }
     };
 
     node.saveNodeDetail = function(nodeId, silent) {
@@ -658,6 +791,16 @@ export function mixinNodePanel(node) {
                 const { nodeId, branchIndex, condIndex, side } = btn.dataset;
                 this.clearConditionRef(nodeId, parseInt(branchIndex, 10), parseInt(condIndex, 10), side);
                 this._scheduleAutoSave(nodeId);
+                break;
+            }
+            case 'toggleLock': {
+                const targetNode = this.core.nodes.find(n => n.id === nodeId);
+                if (targetNode) {
+                    targetNode.locked = !targetNode.locked;
+                    this.core.saveHistory('messages.toggleLock');
+                    this._reRenderNode(nodeId);
+                    this.renderPropertyPanel(targetNode);
+                }
                 break;
             }
         }

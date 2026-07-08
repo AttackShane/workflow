@@ -2273,5 +2273,744 @@ describe('WorkflowClipboard', () => {
             expect(core.nodes.length).toBe(1);
             expect(core.nodes[0].parameters.branches[0].name).toBe('left_name');
         });
+
+        it('should paste node with branches and no conditions fallback to Branch N', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '19',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [
+                                    { condition: { conditions: [] } }
+                                ],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+            expect(core.nodes[0].parameters.branches[0].name).toBe('Branch 1');
+        });
+
+        it('should paste node with branches and blockID references', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '19',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [
+                                    {
+                                        name: 'existing_branch',
+                                        condition: {
+                                            conditions: [{
+                                                left: { input: { type: 'string', value: { type: 'ref', content: { blockID: '1', name: 'x' } } } },
+                                                right: { input: { type: 'string', value: { type: 'literal', content: 'test' } } },
+                                                operator: 'eq'
+                                            }]
+                                        }
+                                    }
+                                ],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+            expect(core.nodes[0].parameters.branches[0].name).toBe('existing_branch');
+        });
+    });
+
+    describe('paste with condition node port conversion', () => {
+        beforeEach(() => {
+            core = new WorkflowCore();
+            const mockUI = {
+                core,
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {}
+                },
+                node: {
+                    createElement: (node) => {
+                        const el = { style: {}, dataset: {} };
+                        el.dataset.nodeId = node.id;
+                        return el;
+                    }
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: () => {}
+            };
+            clipboard = new WorkflowClipboard(mockUI);
+        });
+
+        it('should convert true port to branch_0 for condition node', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '8',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [{ name: 'b1', condition: { conditions: [] } }, { name: 'b2', condition: { conditions: [] } }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }, {
+                        id: '2',
+                        type: '3',
+                        meta: { position: { x: 300, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: [{ sourceNodeID: '1', targetNodeID: '2', sourcePortID: 'true' }]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            const edge = core.edges.find(e => e.sourcePort === 'branch_0');
+            expect(edge).toBeDefined();
+        });
+
+        it('should convert false port to last branch for condition node', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '8',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [{ name: 'b1', condition: { conditions: [] } }, { name: 'b2', condition: { conditions: [] } }, { name: 'b3', condition: { conditions: [] } }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }, {
+                        id: '2',
+                        type: '3',
+                        meta: { position: { x: 300, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: [{ sourceNodeID: '1', targetNodeID: '2', sourcePortID: 'false' }]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            const edge = core.edges.find(e => e.sourcePort === 'branch_2');
+            expect(edge).toBeDefined();
+        });
+
+        it('should convert true_N port to branch_N for condition node', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '8',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [{ name: 'b1', condition: { conditions: [] } }, { name: 'b2', condition: { conditions: [] } }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }, {
+                        id: '2',
+                        type: '3',
+                        meta: { position: { x: 300, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: [{ sourceNodeID: '1', targetNodeID: '2', sourcePortID: 'true_1' }]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            const edge = core.edges.find(e => e.sourcePort === 'branch_1');
+            expect(edge).toBeDefined();
+        });
+    });
+
+    describe('paste with contentRaw and dynamic_option', () => {
+        it('should paste node with _contentRaw ref blockID', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '13',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Output', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                content: { type: 'string', value: { type: 'literal', content: 'hello' } },
+                                streamingOutput: false
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should paste node with dynamic_option ref blockID', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '18',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Question', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                question: 'Test?',
+                                llmParam: [],
+                                answer_type: 'text'
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+    });
+
+    describe('paste with edge processing and skippedEdges', () => {
+        it('should handle edges with duplicate targets', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [
+                        { id: '1', type: '1', meta: { position: { x: 100, y: 200 } }, data: { nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' }, inputs: { inputParameters: [] }, outputs: [] }, _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} } },
+                        { id: '2', type: '2', meta: { position: { x: 300, y: 200 } }, data: { nodeMeta: { title: 'End', icon: '', description: '', mainColor: '#10b981' }, inputs: { inputParameters: [] }, outputs: [] }, _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} } }
+                    ],
+                    edges: [
+                        { sourceNodeID: '1', targetNodeID: '2' },
+                        { sourceNodeID: '1', targetNodeID: '2' }
+                    ]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            expect(core.edges.length).toBe(1);
+        });
+
+        it('should handle edge with sourcePortID and targetPortID', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [
+                        { id: '1', type: '1', meta: { position: { x: 100, y: 200 } }, data: { nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' }, inputs: { inputParameters: [] }, outputs: [] }, _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} } },
+                        { id: '2', type: '2', meta: { position: { x: 300, y: 200 } }, data: { nodeMeta: { title: 'End', icon: '', description: '', mainColor: '#10b981' }, inputs: { inputParameters: [] }, outputs: [] }, _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} } }
+                    ],
+                    edges: [
+                        { sourceNodeID: '1', targetNodeID: '2', sourcePortID: 'output_1', targetPortID: 'input_1' }
+                    ]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            expect(core.edges.length).toBe(1);
+            expect(core.edges[0].sourcePort).toBe('output_1');
+            expect(core.edges[0].targetPort).toBe('input_1');
+        });
+    });
+
+    describe('paste with error handling', () => {
+        it('should show error when paste throws', () => {
+            const mockUI = {
+                core: {
+                    nodes: [],
+                    edges: [],
+                    addNode: () => { throw new Error('Test error'); },
+                    addEdge: () => {},
+                    warn: () => {},
+                    getTypeFromNumber: (n) => 'plugin',
+                    batchChanges: (fn) => fn()
+                },
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {}
+                },
+                node: {
+                    createElement: (node) => {
+                        const el = { style: {}, dataset: {} };
+                        el.dataset.nodeId = node.id;
+                        return el;
+                    }
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: jest.fn()
+            };
+            const localClipboard = new WorkflowClipboard(mockUI);
+
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{ id: '1', type: '1', meta: { position: { x: 100, y: 200 } }, data: { nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' }, inputs: { inputParameters: [] }, outputs: [] }, _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} } }],
+                    edges: []
+                }
+            };
+            localClipboard.pasteFromCozeFormat(cozeData);
+
+            expect(mockUI.showMessage).toHaveBeenCalledWith(
+                expect.stringContaining('Test error'),
+                'error'
+            );
+        });
+    });
+
+    describe('paste with mergeGroups and variable references', () => {
+        it('should paste node with mergeGroups and inputParams ref', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '32',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Merge', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                mergeGroups: [{ name: 'g1', variables: [{ name: 'v1', value: { type: 'ref', content: { blockID: '1', name: 'out' } } }] }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should paste node with inputParams having ref values', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '20',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'SetVar', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                inputParameters: [{
+                                    left: { value: { content: { name: 'var1' } } },
+                                    right: { value: { type: 'ref', content: { blockID: '1', name: 'out' } } }
+                                }]
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+    });
+
+    describe('paste with simple nodes format', () => {
+        it('should skip pasteFromSimpleNodes when no nodes provided', () => {
+            const mockUI = {
+                core,
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {},
+                    getCurrentTransform: () => ({ translateX: 0, scale: 1 })
+                },
+                node: {
+                    createElement: () => ({ style: {}, dataset: {} }),
+                    select: () => {},
+                    batchMeasureElements: () => {}
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: () => {}
+            };
+            const localClipboard = new WorkflowClipboard(mockUI);
+
+            localClipboard.pasteFromSimpleNodes({});
+            expect(core.nodes.length).toBe(0);
+
+            localClipboard.pasteFromSimpleNodes({ nodes: [] });
+            expect(core.nodes.length).toBe(0);
+        });
+
+        it('should paste simple nodes with position from x/y', () => {
+            const mockUI = {
+                core,
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {},
+                    getCurrentTransform: () => ({ translateX: 0, scale: 1 })
+                },
+                node: {
+                    createElement: () => ({ style: {}, dataset: {} }),
+                    select: () => {},
+                    batchMeasureElements: () => {}
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: () => {}
+            };
+            const localClipboard = new WorkflowClipboard(mockUI);
+
+            const simpleNodes = {
+                nodes: [
+                    { id: '1', type: 'start', title: 'Node1', x: 100, y: 200, parameters: {} }
+                ]
+            };
+            localClipboard.pasteFromSimpleNodes(simpleNodes);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should paste simple nodes with edges using sourceNodeID', () => {
+            const mockUI = {
+                core,
+                canvas: {
+                    screenToCanvas: (x, y) => ({ canvasX: x, canvasY: y }),
+                    lastMouseX: 100,
+                    lastMouseY: 100,
+                    canvasContent: { appendChild: () => {} },
+                    setEmptyState: () => {},
+                    getCurrentTransform: () => ({ translateX: 0, scale: 1 })
+                },
+                node: {
+                    createElement: () => ({ style: {}, dataset: {} }),
+                    select: () => {},
+                    batchMeasureElements: () => {}
+                },
+                updateEdges: () => {},
+                updateSummary: () => {},
+                showMessage: () => {}
+            };
+            const localClipboard = new WorkflowClipboard(mockUI);
+
+            const simpleNodes = {
+                nodes: [
+                    { id: '1', type: 'start', title: 'Node1', x: 100, y: 200, parameters: {} },
+                    { id: '2', type: 'end', title: 'Node2', x: 300, y: 200, parameters: {} }
+                ],
+                edges: [
+                    { source: '1', target: '2' }
+                ]
+            };
+            localClipboard.pasteFromSimpleNodes(simpleNodes);
+            expect(core.nodes.length).toBe(2);
+        });
+    });
+
+    describe('paste with condition node unknown port', () => {
+        it('should keep original port name for unknown port on condition node', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '8',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'If', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                branches: [{ name: 'b1', condition: { conditions: [] } }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }, {
+                        id: '2',
+                        type: '3',
+                        meta: { position: { x: 300, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 300, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: [{ sourceNodeID: '1', targetNodeID: '2', sourcePortID: 'custom_port' }]
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+            expect(core.edges[0].sourcePort).toBe('custom_port');
+        });
+    });
+
+    describe('paste with _contentRaw and dynamic_option blockID remapping', () => {
+        it('should remap blockID in _contentRaw', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '13',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Output', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                content: { type: 'string', value: { type: 'ref', content: { blockID: '1', name: 'out' } } },
+                                streamingOutput: false
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should remap blockID in dynamic_option', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '18',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Question', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                question: 'Test?',
+                                llmParam: [],
+                                answer_type: 'text',
+                                dynamic_option: { value: { type: 'ref', content: { blockID: '1', name: 'options' } } }
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+    });
+
+    describe('paste with mergeGroups and inputParams blockID remapping', () => {
+        it('should remap blockID in mergeGroups variables', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '32',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Merge', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                mergeGroups: [{ name: 'g1', variables: [{ name: 'v1', value: { type: 'ref', content: { blockID: '1', name: 'out' } } }] }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should remap blockID in mergeGroups variables with right blockID', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '32',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'Merge', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                mergeGroups: [{ name: 'g1', variables: [{ name: 'v1', value: { type: 'ref', content: { blockID: '1', name: 'out' } } }] }],
+                                inputParameters: []
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+
+        it('should remap blockID in inputParams', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '20',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'SetVar', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                inputParameters: [{
+                                    name: 'v1',
+                                    input: { type: 'string', value: { type: 'ref', content: { blockID: '1', name: 'out' } } }
+                                }]
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+    });
+
+    describe('paste with loop_set_variable blockID remapping', () => {
+        it('should remap blockID in loop_set_variable variables', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '20',
+                        meta: { position: { x: 100, y: 200 } },
+                        data: {
+                            nodeMeta: { title: 'SetVar', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: {
+                                inputParameters: [{
+                                    left: { type: 'string', value: { type: 'literal', content: { name: 'var1' } } },
+                                    right: { type: 'string', value: { type: 'ref', content: { blockID: '1', name: 'out' } } }
+                                }]
+                            },
+                            outputs: []
+                        },
+                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(1);
+        });
+    });
+
+    describe('paste with container block edge skippedEdges', () => {
+        it('should handle block edges with skippedEdges', () => {
+            const cozeData = {
+                type: 'coze-workflow-clipboard-data',
+                json: {
+                    nodes: [{
+                        id: '1',
+                        type: '21',
+                        meta: { position: { x: 200, y: 300 } },
+                        data: {
+                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#10b981' },
+                            inputs: { inputParameters: [] },
+                            outputs: [],
+                            size: { width: 300, height: 200 }
+                        },
+                        _temp: { bounds: { x: 200, y: 300, width: 300, height: 200 }, externalData: {} },
+                        blocks: [{
+                            id: '2',
+                            type: '5',
+                            meta: { position: { x: 50, y: 80 } },
+                            data: {
+                                nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], code: 'print(1)' },
+                                outputs: [],
+                                size: { width: 200, height: 100 }
+                            },
+                            _temp: { bounds: { x: 50, y: 80, width: 200, height: 100 }, externalData: {} }
+                        }],
+                        edges: [{
+                            sourceNodeID: '1',
+                            targetNodeID: '2',
+                            sourcePortID: 'loop-function-inline-output',
+                            targetPortID: 'loop-function-inline-input'
+                        }]
+                    }],
+                    edges: []
+                }
+            };
+            clipboard.pasteFromCozeFormat(cozeData);
+            expect(core.nodes.length).toBe(2);
+        });
     });
 });

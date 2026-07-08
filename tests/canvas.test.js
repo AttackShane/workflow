@@ -1244,62 +1244,129 @@ describe('WorkflowCanvas', () => {
         });
     });
 
-    describe('onCanvasMouseDown container branch', () => {
-        it('should handle container body click with marquee mode', () => {
+    describe('onCanvasMouseDown container body detection', () => {
+        it('should handle direct container body click on canvas', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { style: {} };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
+            canvas.svgLayer = {};
+            canvas.svgHitLayer = {};
+
+            const containerNodeEl = { dataset: { nodeId: 'container_1' } };
+            const containerBody = { closest: jest.fn(() => containerNodeEl) };
+
+            canvas.onCanvasMouseDown({
+                clientX: 100,
+                clientY: 100,
+                shiftKey: false,
+                target: {
+                    tagName: 'DIV',
+                    closest: jest.fn((selector) => {
+                        if (selector === '.canvas-node') return null;
+                        if (selector === '.container-body') return containerBody;
+                        return null;
+                    }),
+                    getAttribute: jest.fn(() => null)
+                }
+            });
+
+            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
+        });
+
+        it('should handle direct container body click with marquee', () => {
             const core = createMockCore();
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvas = { style: {} };
             canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
 
-            const containerBody = {};
             const containerNodeEl = { dataset: { nodeId: 'container_1' } };
+            const containerBody = { closest: jest.fn(() => containerNodeEl) };
 
-            const e = {
+            canvas.onCanvasMouseDown({
                 clientX: 100,
                 clientY: 100,
                 shiftKey: true,
                 target: {
+                    tagName: 'DIV',
                     closest: jest.fn((selector) => {
                         if (selector === '.canvas-node') return null;
                         if (selector === '.container-body') return containerBody;
                         return null;
-                    })
+                    }),
+                    getAttribute: jest.fn(() => null)
                 }
-            };
-            containerBody.closest = jest.fn(() => containerNodeEl);
-
-            canvas.onCanvasMouseDown(e);
+            });
 
             expect(canvas.isMarqueeSelectionActive).toBe(true);
         });
 
-        it('should handle container body click without marquee mode', () => {
+        it('should detect container body via querySelectorAll fallback', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { style: {} };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
+            canvas.svgLayer = {};
+            canvas.svgHitLayer = {};
+
+            const containerBody = {
+                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 })
+            };
+            const containerNodeEl = {
+                dataset: { nodeId: 'container_1' },
+                querySelector: jest.fn(() => containerBody)
+            };
+
+            global.document.querySelectorAll.mockReturnValueOnce([containerNodeEl]);
+
+            canvas.onCanvasMouseDown({
+                clientX: 100,
+                clientY: 100,
+                ctrlKey: false,
+                metaKey: false,
+                shiftKey: false,
+                target: {
+                    tagName: 'DIV',
+                    closest: jest.fn(() => null)
+                }
+            });
+
+            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
+        });
+
+        it('should start marquee on shift+click in container body', () => {
             const core = createMockCore();
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvas = { style: {} };
             canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
 
-            const containerBody = {};
-            const containerNodeEl = { dataset: { nodeId: 'container_1' } };
+            const containerBody = {
+                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 })
+            };
+            const containerNodeEl = {
+                dataset: { nodeId: 'container_1' },
+                querySelector: jest.fn(() => containerBody)
+            };
 
-            const e = {
+            global.document.querySelectorAll.mockReturnValueOnce([containerNodeEl]);
+
+            canvas.onCanvasMouseDown({
                 clientX: 100,
                 clientY: 100,
                 ctrlKey: false,
                 metaKey: false,
+                shiftKey: true,
                 target: {
-                    closest: jest.fn((selector) => {
-                        if (selector === '.canvas-node') return null;
-                        if (selector === '.container-body') return containerBody;
-                        return null;
-                    })
+                    tagName: 'DIV',
+                    closest: jest.fn(() => null)
                 }
-            };
-            containerBody.closest = jest.fn(() => containerNodeEl);
+            });
 
-            expect(() => canvas.onCanvasMouseDown(e)).not.toThrow();
+            expect(canvas.isMarqueeSelectionActive).toBe(true);
         });
     });
 
@@ -1616,6 +1683,436 @@ describe('WorkflowCanvas', () => {
             expect(core.saveHistory).toHaveBeenCalledWith('messages.viewReset');
             expect(ui.refreshCanvas).toHaveBeenCalled();
             expect(canvas.canvasScale).toBeLessThanOrEqual(1);
+        });
+    });
+
+    describe('_createAlignmentGuides', () => {
+        it('should return null when canvas is null', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = null;
+
+            const result = canvas._createAlignmentGuides();
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when canvas.appendChild is not a function', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = {};
+
+            const result = canvas._createAlignmentGuides();
+
+            expect(result).toBeNull();
+        });
+
+        it('should create SVG element and append to canvas', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            const mockCanvas = { appendChild: jest.fn() };
+            canvas.canvas = mockCanvas;
+
+            const result = canvas._createAlignmentGuides();
+
+            expect(result).toBeDefined();
+            expect(result.setAttribute).toHaveBeenCalledWith('class', 'alignment-guides');
+            expect(result.setAttribute).toHaveBeenCalledWith('id', 'alignmentGuides');
+            expect(mockCanvas.appendChild).toHaveBeenCalledWith(result);
+        });
+    });
+
+    describe('setupZoomControls', () => {
+        it('should register click handlers on zoom buttons when they exist', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { style: {} };
+
+            const mockZoomInBtn = {};
+            const mockZoomOutBtn = {};
+            const mockZoomFitBtn = {};
+            const mockZoomLevel = {};
+
+            global.document.getElementById
+                .mockReturnValueOnce(mockZoomInBtn)
+                .mockReturnValueOnce(mockZoomOutBtn)
+                .mockReturnValueOnce(mockZoomFitBtn)
+                .mockReturnValueOnce(mockZoomLevel);
+
+            canvas.setupZoomControls();
+
+            expect(DOM.on).toHaveBeenCalledWith(mockZoomInBtn, 'click', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(mockZoomOutBtn, 'click', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(mockZoomFitBtn, 'click', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(mockZoomLevel, 'click', expect.any(Function));
+        });
+
+        it('should not crash when buttons are missing', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { style: {} };
+
+            global.document.getElementById.mockReturnValue(null);
+
+            expect(() => canvas.setupZoomControls()).not.toThrow();
+        });
+    });
+
+    describe('zoomIn', () => {
+        it('should zoom in from center', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.canvasScale = 1;
+
+            canvas.zoomIn();
+
+            expect(canvas.canvasScale).toBeGreaterThan(1);
+        });
+
+        it('should not zoom beyond max scale', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(3)' } };
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.canvasScale = 3;
+
+            canvas.zoomIn();
+
+            expect(canvas.canvasScale).toBe(3);
+        });
+
+        it('should return early when canvas rect is null', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = null;
+
+            canvas.zoomIn();
+
+            expect(canvas.canvasScale).toBe(1);
+        });
+    });
+
+    describe('zoomOut', () => {
+        it('should zoom out from center', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.canvasScale = 1;
+
+            canvas.zoomOut();
+
+            expect(canvas.canvasScale).toBeLessThan(1);
+        });
+
+        it('should not zoom below min scale', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+            canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(0.25)' } };
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.canvasScale = 0.25;
+
+            canvas.zoomOut();
+
+            expect(canvas.canvasScale).toBe(0.25);
+        });
+
+        it('should return early when canvas rect is null', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvas = null;
+
+            canvas.zoomOut();
+
+            expect(canvas.canvasScale).toBe(1);
+        });
+    });
+
+    describe('updateZoomLevel', () => {
+        it('should update zoom level text content when element exists', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvasScale = 1.5;
+            const mockZoomLevel = { textContent: '' };
+            global.document.getElementById.mockReturnValue(mockZoomLevel);
+
+            canvas.updateZoomLevel();
+
+            expect(mockZoomLevel.textContent).toBe('150%');
+        });
+
+        it('should not crash when zoomLevel element does not exist', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvasScale = 1;
+            global.document.getElementById.mockReturnValue(null);
+
+            expect(() => canvas.updateZoomLevel()).not.toThrow();
+        });
+    });
+
+    describe('applyTransform with alignmentGuides', () => {
+        it('should apply transform to alignmentGuides when present', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.canvasContent = { style: {} };
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.alignmentGuides = { style: {} };
+
+            canvas.applyTransform(100, 200, 1.5);
+
+            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.alignmentGuides, 'transform', 'translate(100px, 200px) scale(1.5)');
+        });
+    });
+
+    describe('setSvgSize with alignmentGuides', () => {
+        it('should set size on alignmentGuides when present', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = { style: {} };
+            canvas.svgHitLayer = { style: {} };
+            canvas.alignmentGuides = { style: {} };
+
+            canvas.setSvgSize(800, 600);
+
+            expect(DOM.setAttr).toHaveBeenCalledWith(canvas.alignmentGuides, 'width', 800);
+            expect(DOM.setAttr).toHaveBeenCalledWith(canvas.alignmentGuides, 'height', 600);
+        });
+    });
+
+    describe('_escapeXml', () => {
+        it('should escape XML special characters', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            const result = canvas._escapeXml('<div class="test">&amp;</div>');
+
+            expect(result).toBe('&lt;div class=&quot;test&quot;&gt;&amp;amp;&lt;/div&gt;');
+        });
+
+        it('should return same string when no special chars', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            const result = canvas._escapeXml('hello world');
+
+            expect(result).toBe('hello world');
+        });
+
+        it('should convert non-string to string', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            const result = canvas._escapeXml(123);
+
+            expect(result).toBe('123');
+        });
+    });
+
+    describe('_rgb', () => {
+        it('should return color when valid', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            expect(canvas._rgb('#ff0000')).toBe('#ff0000');
+            expect(canvas._rgb('rgb(255,0,0)')).toBe('rgb(255,0,0)');
+        });
+
+        it('should return null for transparent', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            expect(canvas._rgb('transparent')).toBeNull();
+            expect(canvas._rgb('rgba(0, 0, 0, 0)')).toBeNull();
+            expect(canvas._rgb('')).toBeNull();
+            expect(canvas._rgb(null)).toBeNull();
+            expect(canvas._rgb()).toBeNull();
+        });
+    });
+
+    describe('_downloadBlob', () => {
+        it('should create download link and click it', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            const mockA = {
+                href: '',
+                download: '',
+                click: jest.fn()
+            };
+            global.document.createElement.mockReturnValueOnce(mockA);
+            global.URL.createObjectURL = jest.fn(() => 'blob:test');
+            global.URL.revokeObjectURL = jest.fn();
+
+            canvas._downloadBlob('test data', 'test.txt', 'text/plain');
+
+            expect(mockA.href).toBe('blob:test');
+            expect(mockA.download).toBe('test.txt');
+            expect(mockA.click).toHaveBeenCalled();
+            expect(global.document.body.appendChild).toHaveBeenCalledWith(mockA);
+            expect(global.document.body.removeChild).toHaveBeenCalledWith(mockA);
+            expect(global.URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
+        });
+    });
+
+    describe('exportAsImage', () => {
+        it('should return early when svgLayer is null', async () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = null;
+
+            const result = await canvas.exportAsImage();
+
+            expect(result).toBeUndefined();
+        });
+
+        it('should return early when canvasContent is null', async () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = {};
+            canvas.canvasContent = null;
+
+            const result = await canvas.exportAsImage();
+
+            expect(result).toBeUndefined();
+        });
+
+        it('should return early when no nodes on canvas', async () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = {};
+            canvas.canvasContent = { querySelectorAll: jest.fn(() => []) };
+
+            const result = await canvas.exportAsImage();
+
+            expect(result).toBeUndefined();
+        });
+
+        it('should export as SVG format', async () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = { querySelectorAll: jest.fn(() => []) };
+            canvas.canvasContent = {
+                style: { transform: 'translate(0px, 0px) scale(1)' },
+                querySelectorAll: jest.fn(() => [
+                    {
+                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        classList: { contains: () => false },
+                        querySelector: jest.fn(() => null),
+                        querySelectorAll: jest.fn(() => [])
+                    }
+                ])
+            };
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+
+            global.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e'
+            });
+            global.window.getComputedStyle = () => ({
+                backgroundColor: 'rgb(42, 42, 62)',
+                borderColor: 'rgb(68, 68, 68)',
+                color: 'rgb(224, 224, 224)'
+            });
+
+            canvas._downloadBlob = jest.fn();
+
+            await canvas.exportAsImage('svg');
+
+            expect(canvas._downloadBlob).toHaveBeenCalled();
+        });
+
+        it('should export as SVG format with edges and container nodes', async () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.svgLayer = {
+                querySelectorAll: jest.fn(() => [
+                    {
+                        getBBox: () => ({ x: 50, y: 50, width: 100, height: 2 }),
+                        outerHTML: '<path d="M0 0 L100 0" />'
+                    }
+                ])
+            };
+            canvas.canvasContent = {
+                style: { transform: 'translate(0px, 0px) scale(1)' },
+                querySelectorAll: jest.fn(() => [
+                    {
+                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        classList: { contains: (cls) => cls === 'container' },
+                        querySelector: jest.fn(() => ({ textContent: 'Container' })),
+                        querySelectorAll: jest.fn(() => [])
+                    },
+                    {
+                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        classList: { contains: (cls) => cls === 'loop' },
+                        querySelector: jest.fn(() => null),
+                        querySelectorAll: jest.fn(() => [])
+                    },
+                    {
+                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        classList: { contains: (cls) => cls === 'batch' },
+                        querySelector: jest.fn(() => null),
+                        querySelectorAll: jest.fn(() => [])
+                    },
+                    {
+                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        classList: { contains: () => false },
+                        querySelector: jest.fn(() => null),
+                        querySelectorAll: jest.fn(() => [])
+                    }
+                ])
+            };
+            canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
+
+            global.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e'
+            });
+            global.window.getComputedStyle = () => ({
+                backgroundColor: 'rgb(42, 42, 62)',
+                borderColor: 'rgb(68, 68, 68)',
+                color: 'rgb(224, 224, 224)'
+            });
+
+            canvas._downloadBlob = jest.fn();
+
+            await canvas.exportAsImage('svg');
+
+            expect(canvas._downloadBlob).toHaveBeenCalled();
         });
     });
 });

@@ -21,6 +21,7 @@
         <div class="status">
             <span class="dot"></span>
             <span data-i18n="editor.ready">就绪</span>
+            <span class="autosave-indicator" id="autosaveIndicator" style="display:none;"></span>
         </div>
         <div class="actions">
             <div class="node-search-wrapper">
@@ -29,13 +30,25 @@
             </div>
             <button id="navConverterBtn" class="btn btn-primary"><span data-i18n="converter.title">工作流转换器</span></button>
             <button id="navManagerBtn" class="btn btn-secondary"><span data-i18n="editor.workflowManager">工作流管理</span></button>
-            <button id="languageBtn" class="btn">US English</button>
-            <button id="themeBtn" class="btn">🌙 深色模式</button>
-            <button class="btn btn-secondary" onclick="window.workflowUI.shareLink()">🔗 <span data-i18n="editor.shareLink">分享链接</span></button>
             <button class="btn btn-secondary" onclick="workflowUI.saveAndReturn()">💾 <span data-i18n="editor.saveAndReturn">保存并返回</span></button>
-            <button class="btn btn-secondary" onclick="workflowUI.validate()">✅ <span data-i18n="editor.validateWorkflow">验证工作流</span></button>
-            <button class="btn btn-secondary" onclick="workflowUI.exportWorkflow()">📤 <span data-i18n="editor.exportWorkflow">导出工作流</span></button>
-            <button class="btn btn-secondary" onclick="workflowUI.exportAsImage()">🖼️ <span data-i18n="editor.exportAsImage">导出图片</span></button>
+            <div class="dropdown-group">
+                <button class="btn btn-secondary dropdown-toggle" id="btnExportDropdown">📤 <span data-i18n="editor.exportDropdown">导出</span> ▾</button>
+                <div class="dropdown-menu" id="exportDropdownMenu">
+                    <button class="dropdown-item" onclick="workflowUI.exportWorkflow()">📤 <span data-i18n="editor.exportWorkflow">导出工作流</span></button>
+                    <button class="dropdown-item" onclick="workflowUI.exportAsImage()">🖼️ <span data-i18n="editor.exportAsImage">导出图片</span></button>
+                    <button class="dropdown-item" id="btnExportSvgMenu">🖋️ <span data-i18n="editor.exportSvg">导出SVG</span></button>
+                </div>
+            </div>
+            <div class="dropdown-group">
+                <button class="btn btn-secondary dropdown-toggle" id="btnMoreDropdown">⚙️ <span data-i18n="editor.moreDropdown">更多</span> ▾</button>
+                <div class="dropdown-menu" id="moreDropdownMenu">
+                    <button class="dropdown-item" onclick="workflowUI.validate()">✅ <span data-i18n="editor.validateWorkflow">验证工作流</span></button>
+                    <button class="dropdown-item" onclick="window.workflowUI.shareLink()">🔗 <span data-i18n="editor.shareLink">分享链接</span></button>
+                    <button class="dropdown-item" id="btnShortcuts">⌨️ <span data-i18n="editor.shortcuts">快捷键</span></button>
+                    <button class="dropdown-item" id="languageBtn">🌐 语言</button>
+                    <button class="dropdown-item" id="themeBtn">🌙 深色模式</button>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -96,6 +109,15 @@
                 <button class="zoom-btn" id="resetViewBtn" title="优化布局" data-i18n-title="editor.resetView" onclick="window.workflowUI.resetView()">🔍</button>
                 <div class="zoom-divider"></div>
                 <button class="zoom-btn zoom-clear-btn" id="clearCanvasBtn" title="清空画布" data-i18n-title="editor.clearCanvas" onclick="window.workflowUI.clearCanvas()">🗑️</button>
+                <div class="zoom-divider"></div>
+                <button class="zoom-btn" id="toggleGridBtn" title="显示网格" data-i18n-title="canvas.gridOn">⊞</button>
+                <button class="zoom-btn" id="toggleSnapBtn" title="启用吸附" data-i18n-title="canvas.snapOn">🧲</button>
+                <div class="zoom-divider"></div>
+                <button class="zoom-btn" id="toggleMinimapBtn" title="切换小地图" data-i18n-title="canvas.minimapToggle">🗺️</button>
+            </div>
+            <div class="minimap" id="minimap" style="display: none;">
+                <canvas id="minimapCanvas"></canvas>
+                <div class="minimap-viewport" id="minimapViewport"></div>
             </div>
         </div>
         
@@ -255,5 +277,20 @@
             window.draggedNodeType = null;
         };
     </script>
+
+    <div class="modal-overlay" id="shortcutModalOverlay" style="display: none;">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>⌨️ 快捷键设置</h2>
+                <button class="modal-close" id="shortcutModalClose">×</button>
+            </div>
+            <div class="modal-body" id="shortcutModalBody">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="btnResetShortcuts">恢复默认</button>
+                <button class="btn btn-primary" id="btnShortcutClose">关闭</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

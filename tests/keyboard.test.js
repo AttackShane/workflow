@@ -18,6 +18,9 @@ function createMockUI() {
         },
         confirmExit: jest.fn(),
         quickSave: jest.fn(),
+        canvas: {
+            autoOptimizeLayout: jest.fn()
+        },
         _handlers: handlers
     };
 }
@@ -28,6 +31,7 @@ function createMockEvent(options = {}) {
         ctrlKey: options.ctrlKey || false,
         metaKey: options.metaKey || false,
         shiftKey: options.shiftKey || false,
+        altKey: options.altKey || false,
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
         ...options
@@ -35,6 +39,12 @@ function createMockEvent(options = {}) {
 }
 
 function setupMockDom(activeElementTag = 'BODY') {
+    global.localStorage = {
+        _data: {},
+        getItem(key) { return this._data[key] || null; },
+        setItem(key, value) { this._data[key] = value; },
+        removeItem(key) { delete this._data[key]; }
+    };
     global.document = {
         activeElement: { tagName: activeElementTag, isContentEditable: false },
         querySelector: jest.fn(() => null),
@@ -82,9 +92,10 @@ describe('WorkflowKeyboard', () => {
     let mockUI;
 
     beforeEach(() => {
+        setupMockDom();
+        setupMockDOM();
         mockUI = createMockUI();
         keyboard = new WorkflowKeyboard(mockUI);
-        setupMockDom();
     });
 
     afterEach(() => {
@@ -252,7 +263,9 @@ describe('WorkflowKeyboard', () => {
         });
 
         it('should handle Cmd+Shift+Z (redo on Mac)', () => {
-            const event = createMockEvent({ key: 'Z', metaKey: true, shiftKey: true });
+            // Test custom shortcut configuration for Mac
+            keyboard.shortcuts.redo = 'Cmd+Shift+Z';
+            const event = createMockEvent({ key: 'z', metaKey: true, shiftKey: true });
 
             keyboard.handleKeydown(event);
 
@@ -285,6 +298,24 @@ describe('WorkflowKeyboard', () => {
 
             expect(event.preventDefault).toHaveBeenCalled();
             expect(mockUI.quickSave).toHaveBeenCalled();
+        });
+
+        it('should handle Ctrl+F (auto layout)', () => {
+            const event = createMockEvent({ key: 'f', ctrlKey: true });
+
+            keyboard.handleKeydown(event);
+
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(mockUI.canvas.autoOptimizeLayout).toHaveBeenCalled();
+        });
+
+        it('should handle Cmd+F (auto layout on Mac)', () => {
+            const event = createMockEvent({ key: 'f', metaKey: true });
+
+            keyboard.handleKeydown(event);
+
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(mockUI.canvas.autoOptimizeLayout).toHaveBeenCalled();
         });
 
         it('should pass through non-shortcut keys', () => {
@@ -354,6 +385,30 @@ describe('WorkflowKeyboard', () => {
             handler();
 
             expect(global.sessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
+        });
+
+        it('should trigger navManagerBtn handler when no savedWorkflow', () => {
+            setupMockDOM();
+            global.sessionStorage.getItem.mockReturnValue(null);
+            keyboard.setupEventListeners();
+
+            const navBtn = global.document.getElementById('navManagerBtn');
+            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            handler();
+
+            expect(global.sessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
+        });
+
+        it('should not remove editingWorkflowId when savedWorkflow exists', () => {
+            setupMockDOM();
+            global.sessionStorage.getItem.mockReturnValue('workflow-data');
+            keyboard.setupEventListeners();
+
+            const navBtn = global.document.getElementById('navManagerBtn');
+            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            handler();
+
+            expect(global.sessionStorage.removeItem).not.toHaveBeenCalledWith('editingWorkflowId');
         });
     });
 

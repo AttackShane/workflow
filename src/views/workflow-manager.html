@@ -40,6 +40,15 @@
                     <option value="createdAt_asc" data-i18n="manager.sortByCreatedAsc">最早创建</option>
                 </select>
             </div>
+            <div class="batch-toolbar" id="batchToolbar" style="display: none;">
+                <label class="batch-select-all">
+                    <input type="checkbox" id="selectAllCheckbox">
+                    <span data-i18n="manager.selectAll">全选</span>
+                </label>
+                <span class="batch-count" id="batchCount"></span>
+                <button class="btn btn-danger btn-sm" id="btnBatchDelete">🗑️ <span data-i18n="manager.batchDelete">批量删除</span></button>
+                <button class="btn btn-secondary btn-sm" id="btnCancelBatch"><span data-i18n="manager.cancel">取消</span></button>
+            </div>
             <div class="workflow-list" id="workflowList">
                 <!-- 工作流列表将动态生成 -->
             </div>

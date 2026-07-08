@@ -6,6 +6,7 @@ function createMockElement(attrs = {}) {
         _children: [],
         _events: {},
         _text: '',
+        dataset: {},
         get textContent() { return this._text; },
         set textContent(val) { this._text = val; },
         classList: {
@@ -75,6 +76,7 @@ function createMockCore(nodes = [], edges = []) {
         selectNode: jest.fn(),
         selectEdge: jest.fn(),
         deleteEdge: jest.fn(),
+        createEdge: jest.fn(),
         saveHistory: jest.fn(),
         isContainerNode: (id) => containerNodes.has(id),
         getChildNodes: (id) => coreNodes.filter(n => n.parentId === id),
@@ -118,8 +120,9 @@ global.document = {
     },
     querySelector: () => null,
     querySelectorAll: () => [],
-    addEventListener: () => {},
-    removeEventListener: () => {}
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    elementFromPoint: () => null
 };
 
 describe('WorkflowEdge', () => {
@@ -746,6 +749,211 @@ describe('WorkflowEdge', () => {
             edge.updateAllEdges();
 
             expect(ui.canvas.svgLayer._findById('e1')).toBeDefined();
+        });
+    });
+
+    describe('_upsertEdgeElements - hitPath branch', () => {
+        let edge, ui, core;
+
+        beforeEach(() => {
+            core = createMockCore([
+                { id: 'n1', x: 0, y: 0, width: 200, height: 100, type: 'code' },
+                { id: 'n2', x: 300, y: 100, width: 200, height: 100, type: 'code' }
+            ], [
+                { id: 'e1', source: 'n1', target: 'n2' }
+            ]);
+            ui = createMockUI(core);
+            edge = new WorkflowEdge(ui);
+        });
+
+        it('should update existing hitPath d attribute', () => {
+            const existingHitPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            existingHitPath.setAttribute('data-edge-id', 'e1');
+            existingHitPath.setAttribute('d', 'old_value');
+            ui.canvas.svgHitLayer.appendChild(existingHitPath);
+
+            const geom = edge._computeEdgeGeometry({ id: 'e1', source: 'n1', target: 'n2' });
+            edge._upsertEdgeElements({ id: 'e1', source: 'n1', target: 'n2' }, geom);
+
+            expect(existingHitPath._attrs.d).toBe(geom.d);
+        });
+    });
+
+    describe('startConnection - mouse events', () => {
+        let edge, ui, core;
+
+        beforeEach(() => {
+            core = createMockCore([
+                { id: 'n1', x: 0, y: 0, width: 200, height: 100, type: 'code' },
+                { id: 'n2', x: 300, y: 100, width: 200, height: 100, type: 'code' }
+            ], []);
+            ui = createMockUI(core);
+            edge = new WorkflowEdge(ui);
+            document.addEventListener.mockClear();
+            document.removeEventListener.mockClear();
+            document.elementFromPoint = () => null;
+        });
+
+        it('should handle mousemove and update SVG path', () => {
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const moveCall = document.addEventListener.mock.calls.find(c => c[0] === 'mousemove');
+            expect(moveCall).toBeDefined();
+            const onMouseMove = moveCall[1];
+
+            onMouseMove({ clientX: 200, clientY: 150 });
+
+            const d = ui.svgPath.getAttribute('d');
+            expect(d).toBeDefined();
+            expect(d).toContain('M');
+            expect(d).toContain('C');
+        });
+
+        it('should handle mousemove when svgPath is null', () => {
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const moveCall = document.addEventListener.mock.calls.find(c => c[0] === 'mousemove');
+            const onMouseMove = moveCall[1];
+
+            ui.svgPath = null;
+
+            expect(() => onMouseMove({ clientX: 200, clientY: 150 })).not.toThrow();
+        });
+
+        it('should handle mouseup and create edge when target is input port', () => {
+            core.createEdge.mockClear();
+
+            const nodeEl = document.createElement('div');
+            nodeEl.classList.add('canvas-node');
+            nodeEl.dataset.nodeId = 'n2';
+
+            const inputPort = document.createElement('div');
+            inputPort.classList.add('input-port');
+            inputPort.closest = jest.fn(sel => {
+                if (sel === '.input-port') return inputPort;
+                if (sel === '.canvas-node') return nodeEl;
+                return null;
+            });
+            nodeEl.appendChild(inputPort);
+
+            global.document.elementFromPoint = () => inputPort;
+
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const upCall = document.addEventListener.mock.calls.find(c => c[0] === 'mouseup');
+            const onMouseUp = upCall[1];
+
+            onMouseUp({ clientX: 300, clientY: 150 });
+
+            expect(core.createEdge).toHaveBeenCalledWith('n1', 'n2', 'output_1');
+            expect(core.saveHistory).toHaveBeenCalledWith('actions.createConnection');
+            expect(ui.showMessage).toHaveBeenCalled();
+        });
+
+        it('should not create edge when source equals target', () => {
+            core.createEdge.mockClear();
+
+            const nodeEl = document.createElement('div');
+            nodeEl.classList.add('canvas-node');
+            nodeEl.dataset.nodeId = 'n1';
+
+            const inputPort = document.createElement('div');
+            inputPort.classList.add('input-port');
+            inputPort.closest = jest.fn(sel => {
+                if (sel === '.input-port') return inputPort;
+                if (sel === '.canvas-node') return nodeEl;
+                return null;
+            });
+            nodeEl.appendChild(inputPort);
+
+            global.document.elementFromPoint = () => inputPort;
+
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const upCall = document.addEventListener.mock.calls.find(c => c[0] === 'mouseup');
+            const onMouseUp = upCall[1];
+
+            onMouseUp({ clientX: 300, clientY: 150 });
+
+            expect(core.createEdge).not.toHaveBeenCalled();
+        });
+
+        it('should not create edge when edge already exists', () => {
+            core.edges = [{ source: 'n1', target: 'n2' }];
+            core.createEdge.mockClear();
+
+            const nodeEl = document.createElement('div');
+            nodeEl.classList.add('canvas-node');
+            nodeEl.dataset.nodeId = 'n2';
+
+            const inputPort = document.createElement('div');
+            inputPort.classList.add('input-port');
+            inputPort.closest = jest.fn(sel => {
+                if (sel === '.input-port') return inputPort;
+                if (sel === '.canvas-node') return nodeEl;
+                return null;
+            });
+            nodeEl.appendChild(inputPort);
+
+            global.document.elementFromPoint = () => inputPort;
+
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const upCall = document.addEventListener.mock.calls.find(c => c[0] === 'mouseup');
+            const onMouseUp = upCall[1];
+
+            onMouseUp({ clientX: 300, clientY: 150 });
+
+            expect(core.createEdge).not.toHaveBeenCalled();
+        });
+
+        it('should cancel connection on mouseup without input port', () => {
+            const mockEvent = {
+                target: {
+                    getBoundingClientRect: () => ({ left: 100, top: 50, width: 10, height: 10 })
+                }
+            };
+
+            edge.startConnection('n1', mockEvent, 'output_1');
+
+            const upCall = document.addEventListener.mock.calls.find(c => c[0] === 'mouseup');
+            const onMouseUp = upCall[1];
+
+            onMouseUp({ clientX: 300, clientY: 150 });
+
+            expect(document.removeEventListener).toHaveBeenCalledWith('mousemove', expect.any(Function));
+            expect(document.removeEventListener).toHaveBeenCalledWith('mouseup', expect.any(Function));
+            expect(ui.connectingFrom).toBeNull();
         });
     });
 });

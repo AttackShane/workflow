@@ -6,6 +6,7 @@
 
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM } from '../utils/helpers.js';
+import { autoOptimizeLayout } from './workflow-layout.js';
 
 export class WorkflowCanvas {
     constructor(ui, prefix = '') {
@@ -25,6 +26,13 @@ export class WorkflowCanvas {
         this.visibleNodes = new Set();
         this.renderBatchSize = 50;
         this.renderThreshold = 50;
+        
+        // 网格吸附
+        this.gridVisible = false;
+        this.snapEnabled = false;
+        this.gridSize = 20;
+        this.gridSvg = null;
+        this.gridPattern = null;
         
         // 视口信息
         this.viewport = {
@@ -48,6 +56,7 @@ export class WorkflowCanvas {
         
         this.setupEventListeners();
         this.setupZoomControls();
+        this.initMinimap();
         this.updateSvgSize();
         this.updateViewport();
         this.updateZoomLevel();
@@ -72,6 +81,99 @@ export class WorkflowCanvas {
     }
 
     /**
+     * 创建网格背景 SVG 层
+     */
+    _createGridLayer() {
+        if (!this.canvas || typeof this.canvas.appendChild !== 'function') return null;
+        let svg;
+        try {
+            svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        } catch (e) {
+            svg = document.createElement('svg');
+            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        }
+        svg.setAttribute('class', 'grid-layer');
+        svg.setAttribute('id', 'gridLayer');
+        svg.style.display = 'none';
+        svg.style.pointerEvents = 'none';
+
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute('id', 'gridPattern');
+        pattern.setAttribute('width', String(this.gridSize));
+        pattern.setAttribute('height', String(this.gridSize));
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${this.gridSize} 0 L 0 0 0 ${this.gridSize}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', 'var(--border, #e0e0e0)');
+        path.setAttribute('stroke-width', '0.5');
+
+        pattern.appendChild(path);
+        defs.appendChild(pattern);
+        svg.appendChild(defs);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', '100%');
+        rect.setAttribute('height', '100%');
+        rect.setAttribute('fill', 'url(#gridPattern)');
+        svg.appendChild(rect);
+
+        this.canvas.insertBefore(svg, this.canvas.firstChild);
+        this.gridSvg = svg;
+        this.gridPattern = pattern;
+        return svg;
+    }
+
+    /**
+     * 切换网格显示
+     */
+    toggleGrid() {
+        this.gridVisible = !this.gridVisible;
+        if (!this.gridSvg) {
+            this._createGridLayer();
+        }
+        if (this.gridSvg) {
+            this.gridSvg.style.display = this.gridVisible ? '' : 'none';
+        }
+        this.updateSvgSize();
+    }
+
+    /**
+     * 切换吸附
+     */
+    toggleSnap() {
+        this.snapEnabled = !this.snapEnabled;
+    }
+
+    /**
+     * 设置网格大小
+     * @param {number} size - 网格大小（像素）
+     */
+    setGridSize(size) {
+        this.gridSize = Math.max(5, Math.min(100, size));
+        if (this.gridPattern) {
+            this.gridPattern.setAttribute('width', String(this.gridSize));
+            this.gridPattern.setAttribute('height', String(this.gridSize));
+            const path = this.gridPattern.querySelector('path');
+            if (path) {
+                path.setAttribute('d', `M ${this.gridSize} 0 L 0 0 0 ${this.gridSize}`);
+            }
+        }
+    }
+
+    /**
+     * 吸附坐标到网格
+     * @param {number} value - 坐标值
+     * @returns {number} 吸附后的坐标值
+     */
+    snapToGrid(value) {
+        if (!this.snapEnabled) return value;
+        return Math.round(value / this.gridSize) * this.gridSize;
+    }
+
+    /**
      * 设置事件监听器
      */
     setupEventListeners() {
@@ -79,6 +181,9 @@ export class WorkflowCanvas {
         DOM.on(this.canvas, 'wheel', (e) => this.onCanvasWheel(e));
         DOM.on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(e));
         DOM.on(this.canvas, 'click', (e) => this.onCanvasClick(e));
+        DOM.on(this.canvas, 'touchstart', (e) => this.onTouchStart(e), { passive: false });
+        DOM.on(this.canvas, 'touchmove', (e) => this.onTouchMove(e), { passive: false });
+        DOM.on(this.canvas, 'touchend', (e) => this.onTouchEnd(e));
         
         DOM.on(window, 'resize', () => {
             this.updateSvgSize();
@@ -109,6 +214,159 @@ export class WorkflowCanvas {
         if (zoomLevel) {
             DOM.on(zoomLevel, 'click', () => this.resetView());
         }
+
+        const toggleGridBtn = document.getElementById('toggleGridBtn');
+        const toggleSnapBtn = document.getElementById('toggleSnapBtn');
+
+        if (toggleGridBtn) {
+            DOM.on(toggleGridBtn, 'click', () => {
+                this.toggleGrid();
+                toggleGridBtn.title = this.gridVisible ? '隐藏网格' : '显示网格';
+                if (this.gridVisible) {
+                    toggleGridBtn.classList.add('active');
+                } else {
+                    toggleGridBtn.classList.remove('active');
+                }
+            });
+        }
+        if (toggleSnapBtn) {
+            DOM.on(toggleSnapBtn, 'click', () => {
+                this.toggleSnap();
+                toggleSnapBtn.title = this.snapEnabled ? '禁用吸附' : '启用吸附';
+                if (this.snapEnabled) {
+                    toggleSnapBtn.classList.add('active');
+                } else {
+                    toggleSnapBtn.classList.remove('active');
+                }
+            });
+        }
+
+        const toggleMinimapBtn = document.getElementById('toggleMinimapBtn');
+        if (toggleMinimapBtn) {
+            DOM.on(toggleMinimapBtn, 'click', () => this.toggleMinimap());
+        }
+    }
+
+    initMinimap() {
+        this.minimapEl = document.getElementById('minimap');
+        this.minimapCanvas = document.getElementById('minimapCanvas');
+        this.minimapViewport = document.getElementById('minimapViewport');
+        if (!this.minimapEl || !this.minimapCanvas) return;
+
+        this.minimapCtx = this.minimapCanvas.getContext('2d');
+        this.minimapVisible = false;
+        this.minimapScale = 0.08;
+        this.minimapWidth = 200;
+        this.minimapHeight = 150;
+
+        this.minimapCanvas.width = this.minimapWidth;
+        this.minimapCanvas.height = this.minimapHeight;
+
+        let isDraggingViewport = false;
+        this.minimapViewport.addEventListener('mousedown', (e) => {
+            isDraggingViewport = true;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isDraggingViewport || !this.minimapVisible) return;
+            this.navigateMinimap(e);
+        });
+        document.addEventListener('mouseup', () => {
+            isDraggingViewport = false;
+        });
+        this.minimapCanvas.addEventListener('click', (e) => {
+            if (isDraggingViewport) return;
+            this.navigateMinimap(e);
+        });
+    }
+
+    toggleMinimap() {
+        if (!this.minimapEl) {
+            this.initMinimap();
+        }
+        this.minimapVisible = !this.minimapVisible;
+        if (this.minimapEl) {
+            this.minimapEl.style.display = this.minimapVisible ? '' : 'none';
+        }
+        if (this.minimapVisible) {
+            this.renderMinimap();
+        }
+    }
+
+    renderMinimap() {
+        if (!this.minimapVisible || !this.minimapCtx || !this.core) return;
+
+        const ctx = this.minimapCtx;
+        const w = this.minimapWidth;
+        const h = this.minimapHeight;
+
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = 'var(--bg-primary, #fafafa)';
+        ctx.fillRect(0, 0, w, h);
+
+        if (!this.core.nodes || this.core.nodes.length === 0) return;
+
+        const bounds = this.calculateNodesBounds();
+        if (bounds.minX === Infinity) return;
+
+        const padding = 100;
+        const totalW = bounds.maxX - bounds.minX + padding * 2;
+        const totalH = bounds.maxY - bounds.minY + padding * 2;
+        const scale = Math.min(w / totalW, h / totalH);
+        const offsetX = (w - totalW * scale) / 2;
+        const offsetY = (h - totalH * scale) / 2;
+
+        this._minimapTransform = { scale, offsetX, offsetY, boundsMinX: bounds.minX - padding, boundsMinY: bounds.minY - padding };
+
+        const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
+        topLevelNodes.forEach(node => {
+            const nx = (node.x - this._minimapTransform.boundsMinX) * scale + offsetX;
+            const ny = (node.y - this._minimapTransform.boundsMinY) * scale + offsetY;
+            const nw = (node.width || 200) * scale;
+            const nh = (node.height || 100) * scale;
+
+            ctx.fillStyle = node.id === this.core.selectedNode ? '#4a90d9' : '#888';
+            ctx.fillRect(nx, ny, Math.max(nw, 2), Math.max(nh, 2));
+        });
+
+        this.updateMinimapViewport();
+    }
+
+    updateMinimapViewport() {
+        if (!this.minimapVisible || !this.minimapViewport || !this._minimapTransform) return;
+
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const { translateX, translateY, scale } = this.getCurrentTransform();
+
+        const vx = (-translateX / scale - this._minimapTransform.boundsMinX) * this._minimapTransform.scale + this._minimapTransform.offsetX;
+        const vy = (-translateY / scale - this._minimapTransform.boundsMinY) * this._minimapTransform.scale + this._minimapTransform.offsetY;
+        const vw = canvasRect.width / scale * this._minimapTransform.scale;
+        const vh = canvasRect.height / scale * this._minimapTransform.scale;
+
+        this.minimapViewport.style.left = Math.max(0, vx) + 'px';
+        this.minimapViewport.style.top = Math.max(0, vy) + 'px';
+        this.minimapViewport.style.width = vw + 'px';
+        this.minimapViewport.style.height = vh + 'px';
+    }
+
+    navigateMinimap(e) {
+        if (!this._minimapTransform) return;
+
+        const rect = this.minimapCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        const canvasX = mx / this._minimapTransform.scale + this._minimapTransform.boundsMinX;
+        const canvasY = my / this._minimapTransform.scale + this._minimapTransform.boundsMinY;
+
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const newTranslateX = canvasRect.width / 2 - canvasX * this.canvasScale;
+        const newTranslateY = canvasRect.height / 2 - canvasY * this.canvasScale;
+
+        this.applyTransform(newTranslateX, newTranslateY, this.canvasScale);
+        this.updateSvgSize();
+        this.scheduleRenderUpdate();
+        this.updateMinimapViewport();
     }
 
     /**
@@ -137,6 +395,7 @@ export class WorkflowCanvas {
         this.renderDebounceTimer = setTimeout(() => {
             this.updateViewport();
             this.updateVisibleNodes();
+            this.renderMinimap();
         }, 50);
     }
 
@@ -291,6 +550,10 @@ export class WorkflowCanvas {
         if (this.alignmentGuides) {
             DOM.setStyle(this.alignmentGuides, 'transform', transform);
         }
+        if (this.gridSvg) {
+            DOM.setStyle(this.gridSvg, 'transform', transform);
+        }
+        this.updateMinimapViewport();
     }
     
     /**
@@ -396,6 +659,90 @@ export class WorkflowCanvas {
             DOM.setAttr(this.alignmentGuides, 'width', width);
             DOM.setAttr(this.alignmentGuides, 'height', height);
         }
+        if (this.gridSvg) {
+            DOM.setAttr(this.gridSvg, 'width', width);
+            DOM.setAttr(this.gridSvg, 'height', height);
+        }
+    }
+    
+    /**
+     * 触摸开始 - 支持单指拖拽和双指缩放
+     * @param {TouchEvent} e - 触摸事件
+     */
+    onTouchStart(e) {
+        if (e.touches.length === 1) {
+            this._touchStartX = e.touches[0].clientX;
+            this._touchStartY = e.touches[0].clientY;
+            this._touchStartTranslateX = this.canvasTranslateX;
+            this._touchStartTranslateY = this.canvasTranslateY;
+            this._touchStartScale = this.canvasScale;
+            this._touchMoved = false;
+        } else if (e.touches.length === 2) {
+            this._touchStartDistance = this._getTouchDistance(e.touches);
+            this._touchStartScale = this.canvasScale;
+            this._touchStartTranslateX = this.canvasTranslateX;
+            this._touchStartTranslateY = this.canvasTranslateY;
+            const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            this._touchCenterX = cx;
+            this._touchCenterY = cy;
+            this._touchMoved = false;
+        }
+    }
+
+    /**
+     * 触摸移动 - 处理拖拽和缩放
+     * @param {TouchEvent} e - 触摸事件
+     */
+    onTouchMove(e) {
+        e.preventDefault();
+
+        if (e.touches.length === 1 && this._touchStartX !== undefined) {
+            const deltaX = e.touches[0].clientX - this._touchStartX;
+            const deltaY = e.touches[0].clientY - this._touchStartY;
+            if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
+                this._touchMoved = true;
+            }
+            const newX = this._touchStartTranslateX + deltaX;
+            const newY = this._touchStartTranslateY + deltaY;
+            this.applyTransform(newX, newY, this.canvasScale);
+        } else if (e.touches.length === 2) {
+            e.preventDefault();
+            const newDist = this._getTouchDistance(e.touches);
+            if (this._touchStartDistance && newDist > 0) {
+                const scaleRatio = newDist / this._touchStartDistance;
+                const newScale = Math.max(APP_CONFIG.ZOOM.MIN_SCALE, Math.min(APP_CONFIG.ZOOM.MAX_SCALE, this._touchStartScale * scaleRatio));
+                const rect = this.canvas.getBoundingClientRect();
+                const cx = this._touchCenterX - rect.left;
+                const cy = this._touchCenterY - rect.top;
+                const newX = cx - (cx - this._touchStartTranslateX) * (newScale / this._touchStartScale);
+                const newY = cy - (cy - this._touchStartTranslateY) * (newScale / this._touchStartScale);
+                this.applyTransform(newX, newY, newScale);
+                this.updateSvgSize();
+                this.scheduleRenderUpdate();
+                this.updateZoomLevel();
+            }
+        }
+    }
+
+    /**
+     * 触摸结束
+     */
+    onTouchEnd() {
+        this._touchStartX = undefined;
+        this._touchStartY = undefined;
+        this._touchStartDistance = undefined;
+        this._touchStartScale = undefined;
+        this._touchStartTranslateX = undefined;
+        this._touchStartTranslateY = undefined;
+        this._touchCenterX = undefined;
+        this._touchCenterY = undefined;
+    }
+
+    _getTouchDistance(touches) {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
     }
     
     /**
@@ -522,14 +869,30 @@ export class WorkflowCanvas {
             DOM.setStyle(this.canvas, 'cursor', 'default');
             DOM.off(document, 'mousemove', onMouseMove);
             DOM.off(document, 'mouseup', onMouseUp);
+            DOM.off(document, 'keydown', onKeyDown);
+            this.hasDraggedCanvas = false;
             
             setTimeout(() => {
                 this.isMarqueeSelectionActive = false;
             }, 100);
         };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                document.body.removeChild(marquee);
+                DOM.setStyle(this.canvas, 'cursor', 'default');
+                DOM.off(document, 'mousemove', onMouseMove);
+                DOM.off(document, 'mouseup', onMouseUp);
+                DOM.off(document, 'keydown', onKeyDown);
+                this.hasDraggedCanvas = false;
+                this.isMarqueeSelectionActive = false;
+            }
+        };
         
         DOM.on(document, 'mousemove', onMouseMove);
         DOM.on(document, 'mouseup', onMouseUp);
+        DOM.on(document, 'keydown', onKeyDown);
     }
 
     /**
@@ -566,12 +929,24 @@ export class WorkflowCanvas {
             DOM.setStyle(this.canvas, 'cursor', 'default');
             DOM.off(document, 'mousemove', onMouseMove);
             DOM.off(document, 'mouseup', onMouseUp);
+            DOM.off(document, 'keydown', onKeyDown);
             
             this.scheduleRenderUpdate();
+        };
+
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                DOM.setStyle(this.canvas, 'cursor', 'default');
+                DOM.off(document, 'mousemove', onMouseMove);
+                DOM.off(document, 'mouseup', onMouseUp);
+                DOM.off(document, 'keydown', onKeyDown);
+            }
         };
         
         DOM.on(document, 'mousemove', onMouseMove);
         DOM.on(document, 'mouseup', onMouseUp);
+        DOM.on(document, 'keydown', onKeyDown);
     }
 
     /**
@@ -740,238 +1115,7 @@ export class WorkflowCanvas {
      * 自动优化布局（按连接关系从左到右排列，紧凑不重叠，居中缩放适配画布）
      */
     autoOptimizeLayout() {
-        if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
-            this.resetView();
-            return;
-        }
-
-        const hGap = 60;
-        const vGap = 40;
-        const PADDING = 20;
-        const CONTAINER_H_GAP = 60;
-        const CONTAINER_V_GAP = 40;
-        const HEADER_H = 36;
-        const DESC_H = 20;
-        const BORDER = 4;
-        const CONN_POINT_Y = 30;
-
-        const defaultW = 200;
-        const defaultH = 100;
-
-        const getNodeSize = (node) => {
-            const info = this.core.nodeTypeInfo[node.type] || {};
-            const isContainer = info.hasContainer === true;
-            const w = node.width || (isContainer ? (info.containerMinWidth || 300) : 200);
-            const h = node.height || (isContainer ? (info.containerMinHeight || 200) : 100);
-            return { w, h };
-        };
-
-        const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, _centerY = false) => {
-            if (groupNodes.length === 0) return;
-            const groupSizes = new Map();
-            const groupIds = new Set(groupNodes.map(n => n.id));
-            groupNodes.forEach(n => groupSizes.set(n.id, getNodeSize(n)));
-
-            const nodeIsContainer = (node) => {
-                const info = this.core.nodeTypeInfo[node.type] || {};
-                return info.hasContainer === true;
-            };
-
-            // nodeCenterY 存储的是**连接点绝对坐标**
-            // 容器节点外部连接点位置：绝对坐标 = node.y + 30px (根据workflow-edge.js渲染代码)
-            // 对于给定连接点坐标connY，反推node.y：
-            // node.y = connY - (连接点在node内的偏移)
-            // 偏移：容器=CONN_POINT_Y，普通节点=height/2
-            const nodeYFromConnY = (node, connY) => {
-                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                return nodeIsContainer(node) ? connY - CONN_POINT_Y : connY - sz.h / 2;
-            };
-            const connYFromNodeY = (node, nodeY) => {
-                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                return nodeIsContainer(node) ? nodeY + CONN_POINT_Y : nodeY + sz.h / 2;
-            };
-            const bottomFromNodeY = (node, nodeY) => {
-                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                const h = sz.h;
-                return nodeY + h;
-            };
-
-            const adj = new Map();
-            const inDeg = new Map();
-            const preds = new Map();
-            groupNodes.forEach(n => {
-                adj.set(n.id, []);
-                inDeg.set(n.id, 0);
-                preds.set(n.id, []);
-            });
-
-            this.core.edges.forEach(edge => {
-                const s = edge.source;
-                const t = edge.target;
-                if (groupIds.has(s) && groupIds.has(t)) {
-                    adj.get(s).push(t);
-                    inDeg.set(t, (inDeg.get(t) || 0) + 1);
-                    preds.get(t).push(s);
-                }
-            });
-
-            const nodeLevel = new Map();
-            const sources = groupNodes.filter(n => inDeg.get(n.id) === 0);
-            const queue = sources.map(n => n.id);
-            sources.forEach(n => nodeLevel.set(n.id, 0));
-
-            while (queue.length > 0) {
-                const id = queue.shift();
-                adj.get(id).forEach(nextId => {
-                    const predMax = Math.max(...preds.get(nextId).map(pid => nodeLevel.get(pid) ?? -1));
-                    const newLevel = predMax + 1;
-                    if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
-                        nodeLevel.set(nextId, newLevel);
-                        if (!queue.includes(nextId)) queue.push(nextId);
-                    }
-                });
-            }
-
-            groupNodes.forEach(n => {
-                if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
-            });
-
-            const levels = [];
-            const levelMaxW = [];
-            nodeLevel.forEach((level, id) => {
-                if (!levels[level]) levels[level] = [];
-                const node = groupNodes.find(n => n.id === id);
-                if (node) {
-                    levels[level].push(node);
-                    const sz = groupSizes.get(id) || { w: defaultW, h: defaultH };
-                    levelMaxW[level] = Math.max(levelMaxW[level] || 0, sz.w);
-                }
-            });
-
-            // nodeCenterY 存储的是连接点Y坐标（非容器=几何中心，容器=header顶部连接点）
-            const nodeCenterY = new Map();
-
-            // Level 0: stack from top
-            if (levels.length > 0 && levels[0]) {
-                let yOff = startY;
-                levels[0].forEach(node => {
-                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                    const connY = connYFromNodeY(node, yOff);
-                    nodeCenterY.set(node.id, connY);
-                    yOff += sz.h + gapV;
-                });
-            }
-
-            // Subsequent levels: position based on average connection Y of predecessors
-            for (let col = 1; col < levels.length; col++) {
-                if (!levels[col]) continue;
-                levels[col].forEach(node => {
-                    const predIds = preds.get(node.id);
-
-                    if (predIds && predIds.length > 0) {
-                        let sumCenterY = 0;
-                        let count = 0;
-                        predIds.forEach(pid => {
-                            if (nodeCenterY.has(pid)) {
-                                sumCenterY += nodeCenterY.get(pid);
-                                count++;
-                            }
-                        });
-                        if (count > 0) {
-                            nodeCenterY.set(node.id, sumCenterY / count);
-                        } else {
-                            nodeCenterY.set(node.id, connYFromNodeY(node, startY));
-                        }
-                    } else {
-                        nodeCenterY.set(node.id, connYFromNodeY(node, startY));
-                    }
-                });
-            }
-
-            // Resolve overlaps within each level
-            for (let col = 0; col < levels.length; col++) {
-                if (!levels[col]) continue;
-                levels[col].sort((a, b) => (nodeCenterY.get(a.id) || 0) - (nodeCenterY.get(b.id) || 0));
-
-                let prevBottom = -Infinity;
-                levels[col].forEach(node => {
-                    let connY = nodeCenterY.get(node.id) || 0;
-                    const nodeY = nodeYFromConnY(node, connY);
-                    const top = nodeY;
-
-                    if (top < prevBottom + gapV) {
-                        const newY = prevBottom + gapV;
-                        connY = connYFromNodeY(node, newY);
-                        nodeCenterY.set(node.id, connY);
-                    }
-
-                    prevBottom = bottomFromNodeY(node, nodeYFromConnY(node, nodeCenterY.get(node.id) || 0));
-                });
-            }
-
-            // Assign x and y positions from connection Y
-            let xOff = startX;
-            levels.forEach((level, col) => {
-                const maxW = levelMaxW[col] || defaultW;
-                level.forEach((node) => {
-                    const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                    const connY = nodeCenterY.get(node.id) || 0;
-                    node.x = xOff;
-                    node.y = nodeYFromConnY(node, connY);
-                    node.width = sz.w;
-                    node.height = sz.h;
-                });
-                xOff += maxW + gapH;
-            });
-        };
-
-        // 1. 先布局容器内部子节点，确定容器真实尺寸
-        this.core.nodes.forEach(container => {
-            const info = this.core.nodeTypeInfo[container.type] || {};
-            if (!info.hasContainer) return;
-            const children = this.core.getChildNodes(container.id);
-            if (children.length === 0) return;
-
-            layoutNodeGroup(children, PADDING, PADDING, CONTAINER_H_GAP, CONTAINER_V_GAP, false);
-
-            const minW = info.containerMinWidth || 300;
-            const minH = info.containerMinHeight || 200;
-            let maxRight = 0;
-            let maxBottom = 0;
-            let minX = 0;
-            let minY = 0;
-            children.forEach(child => {
-                const sz = getNodeSize(child);
-                minX = Math.min(minX, child.x);
-                minY = Math.min(minY, child.y);
-                maxRight = Math.max(maxRight, child.x + sz.w);
-                maxBottom = Math.max(maxBottom, child.y + sz.h);
-            });
-            const bodyW = Math.max(minW - BORDER, maxRight - minX + PADDING * 2);
-            const bodyH = Math.max(minH - HEADER_H - DESC_H - BORDER, maxBottom - minY + PADDING * 2);
-            container.width = Math.max(minW, bodyW + BORDER);
-            container.height = HEADER_H + DESC_H + bodyH + BORDER;
-        });
-
-        // 2. 顶层节点布局（此时容器尺寸已确定）
-        const nodes = this.core.nodes.filter(n => !n.parentId);
-        layoutNodeGroup(nodes, 0, 0, hGap, vGap, false);
-
-        // 3. 整体平移到正象限
-        const bounds = this.calculateNodesBounds();
-        const offsetX = -Math.min(0, bounds.minX);
-        const offsetY = -Math.min(0, bounds.minY);
-        nodes.forEach(node => {
-            node.x += offsetX;
-            node.y += offsetY;
-        });
-
-        this.core.saveHistory('messages.viewReset');
-
-        this.ui.refreshCanvas();
-        this.updateSvgSize();
-        this.scheduleRenderUpdate();
-        this.centerView();
+        autoOptimizeLayout(this.core, this);
     }
 
     /**
@@ -1078,7 +1222,7 @@ export class WorkflowCanvas {
 
             const isContainer = el.classList.contains('container');
             const isLoop = el.classList.contains('loop');
-            const isBatch = el.classList.contains('batch');
+            const _isBatch = el.classList.contains('batch');
 
             const titleEl = el.querySelector('.node-title');
             const title = titleEl ? titleEl.textContent : '';

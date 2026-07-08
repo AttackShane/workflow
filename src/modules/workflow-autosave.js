@@ -10,6 +10,31 @@ import { t } from '../i18n/i18n.js';
  * @param {import('./workflow-ui.js').WorkflowUI} ui - WorkflowUI 实例
  */
 export function mixinAutoSave(ui) {
+    ui._lastAutoSaveTime = 0;
+    ui._autoSaveIndicatorTimer = null;
+
+    ui._updateAutoSaveIndicator = function() {
+        const el = document.getElementById('autosaveIndicator');
+        if (!el) return;
+        if (!this._lastAutoSaveTime) {
+            el.style.display = 'none';
+            return;
+        }
+        const elapsed = Math.floor((Date.now() - this._lastAutoSaveTime) / 1000);
+        let text;
+        if (elapsed < 10) {
+            text = t('editor.savedJustNow');
+        } else if (elapsed < 60) {
+            text = t('editor.savedSecondsAgo', { seconds: elapsed });
+        } else if (elapsed < 3600) {
+            text = t('editor.savedMinutesAgo', { minutes: Math.floor(elapsed / 60) });
+        } else {
+            text = t('editor.savedHoursAgo', { hours: Math.floor(elapsed / 3600) });
+        }
+        el.textContent = text;
+        el.style.display = '';
+    };
+
     /**
      * 启动自动保存
      */
@@ -18,8 +43,14 @@ export function mixinAutoSave(ui) {
             if (this.core.nodes.length > 0) {
                 this.core.saveToLocalStorage();
                 this.markSaved();
+                this._lastAutoSaveTime = Date.now();
+                this._updateAutoSaveIndicator();
             }
         }, 5000);
+
+        this._autoSaveIndicatorTimer = setInterval(() => {
+            this._updateAutoSaveIndicator();
+        }, 10000);
 
         this.beforeUnloadHandler = () => {
             if (this.core.nodes.length > 0) {
@@ -44,6 +75,10 @@ export function mixinAutoSave(ui) {
             clearInterval(this.autoSaveTimer);
             this.autoSaveTimer = null;
         }
+        if (this._autoSaveIndicatorTimer) {
+            clearInterval(this._autoSaveIndicatorTimer);
+            this._autoSaveIndicatorTimer = null;
+        }
         if (this.beforeUnloadHandler) {
             window.removeEventListener('beforeunload', this.beforeUnloadHandler);
             this.beforeUnloadHandler = null;
@@ -67,6 +102,8 @@ export function mixinAutoSave(ui) {
     ui.saveWorkflow = function() {
         const success = this.core.saveToLocalStorage();
         if (success) {
+            this._lastAutoSaveTime = Date.now();
+            this._updateAutoSaveIndicator();
             this.showMessage(t('messages.workflowSaved'), 'success');
         } else {
             this.showMessage(t('messages.saveFailed'), 'error');

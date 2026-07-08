@@ -105,6 +105,14 @@ export class WorkflowUI {
         
         // 设置事件监听器
         this.keyboard.setupEventListeners();
+        this.keyboard.setupShortcutSettingsEvents();
+
+        const btnExportSvg = document.getElementById('btnExportSvgMenu');
+        if (btnExportSvg) {
+            btnExportSvg.addEventListener('click', () => this.exportAsSvg());
+        }
+
+        this._setupDropdowns();
         
         // 检查导入数据（优先级更高）
         this.checkImportedData();
@@ -457,6 +465,29 @@ export class WorkflowUI {
     deleteNode(nodeId) {
         this.node.delete(nodeId);
     }
+
+    toggleSelectedNodesLock() {
+        const selectedEls = document.querySelectorAll('.canvas-node.selected');
+        if (selectedEls.length === 0) return;
+
+        const allLocked = Array.from(selectedEls).every(el => {
+            const node = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+            return node && node.locked;
+        });
+
+        const newLockState = !allLocked;
+
+        selectedEls.forEach(el => {
+            const node = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+            if (node) {
+                node.locked = newLockState;
+                this.node._reRenderNode(node.id);
+            }
+        });
+
+        this.core.saveHistory('messages.toggleLock');
+        this.showMessage(newLockState ? t('messages.nodeLocked') : t('messages.nodeUnlocked'), 'success');
+    }
     
     /**
      * 保存节点详情面板编辑（供外部调用）
@@ -527,6 +558,12 @@ export class WorkflowUI {
         if (!this.canvas || !this.canvas.exportAsImage) return;
         this.canvas.exportAsImage('png');
         this.showMessage(t('editor.exportImageSuccess'), 'success');
+    }
+
+    exportAsSvg() {
+        if (!this.canvas || !this.canvas.exportAsImage) return;
+        this.canvas.exportAsImage('svg');
+        this.showMessage('SVG 已导出', 'success');
     }
 
     /**
@@ -652,5 +689,35 @@ export class WorkflowUI {
             Logger.error('保存失败:', error);
             this.showMessage(t('messages.saveRetry'), 'error');
         }
+    }
+
+    _setupDropdowns() {
+        const dropdowns = [
+            { toggle: 'btnExportDropdown', menu: 'exportDropdownMenu' },
+            { toggle: 'btnMoreDropdown', menu: 'moreDropdownMenu' }
+        ];
+
+        dropdowns.forEach(({ toggle, menu }) => {
+            const toggleEl = document.getElementById(toggle);
+            const menuEl = document.getElementById(menu);
+            if (!toggleEl || !menuEl) return;
+
+            toggleEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isOpen = menuEl.style.display === 'block';
+                document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+                menuEl.style.display = isOpen ? 'none' : 'block';
+            });
+
+            menuEl.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    menuEl.style.display = 'none';
+                });
+            });
+        });
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+        });
     }
 }

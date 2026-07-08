@@ -1223,5 +1223,372 @@ describe('WorkflowSerializer', () => {
             core.loadFromClipboard(data);
             expect(core.nodes).toHaveLength(1);
         });
+
+        it('should handle variable_merge with multiple incoming edges of different types and map to most common', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM1' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 2,
+                            type: '3',
+                            meta: { position: { x: 100, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 3,
+                            type: '5',
+                            meta: { position: { x: 200, y: 0 } },
+                            data: { nodeMeta: { title: 'Code' }, inputs: { code: 'test' }, outputs: [] }
+                        },
+                        {
+                            id: 4,
+                            type: '32',
+                            meta: { position: { x: 300, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Merge' },
+                                inputs: {
+                                    mergeGroups: [
+                                        { name: 'group1', variables: [{}] }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: [
+                        { sourceNodeID: 1, targetNodeID: 4, sourcePortID: 'output' },
+                        { sourceNodeID: 2, targetNodeID: 4, sourcePortID: 'output' },
+                        { sourceNodeID: 3, targetNodeID: 4, sourcePortID: 'output' }
+                    ]
+                }
+            };
+
+            core.loadFromClipboard(data);
+            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
+            expect(mergeNode).toBeDefined();
+        });
+
+        it('should handle variable_merge when no matching source node found', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '32',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Merge' },
+                                inputs: {
+                                    mergeGroups: [
+                                        {
+                                            name: 'g1',
+                                            variables: [{ value: { type: 'ref', content: { blockID: 999 } } }]
+                                        }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
+            expect(mergeNode).toBeDefined();
+        });
+
+        it('should handle multiple incoming edges all same type for variable_merge', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 2,
+                            type: '3',
+                            meta: { position: { x: 100, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 3,
+                            type: '32',
+                            meta: { position: { x: 200, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Merge' },
+                                inputs: {
+                                    mergeGroups: [
+                                        { name: 'g', variables: [{}, {}] }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: [
+                        { sourceNodeID: 1, targetNodeID: 3, sourcePortID: 'default' },
+                        { sourceNodeID: 2, targetNodeID: 3, sourcePortID: 'output' }
+                    ]
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes).toHaveLength(3);
+        });
+
+        it('should handle mergeGroups variables with ref already mapped', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 2,
+                            type: '32',
+                            meta: { position: { x: 200, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Merge' },
+                                inputs: {
+                                    mergeGroups: [
+                                        {
+                                            name: 'g',
+                                            variables: [
+                                                { value: { type: 'ref', content: { blockID: 1 } } }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
+            const mappedId = core.nodes.find(n => n.title === 'LLM').id;
+            expect(mergeNode.parameters.mergeGroups[0].variables[0].value.content.blockID).toBe(mappedId);
+        });
+
+        it('should handle node with inputParams ref where blockID not found in idMap', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'LLM' },
+                                outputs: [],
+                                inputs: {},
+                                inputParams: [
+                                    { valueType: 'ref', value: { content: { blockID: 999 } } }
+                                ]
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes).toHaveLength(1);
+        });
+
+        it('should handle _contentRaw ref not found and dynamic_option ref not found', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'LLM' },
+                                outputs: [],
+                                inputs: {
+                                    content: { value: { type: 'ref', content: { blockID: 999 } } },
+                                    dynamic_option: { value: { type: 'ref', content: { blockID: 999 } } }
+                                }
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes).toHaveLength(1);
+        });
+
+        it('should handle loop_set_variable with multiple variables and no blockID change needed', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 2,
+                            type: '20',
+                            meta: { position: { x: 100, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'SetVar' },
+                                inputs: {
+                                    inputParameters: [
+                                        { name: 'v1', left: { value: { content: 'fixed' } }, right: { value: { content: 'fixed' } } }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes).toHaveLength(2);
+        });
+
+        it('should handle loop_set_variable with blockID already in idMap', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                        },
+                        {
+                            id: 2,
+                            type: '20',
+                            meta: { position: { x: 100, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'SetVar' },
+                                inputs: {
+                                    inputParameters: [
+                                        {
+                                            name: 'v1',
+                                            left: { value: { content: { blockID: '1' } } },
+                                            right: { value: { content: { blockID: '1' } } }
+                                        }
+                                    ]
+                                },
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            const setVar = core.nodes.find(n => n.type === 'loop_set_variable');
+            const llmId = core.nodes.find(n => n.title === 'LLM').id;
+            expect(setVar.parameters.variables[0].left.value.content.blockID).toBe(llmId);
+            expect(setVar.parameters.variables[0].right.value.content.blockID).toBe(llmId);
+        });
+
+        it('should handle node with meta.position only (no x/y)', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            meta: { position: { x: 50, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM' },
+                                inputs: {},
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes[0].x).toBe(50);
+            expect(core.nodes[0].y).toBe(100);
+        });
+
+        it('should handle node with both x/y and meta.position (meta.position takes priority)', () => {
+            const data = {
+                json: {
+                    nodes: [
+                        {
+                            id: 1,
+                            type: '3',
+                            x: 10,
+                            y: 20,
+                            meta: { position: { x: 50, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM' },
+                                inputs: {},
+                                outputs: []
+                            }
+                        }
+                    ],
+                    edges: []
+                }
+            };
+
+            core.loadFromClipboard(data);
+            expect(core.nodes[0].x).toBe(50);
+            expect(core.nodes[0].y).toBe(100);
+        });
+    });
+
+    describe('importWorkflow - loop_set_variable blockID remap', () => {
+        it('should remap blockID when original ids are numbers and blockID is string', () => {
+            const workflow = {
+                nodes: [
+                    { id: 1, type: 'loop', position: { x: 0, y: 0 } },
+                    {
+                        id: 2, type: 'loop_set_variable', position: { x: 100, y: 0 },
+                        parameters: {
+                            variables: [
+                                {
+                                    left: { value: { content: { blockID: '1' } } },
+                                    right: { value: { content: { blockID: '1' } } }
+                                }
+                            ]
+                        }
+                    }
+                ],
+                edges: []
+            };
+
+            core.importWorkflow(workflow);
+
+            const node2 = core.nodes.find(n => n.id === 'node_2');
+            const node1 = core.nodes.find(n => n.id === 'node_1');
+            expect(node2.parameters.variables[0].left.value.content.blockID).toBe(node1.id);
+            expect(node2.parameters.variables[0].right.value.content.blockID).toBe(node1.id);
+        });
     });
 });
