@@ -8,7 +8,7 @@ import { t } from '../i18n/i18n.js';
  */
 export class WorkflowSelection {
     /**
-     * @param {import('./workflow-ui.js').WorkflowUI} ui
+     * @param {import('./editor-ui.js').WorkflowUI} ui
      */
     constructor(ui) {
         this.ui = ui;
@@ -22,7 +22,7 @@ export class WorkflowSelection {
         document.querySelectorAll('.canvas-node').forEach(n => {
             const nodeId = n.getAttribute('data-node-id');
             const node = this.core.nodes.find(nd => nd.id === nodeId);
-            if (node && node.parentId) return;
+            if (node && (node.parentId || node.locked)) return;
             DOM.addClass(n, 'selected');
         });
         document.querySelectorAll('.workflow-edge').forEach(e => {
@@ -51,6 +51,7 @@ export class WorkflowSelection {
         }
         
         this.ui.align.updateAlignToolbar();
+        this.ui.canvas.renderMinimap();
     }
 
     /**
@@ -65,6 +66,7 @@ export class WorkflowSelection {
         this.ui.clearPropertyPanel();
         this.ui.edge.update();
         this.ui.align.updateAlignToolbar();
+        this.ui.canvas.renderMinimap();
     }
 
     /**
@@ -94,6 +96,7 @@ export class WorkflowSelection {
         }
 
         this.ui.align.updateAlignToolbar();
+        this.ui.canvas.renderMinimap();
     }
 
     /**
@@ -120,6 +123,8 @@ export class WorkflowSelection {
             } else {
                 if (node.parentId) return;
             }
+
+            if (node.locked) return;
 
             const rect = nodeEl.getBoundingClientRect();
             const nodeLeft = rect.left;

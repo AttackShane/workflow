@@ -1,4 +1,4 @@
-import { highlightJson, highlightYaml } from './highlighter.js';
+import { highlightJson, highlightYaml } from './converter-highlighter.js';
 
 self.onmessage = function(e) {
     const { id, text, type } = e.data;

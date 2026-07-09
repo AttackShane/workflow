@@ -5,8 +5,8 @@
  */
 
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM } from '../utils/helpers.js';
-import { autoOptimizeLayout } from './workflow-layout.js';
+import { DOM, NodeUtils } from '../utils/helpers.js';
+import { autoOptimizeLayout } from './editor-layout.js';
 
 export class WorkflowCanvas {
     constructor(ui, prefix = '') {
@@ -191,6 +191,11 @@ export class WorkflowCanvas {
         });
         
         DOM.on(this.canvas, 'scroll', () => this.scheduleRenderUpdate());
+
+        const themeObserver = new MutationObserver(() => {
+            this.renderMinimap();
+        });
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
     /**
@@ -266,6 +271,7 @@ export class WorkflowCanvas {
         this.minimapViewport.addEventListener('mousedown', (e) => {
             isDraggingViewport = true;
             e.preventDefault();
+            e.stopPropagation();
         });
         document.addEventListener('mousemove', (e) => {
             if (!isDraggingViewport || !this.minimapVisible) return;
@@ -274,9 +280,14 @@ export class WorkflowCanvas {
         document.addEventListener('mouseup', () => {
             isDraggingViewport = false;
         });
-        this.minimapCanvas.addEventListener('click', (e) => {
-            if (isDraggingViewport) return;
+        this.minimapCanvas.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            isDraggingViewport = true;
             this.navigateMinimap(e);
+        });
+        this.minimapCanvas.addEventListener('click', (e) => {
+            e.stopPropagation();
         });
     }
 
@@ -301,7 +312,8 @@ export class WorkflowCanvas {
         const h = this.minimapHeight;
 
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = 'var(--bg-primary, #fafafa)';
+        const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#fafafa';
+        ctx.fillStyle = bgColor;
         ctx.fillRect(0, 0, w, h);
 
         if (!this.core.nodes || this.core.nodes.length === 0) return;
@@ -318,6 +330,11 @@ export class WorkflowCanvas {
 
         this._minimapTransform = { scale, offsetX, offsetY, boundsMinX: bounds.minX - padding, boundsMinY: bounds.minY - padding };
 
+        const selectedNodeIds = new Set();
+        document.querySelectorAll('.canvas-node.selected').forEach(el => {
+            selectedNodeIds.add(el.dataset.nodeId);
+        });
+
         const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
         topLevelNodes.forEach(node => {
             const nx = (node.x - this._minimapTransform.boundsMinX) * scale + offsetX;
@@ -325,7 +342,7 @@ export class WorkflowCanvas {
             const nw = (node.width || 200) * scale;
             const nh = (node.height || 100) * scale;
 
-            ctx.fillStyle = node.id === this.core.selectedNode ? '#4a90d9' : '#888';
+            ctx.fillStyle = selectedNodeIds.has(node.id) ? '#4a90d9' : '#888';
             ctx.fillRect(nx, ny, Math.max(nw, 2), Math.max(nh, 2));
         });
 
@@ -356,8 +373,8 @@ export class WorkflowCanvas {
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        const canvasX = mx / this._minimapTransform.scale + this._minimapTransform.boundsMinX;
-        const canvasY = my / this._minimapTransform.scale + this._minimapTransform.boundsMinY;
+        const canvasX = (mx - this._minimapTransform.offsetX) / this._minimapTransform.scale + this._minimapTransform.boundsMinX;
+        const canvasY = (my - this._minimapTransform.offsetY) / this._minimapTransform.scale + this._minimapTransform.boundsMinY;
 
         const canvasRect = this.canvas.getBoundingClientRect();
         const newTranslateX = canvasRect.width / 2 - canvasX * this.canvasScale;
@@ -584,36 +601,7 @@ export class WorkflowCanvas {
      * @returns {Object} - 包含 minX, minY, maxX, maxY 的边界框对象
      */
     calculateNodesBounds() {
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
-        
-        this.core.nodes.forEach(node => {
-            if (node.parentId) {
-                const parent = this.core.nodes.find(n => n.id === node.parentId);
-                if (!parent) return;
-                const absX = (parent.x || 0) + (node.x || 0);
-                const absY = (parent.y || 0) + 56 + (node.y || 0);
-                const width = node.width || 200;
-                const height = node.height || 100;
-                
-                minX = Math.min(minX, absX);
-                minY = Math.min(minY, absY);
-                maxX = Math.max(maxX, absX + width);
-                maxY = Math.max(maxY, absY + height);
-            } else {
-                const x = node.x || 0;
-                const y = node.y || 0;
-                const width = node.width || 200;
-                const height = node.height || 100;
-                
-                minX = Math.min(minX, x);
-                minY = Math.min(minY, y);
-                maxX = Math.max(maxX, x + width);
-                maxY = Math.max(maxY, y + height);
-            }
-        });
-
-        return { minX, minY, maxX, maxY };
+        return NodeUtils.getBounds(this.core.nodes);
     }
     
     /**
@@ -963,6 +951,13 @@ export class WorkflowCanvas {
             this.ui.hasDragged = false;
             return;
         }
+
+        const isOnMinimap = e.target.closest('#minimap, .minimap, #minimapCanvas, .minimap-viewport');
+        const isOnToolbar = e.target.closest('.toolbar, .align-toolbar, .align-btn, .property-panel, .property-panel-content, .btn, .zoom-controls, .zoom-btn, .empty-state');
+        const isOnDropdown = e.target.closest('.dropdown-menu');
+        if (isOnMinimap || isOnToolbar || isOnDropdown) {
+            return;
+        }
         
         const isNode = e.target.closest('.canvas-node');
         const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');
@@ -970,6 +965,7 @@ export class WorkflowCanvas {
         if (!isNode && !isEdge) {
             this.ui.selection.deselectAll();
         }
+        this.renderMinimap();
     }
 
     /**

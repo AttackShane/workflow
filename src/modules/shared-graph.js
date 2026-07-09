@@ -2,7 +2,7 @@ import { getNodeTypeName, getNodeColor, convertLargeNumbersToStrings } from '../
 import { StringUtils, ClipboardUtils, getJsyaml } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
-import { showNodeDetail } from './workflow-node-detail-modal.js';
+import { showNodeDetail } from './shared-node-detail.js';
 
 class GraphView {
     constructor() {
@@ -352,8 +352,8 @@ class GraphView {
             statsContent.style.display = 'block';
             graphContent.style.display = 'none';
 
-            const { showStatsDetail } = await import('./stats-view.js');
-            const { getCurData, getCurDataType } = await import('./ui-controller.js');
+            const { showStatsDetail } = await import('./converter-stats.js');
+            const { getCurData, getCurDataType } = await import('./converter-ui.js');
 
             if (getCurData()) {
                 showStatsDetail(getCurData(), getCurDataType() === 'json');
@@ -393,7 +393,7 @@ class GraphView {
                 statsContent.style.display = 'none';
                 graphContent.style.display = 'block';
 
-                const { getCurData, getCurDataType } = await import('./ui-controller.js');
+                const { getCurData, getCurDataType } = await import('./converter-ui.js');
 
                 if (getCurData()) {
                     this.renderWorkflowGraph(getCurData(), getCurDataType() === 'json');

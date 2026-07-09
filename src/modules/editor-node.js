@@ -1,9 +1,9 @@
 import { t } from '../i18n/i18n.js';
-import { mixinNodeRender } from './workflow-node-render.js';
-import { mixinContainerRender } from './workflow-container-render.js';
-import { mixinNodePanel } from './workflow-node-panel.js';
-import { mixinNodeSelector } from './workflow-node-selector.js';
-import { mixinParamEditor } from './workflow-param-editor.js';
+import { mixinNodeRender } from './editor-node-render.js';
+import { mixinContainerRender } from './editor-container-render.js';
+import { mixinNodePanel } from './editor-node-panel.js';
+import { mixinNodeSelector } from './editor-node-selector.js';
+import { mixinParamEditor } from './editor-param-editor.js';
 
 export class WorkflowNode {
     constructor(ui) {

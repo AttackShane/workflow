@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html data-i18n-lang>
 <head>
+<script>
+(function(){try{var t=localStorage.getItem('workflow-converter-theme')||'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="editor.title">工作流编辑器</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-editor.css">
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script type="module" src="/modules/app.js"></script>
 </head>
 <body>
@@ -25,6 +29,11 @@
         </div>
         <div class="actions">
             <div class="node-search-wrapper">
+                <select id="nodeSearchScope" class="node-search-scope" title="搜索范围">
+                    <option value="all" data-i18n="editor.searchScopeAll">全部</option>
+                    <option value="name" data-i18n="editor.searchScopeName">名称</option>
+                    <option value="description" data-i18n="editor.searchScopeDescription">描述</option>
+                </select>
                 <input type="text" class="node-search-input" id="nodeSearchInput" data-i18n-placeholder="editor.searchNodes" title data-i18n-title="editor.searchNodesTitle" placeholder="🔍 搜索节点...">
                 <span class="node-search-count" id="nodeSearchCount" style="display:none;"></span>
             </div>
@@ -43,7 +52,6 @@
                 <button class="btn btn-secondary dropdown-toggle" id="btnMoreDropdown">⚙️ <span data-i18n="editor.moreDropdown">更多</span> ▾</button>
                 <div class="dropdown-menu" id="moreDropdownMenu">
                     <button class="dropdown-item" onclick="workflowUI.validate()">✅ <span data-i18n="editor.validateWorkflow">验证工作流</span></button>
-                    <button class="dropdown-item" onclick="window.workflowUI.shareLink()">🔗 <span data-i18n="editor.shareLink">分享链接</span></button>
                     <button class="dropdown-item" id="btnShortcuts">⌨️ <span data-i18n="editor.shortcuts">快捷键</span></button>
                     <button class="dropdown-item" id="languageBtn">🌐 语言</button>
                     <button class="dropdown-item" id="themeBtn">🌙 深色模式</button>
@@ -163,17 +171,15 @@
     </div>
     
     <script type="module">
-        import { WorkflowCore } from '/modules/workflow-core.js';
-        import { WorkflowUI } from '/modules/workflow-ui.js';
+        import { WorkflowCore } from '/modules/editor-core.js';
+        import { WorkflowUI } from '/modules/editor-ui.js';
         
         const core = new WorkflowCore();
         let _pendingDescription = '';
         
-        // 优先从 sessionStorage 加载（从工作流管理器跳转过来）
         const editingWorkflow = sessionStorage.getItem('editingWorkflow');
         const editingWorkflowId = sessionStorage.getItem('editingWorkflowId');
         
-        // 检测是否是从缓存返回（有 editingWorkflowId 但没有 editingWorkflow）
         const isFromCache = !editingWorkflow && editingWorkflowId;
         
         if (editingWorkflow) {
@@ -186,12 +192,14 @@
                 core.edges = structuredClone(workflow.edges || []);
                 core.selectedNode = workflow.selectedNode || null;
                 core.selectedEdge = workflow.selectedEdge || null;
+                core.clearSavedWorkflow();
+                core.syncIdCounters();
+                core.resetHistory('从工作流管理器加载');
+            } else {
+                core.clearSavedWorkflow();
+                core.syncIdCounters();
+                core.resetHistory('从工作流管理器加载');
             }
-
-            // 清除旧的 localStorage 快照，避免刷新时恢复成上一个工作流
-            core.clearSavedWorkflow();
-            core.syncIdCounters();
-            core.resetHistory('从工作流管理器加载');
             
             // 更新工作流信息显示
             if (workflow.name) {
@@ -234,15 +242,6 @@
         window.workflowUI = new WorkflowUI(core);
         window.workflowUI.currentDescription = _pendingDescription;
         window.workflowUI.init();
-        
-        // 检查分享链接参数
-        const urlParams = new URLSearchParams(window.location.search);
-        const shareData = urlParams.get('share');
-        if (shareData && !core.hasSavedWorkflow() && !sessionStorage.getItem('editingWorkflow')) {
-            if (WorkflowUI.loadFromShareLink(shareData)) {
-                window.location.reload();
-            }
-        }
         
         window.draggedNodeType = null;
         

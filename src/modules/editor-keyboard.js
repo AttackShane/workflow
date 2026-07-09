@@ -1,5 +1,5 @@
 import { DOM, Storage } from '../utils/helpers.js';
-import { goToConverter, goToManager } from './navigator.js';
+import { goToConverter, goToManager } from './shared-navigator.js';
 import { t } from '../i18n/i18n.js';
 
 const DEFAULT_SHORTCUTS = {
@@ -22,7 +22,7 @@ const DEFAULT_SHORTCUTS = {
  */
 export class WorkflowKeyboard {
     /**
-     * @param {import('./workflow-ui.js').WorkflowUI} ui
+     * @param {import('./editor-ui.js').WorkflowUI} ui
      */
     constructor(ui) {
         this.ui = ui;

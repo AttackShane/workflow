@@ -1,17 +1,18 @@
 /**
  * 剪贴板模块测试
  */
-import { WorkflowClipboard } from '../src/modules/workflow-clipboard.js';
-import { WorkflowCore } from '../src/modules/workflow-core.js';
+import { WorkflowClipboard } from '../src/modules/editor-clipboard.js';
+import { WorkflowCore } from '../src/modules/editor-core.js';
 
 // Mock DOM
 global.document = {
-    createElement: () => ({}),
+    createElement: () => ({ style: {}, select: () => {}, focus: () => {} }),
     querySelectorAll: () => [],
     querySelector: () => null,
     body: { appendChild: () => {}, removeChild: () => {} },
     addEventListener: () => {},
-    removeEventListener: () => {}
+    removeEventListener: () => {},
+    execCommand: () => true
 };
 
 global.navigator = {

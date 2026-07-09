@@ -7,7 +7,7 @@ import { t } from '../i18n/i18n.js';
 
 /**
  * 自动保存相关的 mixin 方法
- * @param {import('./workflow-ui.js').WorkflowUI} ui - WorkflowUI 实例
+ * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
  */
 export function mixinAutoSave(ui) {
     ui._lastAutoSaveTime = 0;

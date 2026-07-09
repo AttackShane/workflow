@@ -33,7 +33,7 @@
             }
         },
         {
-            "files": ["tests/**/*.js"],
+            "files": ["tests/**/*.js", "jest.setup.js"],
             "env": {
                 "jest": true,
                 "node": true

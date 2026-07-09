@@ -6,7 +6,7 @@
 
 /**
  * 混入拖拽和对齐相关方法到 WorkflowNode
- * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
+ * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodeDrag(node) {
 
@@ -25,6 +25,50 @@ export function mixinNodeDrag(node) {
         const nodeId = el.dataset.nodeId;
         const nodeData = this.core.nodes.find(n => n.id === nodeId);
         if (nodeData && nodeData.locked) {
+            if (e.shiftKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                const isAlreadySelected = el.classList.contains('selected');
+
+                if (isAlreadySelected) {
+                    el.classList.remove('selected');
+                    const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
+                    if (newSelectedNodes.length === 0) {
+                        this.ui.isMultiSelectMode = false;
+                        this.core.selectNode(null);
+                        this.ui.showSummaryPanel();
+                    } else {
+                        const lastSelected = newSelectedNodes[newSelectedNodes.length - 1];
+                        this.core.selectNode(lastSelected.dataset.nodeId);
+                        const clickedNode = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
+                        if (clickedNode) this.renderPropertyPanel(clickedNode);
+                    }
+                } else {
+                    el.classList.add('selected');
+                    const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
+                    if (newSelectedNodes.length > 1) {
+                        this.ui.isMultiSelectMode = true;
+                        this.ui.showSummaryPanel();
+                    } else {
+                        this.ui.isMultiSelectMode = false;
+                        this.core.selectNode(el.dataset.nodeId);
+                        const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+                        if (clickedNode) this.renderPropertyPanel(clickedNode);
+                    }
+                }
+                this.ui.align.updateAlignToolbar();
+            } else if (!el.classList.contains('selected')) {
+                e.preventDefault();
+                e.stopPropagation();
+                document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
+                document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
+                el.classList.add('selected');
+                this.ui.isMultiSelectMode = false;
+                this.core.selectNode(el.dataset.nodeId);
+                const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+                if (clickedNode) this.renderPropertyPanel(clickedNode);
+                this.ui.align.updateAlignToolbar();
+            }
             return;
         }
 
@@ -100,7 +144,10 @@ export function mixinNodeDrag(node) {
         if (guidesEl) guidesEl.innerHTML = '';
 
         const nodeStartPositions = {};
-        const selectedNodeEls = Array.from(document.querySelectorAll('.canvas-node.selected'));
+        const selectedNodeEls = Array.from(document.querySelectorAll('.canvas-node.selected')).filter(nodeEl => {
+            const nodeData = this.core.nodes.find(n => n.id === nodeEl.dataset.nodeId);
+            return !nodeData || !nodeData.locked;
+        });
         selectedNodeEls.forEach(nodeEl => {
             nodeStartPositions[nodeEl.dataset.nodeId] = {
                 x: parseFloat(nodeEl.dataset.x) || 0,
@@ -571,7 +618,7 @@ export function mixinNodeDrag(node) {
                 svgContent += `<line x1="${x}" y1="0" x2="${x}" y2="${svgH}" stroke="#ff3366" stroke-width="1" />`;
             }
             for (const y of uniqueYLines) {
-                svgContent += `<line x1="0" y1="${y}" x2="${svgW}" y2="${svgH}" stroke="#ff3366" stroke-width="1" />`;
+                svgContent += `<line x1="0" y1="${y}" x2="${svgW}" y2="${y}" stroke="#ff3366" stroke-width="1" />`;
             }
 
             guidesEl.innerHTML = svgContent;

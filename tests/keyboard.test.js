@@ -1,4 +1,4 @@
-import { WorkflowKeyboard } from '../src/modules/workflow-keyboard.js';
+import { WorkflowKeyboard } from '../src/modules/editor-keyboard.js';
 
 function createMockUI() {
     const handlers = {};

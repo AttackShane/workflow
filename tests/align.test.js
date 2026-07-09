@@ -8,7 +8,7 @@ global.document = global.document || {
 };
 global.window = global.window || {};
 
-import { WorkflowAlign } from '../src/modules/workflow-align.js';
+import { WorkflowAlign } from '../src/modules/editor-align.js';
 
 function createMockNode(id, x, y, width, height) {
     const node = { id, x, y, width: width || 200, height: height || 100 };

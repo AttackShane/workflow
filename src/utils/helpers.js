@@ -10,6 +10,13 @@ export function getJsyaml() {
     return window['jsyaml'];
 }
 
+export function getJSZip() {
+    if (!window['JSZip']) {
+        throw new Error('JSZip 库未加载，请检查网络连接并刷新页面');
+    }
+    return window['JSZip'];
+}
+
 export const DOM = {
     /**
      * 获取 DOM 元素
@@ -372,17 +379,38 @@ export const ArrayUtils = {
 export const ClipboardUtils = {
     /**
      * 复制文本到剪贴板
+     * 当 Clipboard API 不可用时，降级为同步 execCommand
      * @param {string} text - 要复制的文本
      * @returns {Promise<boolean>} 是否复制成功
      */
     async copy(text) {
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch (error) {
+                Logger.error('Clipboard API copy error:', error);
+            }
+        }
+
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
         try {
-            await navigator.clipboard.writeText(text);
-            return true;
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            return successful;
         } catch (error) {
-        Logger.error('Clipboard copy error:', error);
-        return false;
-    }
+            Logger.error('document.execCommand copy error:', error);
+            document.body.removeChild(textarea);
+            return false;
+        }
     },
     
     /**
@@ -398,13 +426,12 @@ export const ClipboardUtils = {
             background: btn.style.background,
             borderColor: btn.style.borderColor
         } : null;
-        
-        try {
-            await navigator.clipboard.writeText(text);
+
+        const updateBtn = (success) => {
             if (btn) {
-                btn.textContent = successText;
-                btn.style.background = '#10B981';
-                btn.style.borderColor = '#10B981';
+                btn.textContent = success ? successText : errorText;
+                btn.style.background = success ? '#10B981' : '#EF4444';
+                btn.style.borderColor = success ? '#10B981' : '#EF4444';
             }
             setTimeout(() => {
                 if (btn && originalText) {
@@ -415,23 +442,11 @@ export const ClipboardUtils = {
                     }
                 }
             }, 2000);
-            return true;
-        } catch (error) {
-            Logger.error('Clipboard copy error:', error);
-            if (btn) {
-                btn.textContent = errorText;
-            }
-            setTimeout(() => {
-                if (btn && originalText) {
-                    btn.textContent = originalText;
-                    if (originalStyle) {
-                        btn.style.background = originalStyle.background;
-                        btn.style.borderColor = originalStyle.borderColor;
-                    }
-                }
-            }, 2000);
-            return false;
-        }
+        };
+
+        const result = await this.copy(text);
+        updateBtn(result);
+        return result;
     }
 };
 
@@ -464,3 +479,69 @@ export function extractSlateText(slate) {
         return '';
     }).join('\n');
 }
+
+/**
+ * 节点布局工具函数（与 canvas.calculateNodesBounds 共享逻辑）
+ */
+export const NodeUtils = {
+    /**
+     * 计算节点集合的边界框
+     * @param {Array<{id: string, x: number, y: number, width?: number, height?: number, parentId?: string}>} nodes
+     * @returns {{ minX: number, minY: number, maxX: number, maxY: number }}
+     */
+    getBounds(nodes) {
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        nodes.forEach(node => {
+            if (node.parentId) {
+                const parent = nodes.find(n => n.id === node.parentId);
+                if (!parent) return;
+                const absX = (parent.x || 0) + (node.x || 0);
+                const absY = (parent.y || 0) + 56 + (node.y || 0);
+                const width = node.width || 200;
+                const height = node.height || 100;
+
+                minX = Math.min(minX, absX);
+                minY = Math.min(minY, absY);
+                maxX = Math.max(maxX, absX + width);
+                maxY = Math.max(maxY, absY + height);
+            } else {
+                const x = node.x || 0;
+                const y = node.y || 0;
+                const width = node.width || 200;
+                const height = node.height || 100;
+
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x + width);
+                maxY = Math.max(maxY, y + height);
+            }
+        });
+
+        return { minX, minY, maxX, maxY };
+    },
+
+    /**
+     * 平移节点到画布可视区域（只平移顶层节点，子节点跟随父节点）
+     * @param {Array<{id: string, x: number, y: number, parentId?: string}>} nodes
+     * @param {number} [padding=100] - 画布边距
+     */
+    translateToCanvasOrigin(nodes, padding = 100) {
+        if (!nodes.length) return;
+
+        const { minX, minY } = this.getBounds(nodes);
+
+        if (!isFinite(minX) || !isFinite(minY)) return;
+
+        const offsetX = padding - minX;
+        const offsetY = padding - minY;
+
+        for (const node of nodes) {
+            if (!node.parentId) {
+                node.x += offsetX;
+                node.y += offsetY;
+            }
+        }
+    }
+};

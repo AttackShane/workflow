@@ -1,7 +1,7 @@
 import { StringUtils } from '../src/utils/helpers.js';
-import { convertClipboardToYaml } from '../src/modules/reverse.js';
-import { WorkflowCore } from '../src/modules/workflow-core.js';
-import { highlightJson, highlightYaml } from '../src/modules/highlighter.js';
+import { convertClipboardToYaml } from '../src/modules/converter-reverse.js';
+import { WorkflowCore } from '../src/modules/editor-core.js';
+import { highlightJson, highlightYaml } from '../src/modules/converter-highlighter.js';
 
 describe('StringUtils.escapeHtml', () => {
   it('should escape < > & " characters', () => {

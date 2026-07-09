@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html data-i18n-lang>
 <head>
+<script>
+(function(){try{var t=localStorage.getItem('workflow-converter-theme')||'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="manager.title">工作流管理</title>
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/workflow-manager.css">
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script type="module" src="/modules/app.js"></script>
 </head>
 <body>
@@ -19,6 +23,7 @@
                 <button id="btnNewWorkflow" class="btn btn-primary" data-i18n="manager.createNew">新建工作流</button>
                 <button id="btnTemplates" class="btn btn-accent" data-i18n="manager.templateLibrary">📚 模板库</button>
                 <button id="btnImport" class="btn btn-secondary" data-i18n="manager.importWorkflow">导入工作流</button>
+                <button id="themeBtn" class="btn">🌙 深色模式</button>
                 <button id="languageBtn" class="btn">US English</button>
                 <button id="navConverterBtn" class="btn btn-primary"><span data-i18n="converter.title">工作流转换器</span></button>
                 <button id="navEditorBtn" class="btn btn-secondary"><span data-i18n="editor.title">工作流编辑器</span></button>
@@ -27,6 +32,11 @@
 
         <div class="main-content">
             <div class="workflow-toolbar">
+                <select id="workflowSearchScope" class="search-scope-select">
+                    <option value="all" data-i18n="manager.searchScopeAll">全部</option>
+                    <option value="name" data-i18n="manager.searchScopeName">仅名称</option>
+                    <option value="description" data-i18n="manager.searchScopeDescription">仅描述</option>
+                </select>
                 <div class="search-box">
                     <input type="text" id="workflowSearch" placeholder="搜索工作流..." data-i18n-placeholder="manager.searchPlaceholder">
                     <span class="search-icon">🔍</span>
@@ -94,11 +104,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="importFile" data-i18n="manager.selectFile">选择文件</label>
-                        <input type="file" id="importFile" accept=".json">
-                    </div>
-                    <div class="form-group">
-                        <label for="importText" data-i18n="manager.orPasteJson">或粘贴JSON内容</label>
-                        <textarea id="importText" data-i18n-placeholder="manager.pasteJsonPlaceholder" placeholder="粘贴工作流JSON内容..."></textarea>
+                        <input type="file" id="importFile" accept=".zip">
                     </div>
                 </div>
                 <div class="modal-footer">

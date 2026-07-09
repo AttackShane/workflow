@@ -1,9 +1,12 @@
-import { Dialog } from './dialog.js';
-import { goToConverter, goToEditor } from './navigator.js';
-import { StringUtils, Storage, deepClone, getJsyaml } from '../utils/helpers.js';
+import { Dialog } from './shared-dialog.js';
+import { goToConverter, goToEditor } from './shared-navigator.js';
+import { StringUtils, Storage, deepClone, getJsyaml, getJSZip, NodeUtils } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
-import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from './templates.js';
+import { convertYamlToClipboard } from './converter.js';
+import { convertClipboardToInternal, convertInternalToClipboardNode } from './shared-serializer.js';
+import { convertClipboardToYaml } from './converter-reverse.js';
+import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from './manager-templates.js';
 
 export class WorkflowManager {
     constructor() {
@@ -27,7 +30,6 @@ export class WorkflowManager {
             importModalOverlay: null,
             importModalClose: null,
             importFile: null,
-            importText: null,
             btnImportCancel: null,
             btnImportConfirm: null,
             btnTemplates: null,
@@ -135,7 +137,6 @@ export class WorkflowManager {
         this.elements.importModalOverlay = document.getElementById('importModalOverlay');
         this.elements.importModalClose = document.getElementById('importModalClose');
         this.elements.importFile = document.getElementById('importFile');
-        this.elements.importText = document.getElementById('importText');
         this.elements.btnImportCancel = document.getElementById('btnImportCancel');
         this.elements.btnImportConfirm = document.getElementById('btnImportConfirm');
         this.elements.btnTemplates = document.getElementById('btnTemplates');
@@ -143,6 +144,7 @@ export class WorkflowManager {
         this.elements.templateModalClose = document.getElementById('templateModalClose');
         this.elements.templateGrid = document.getElementById('templateGrid');
         this.elements.workflowSearch = document.getElementById('workflowSearch');
+        this.elements.workflowSearchScope = document.getElementById('workflowSearchScope');
         this.elements.workflowSort = document.getElementById('workflowSort');
         this.elements.batchToolbar = document.getElementById('batchToolbar');
         this.elements.selectAllCheckbox = document.getElementById('selectAllCheckbox');
@@ -413,6 +415,9 @@ export class WorkflowManager {
         if (this.elements.workflowSearch) {
             this.elements.workflowSearch.addEventListener('input', () => this.renderWorkflowList());
         }
+        if (this.elements.workflowSearchScope) {
+            this.elements.workflowSearchScope.addEventListener('change', () => this.renderWorkflowList());
+        }
         if (this.elements.workflowSort) {
             this.elements.workflowSort.addEventListener('change', () => this.renderWorkflowList());
         }
@@ -532,25 +537,20 @@ export class WorkflowManager {
     }
 
     openImportModal() {
-        this.elements.importText.value = '';
         this.elements.importFile.value = '';
         this.elements.importModalOverlay.style.display = 'flex';
     }
 
     closeImportModal() {
         this.elements.importModalOverlay.style.display = 'none';
-        this.elements.importText.value = '';
         this.elements.importFile.value = '';
+        this._pendingZipFile = null;
     }
 
     handleFileSelect(event) {
         const file = event.target.files[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                this.elements.importText.value = e.target.result;
-            };
-            reader.readAsText(file);
+            this._pendingZipFile = file;
         }
     }
 
@@ -577,188 +577,76 @@ export class WorkflowManager {
         this.closeModal();
     }
 
-    normalizeImportedWorkflow(workflowData) {
-        const expandedNodes = [];
-        const expandedEdges = [];
-        const idMap = {};
+    async importFromZip(zipFile) {
+        const JSZip = getJSZip();
+        const zip = await JSZip.loadAsync(zipFile);
 
-        const processNode = (node, parentId = null) => {
-            if (!node.id) return;
+        const fileNames = Object.keys(zip.files).filter(f => !zip.files[f].dir);
 
-            const originalId = String(node.id);
-            const newId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            idMap[originalId] = newId;
+        let manifestYaml = null;
+        let workflowYamlStr = null;
 
-            const expandedNode = {
-                id: newId,
-                parentId: parentId,
-                type: node.type,
-                title: node.title || node.data?.nodeMeta?.title || '',
-                description: node.description || node.data?.nodeMeta?.description || '',
-                icon: node.icon || node.data?.nodeMeta?.icon || '',
-                x: (node.position?.x ?? node.x ?? 0) + (parentId ? 0 : 100),
-                y: (node.position?.y ?? node.y ?? 0) + (parentId ? 0 : 100),
-                width: node.width || 300,
-                height: node.height || 200,
-                parameters: node.parameters || {}
-            };
-
-            if (node.data?.inputs && typeof node.data.inputs === 'object') {
-                expandedNode.parameters = expandedNode.parameters || {};
-                Object.entries(node.data.inputs).forEach(([key, value]) => {
-                    if (key !== 'inputParameters' && key !== 'schemaType') {
-                        expandedNode.parameters[key] = value;
-                    }
-                });
-                if (Array.isArray(node.data.inputs.inputParameters)) {
-                    expandedNode.inputParams = node.data.inputs.inputParameters.map(p => ({
-                        name: p.name || '',
-                        type: p.type || p.input?.type || 'string',
-                        value: p.input?.value?.type === 'ref'
-                            ? { type: 'ref', content: p.input.value.content }
-                            : (p.input?.value?.content ?? p.defaultValue ?? ''),
-                        valueType: p.input?.value?.type || 'literal',
-                        rawMeta: p.input?.value?.rawMeta || null,
-                        schema: p.input?.schema || null,
-                        required: p.required === true,
-                        description: p.description || ''
-                    }));
-                }
+        for (const filename of fileNames) {
+            const basename = filename.split('/').pop();
+            if (basename === 'MANIFEST.yml' || basename === 'MANIFEST.yaml') {
+                const content = await zip.file(filename).async('string');
+                manifestYaml = /** @type {{ main?: { name?: string, desc?: string } } | null} */ (getJsyaml().load(content));
             }
-            if (node.data?.outputs && Array.isArray(node.data.outputs)) {
-                expandedNode.outputParams = node.data.outputs.map(o => {
-                    const isRef = o.input?.value?.type === 'ref';
-                    return {
-                        name: o.name || '',
-                        type: o.type || 'string',
-                        value: isRef
-                            ? { type: 'ref', content: o.input.value.content }
-                            : (o.defaultValue || ''),
-                        valueType: isRef ? 'ref' : 'literal',
-                        rawMeta: isRef ? (o.input.value.rawMeta || null) : null,
-                        required: o.required === true,
-                        description: o.description || ''
-                    };
-                });
-                const nodeOutputs = {};
-                node.data.outputs.forEach(output => {
-                    if (output.defaultValue !== undefined) {
-                        expandedNode.parameters[output.name] = output.defaultValue;
-                    }
-                    nodeOutputs[output.name] = {
-                        type: output.type || 'string',
-                        description: output.description || '',
-                        required: output.required || false
-                    };
-                    if (output.schema) nodeOutputs[output.name].properties = output.schema;
-                });
-                if (Object.keys(nodeOutputs).length > 0) {
-                    expandedNode.parameters.node_outputs = nodeOutputs;
-                }
-            }
+        }
 
-            expandedNodes.push(expandedNode);
-
-            if (node.edges && Array.isArray(node.edges)) {
-                node.edges.forEach(edge => {
-                    expandedEdges.push(edge);
-                });
+        for (const filename of fileNames) {
+            const basename = filename.split('/').pop();
+            if ((basename.endsWith('.yaml') || basename.endsWith('.yml')) && basename !== 'MANIFEST.yml' && basename !== 'MANIFEST.yaml') {
+                workflowYamlStr = await zip.file(filename).async('string');
+                break;
             }
+        }
 
-            if (node.blocks && Array.isArray(node.blocks)) {
-                node.blocks.forEach(block => {
-                    processNode(block, newId);
-                });
-            }
+        if (!workflowYamlStr) {
+            throw new Error('No workflow YAML found in zip package');
+        }
+
+        const parsedYaml = /** @type {{ id: any, name?: string, description?: string, nodes: any[], edges?: any[] }} */ (getJsyaml().load(workflowYamlStr));
+
+        if (!parsedYaml || !parsedYaml.nodes || !Array.isArray(parsedYaml.nodes)) {
+            throw new Error('Invalid workflow YAML in zip package');
+        }
+
+        const MAX_NAME_LENGTH = 20;
+        const rawName = manifestYaml?.main?.name || parsedYaml.name || t('manager.importedWorkflowName');
+        const name = rawName.length > MAX_NAME_LENGTH ? rawName.substring(0, MAX_NAME_LENGTH) + '...' : rawName;
+        const description = manifestYaml?.main?.desc || parsedYaml.description || '';
+
+        const clipData = convertYamlToClipboard(parsedYaml, workflowYamlStr);
+        const { nodes, edges } = convertClipboardToInternal(clipData);
+
+        NodeUtils.translateToCanvasOrigin(nodes);
+
+        return {
+            name,
+            description,
+            nodes,
+            edges
         };
-
-        workflowData.nodes.forEach(node => processNode(node));
-
-        (workflowData.edges || []).forEach(edge => expandedEdges.push(edge));
-
-        const convertedEdges = expandedEdges.map(edge => {
-            const sourceId = idMap[String(edge.sourceNodeID || edge.source_node || edge.source)];
-            const targetId = idMap[String(edge.targetNodeID || edge.target_node || edge.target)];
-            if (!sourceId || !targetId) return null;
-
-            let sourcePort = edge.sourcePortID || edge.source_port || edge.sourcePort;
-            let targetPort = edge.targetPortID || edge.target_port || edge.targetPort;
-
-            const portReverseMap = {
-                'loop-function-inline-output': 'container_start',
-                'loop-function-inline-input': 'container_end',
-                'batch-function-inline-output': 'container_start',
-                'batch-function-inline-input': 'container_end'
-            };
-            if (portReverseMap[sourcePort]) sourcePort = portReverseMap[sourcePort];
-            if (portReverseMap[targetPort]) targetPort = portReverseMap[targetPort];
-
-            return {
-                id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                source: sourceId,
-                target: targetId,
-                ...(sourcePort && { sourcePort }),
-                ...(targetPort && { targetPort })
-            };
-        }).filter(e => e !== null);
-
-        const remapBlockIds = (obj) => {
-            if (!obj || typeof obj !== 'object') return;
-            if (Array.isArray(obj)) {
-                obj.forEach(item => remapBlockIds(item));
-                return;
-            }
-            for (const key of Object.keys(obj)) {
-                if (key === 'blockID' && typeof obj[key] === 'string') {
-                    const newId = idMap[String(obj[key])];
-                    if (newId) obj[key] = newId;
-                } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                    remapBlockIds(obj[key]);
-                }
-            }
-        };
-
-        expandedNodes.forEach(node => {
-            remapBlockIds(node.parameters);
-            remapBlockIds(node.inputParams);
-            remapBlockIds(node.outputParams);
-        });
-
-        return { nodes: expandedNodes, edges: convertedEdges };
     }
 
     async importWorkflow() {
-        let workflowData = null;
+        let zipResult = null;
 
-        if (this.elements.importText.value.trim()) {
+        if (this._pendingZipFile) {
             try {
-                workflowData = JSON.parse(this.elements.importText.value);
+                zipResult = await this.importFromZip(this._pendingZipFile);
+                this._pendingZipFile = null;
             } catch (e) {
-                await Dialog.error(t('manager.jsonParseError'));
+                await Dialog.error(t('manager.fileReadError') + ': ' + (e.message || ''));
                 return;
             }
         } else if (this.elements.importFile.files[0]) {
             const file = this.elements.importFile.files[0];
-            const reader = new FileReader();
             try {
-                workflowData = await new Promise((resolve, reject) => {
-                    reader.onload = (e) => {
-                        try {
-                            const content = e.target.result;
-                            if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
-                                resolve(getJsyaml().load(/** @type {string} */ (content)));
-                            } else {
-                                resolve(JSON.parse(/** @type {string} */ (content)));
-                            }
-                        } catch (err) {
-                            reject(err);
-                        }
-                    };
-                    reader.onerror = () => reject(reader.error);
-                    reader.readAsText(file);
-                });
+                zipResult = await this.importFromZip(file);
             } catch (e) {
-                await Dialog.error(t('manager.fileReadError'));
+                await Dialog.error(t('manager.fileReadError') + ': ' + (e.message || ''));
                 return;
             }
         } else {
@@ -766,51 +654,24 @@ export class WorkflowManager {
             return;
         }
 
-        if (workflowData.graph && !workflowData.nodes) {
-            if (workflowData.graph.nodes) {
-                workflowData.nodes = workflowData.graph.nodes;
-            }
-            if (workflowData.graph.edges) {
-                workflowData.edges = workflowData.graph.edges;
-            }
-            if (workflowData.graph.name) {
-                workflowData.name = workflowData.name || workflowData.graph.name;
-            }
-            if (workflowData.graph.description) {
-                workflowData.description = workflowData.description || workflowData.graph.description;
-            }
-        }
+        if (zipResult) {
+            const newWorkflow = {
+                id: `wf_${Date.now()}`,
+                name: zipResult.name,
+                description: zipResult.description,
+                nodes: zipResult.nodes,
+                edges: zipResult.edges,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
 
-        if (!workflowData.nodes || !Array.isArray(workflowData.nodes)) {
-            await Dialog.error(t('manager.invalidData'));
+            this.workflows.push(newWorkflow);
+            this.saveWorkflows();
+            this.renderWorkflowList();
+            this.closeImportModal();
+            await Dialog.success(t('manager.importSuccess'));
             return;
         }
-
-        let nodes, edges;
-        if (workflowData.schema_version) {
-            const normalized = this.normalizeImportedWorkflow(workflowData);
-            nodes = normalized.nodes;
-            edges = normalized.edges;
-        } else {
-            nodes = deepClone(workflowData.nodes);
-            edges = deepClone(workflowData.edges || []);
-        }
-
-        const newWorkflow = {
-            id: `wf_${Date.now()}`,
-            name: workflowData.name || t('manager.importedWorkflowName'),
-            description: workflowData.description || '',
-            nodes: nodes,
-            edges: edges,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        };
-
-        this.workflows.push(newWorkflow);
-        this.saveWorkflows();
-        this.renderWorkflowList();
-        this.closeImportModal();
-        await Dialog.success(t('manager.importSuccess'));
     }
 
     async deleteWorkflow(id) {
@@ -925,42 +786,66 @@ export class WorkflowManager {
         await Dialog.success(t('manager.batchDeleteSuccess'));
     }
 
-    exportWorkflow(workflow) {
-        const exportData = {
-            schema_version: "1.0.0",
-            name: workflow.name || "my_workflow",
-            id: workflow.id || `workflow_${Date.now()}`,
-            description: workflow.description || "Created with workflow editor",
-            mode: "workflow",
-            icon: "plugin_icon/workflow.png",
-            nodes: (workflow.nodes || []).map(n => {
-                const node = {
-                    id: String(n.id).replace('node_', ''),
-                    type: n.type,
-                    title: n.title,
-                    description: n.description,
-                    position: { x: n.x, y: n.y },
-                    parameters: n.parameters
-                };
-                if (n.icon) node.icon = n.icon;
-                return node;
-            }),
-            edges: (workflow.edges || []).map(e => {
-                const edge = {
-                    source_node: String(e.source).replace('node_', ''),
-                    target_node: String(e.target).replace('node_', '')
-                };
-                if (e.sourcePort) edge.source_port = e.sourcePort;
-                return edge;
-            })
+    async exportWorkflow(workflow) {
+        const nodes = deepClone(workflow.nodes || []);
+        const edges = deepClone(workflow.edges || []);
+
+        const clipData = {
+            type: 'coze-workflow-clipboard-data',
+            source: { workflowId: workflow.id || String(Date.now()) },
+            json: {
+                name: workflow.name || 'my_workflow',
+                nodes: nodes
+                    .filter(n => !n.parentId)
+                    .map(n => convertInternalToClipboardNode(n, nodes)),
+                edges: edges.map(e => ({
+                    sourceNodeID: String(e.source).replace('node_', ''),
+                    targetNodeID: String(e.target).replace('node_', ''),
+                    sourcePortID: e.sourcePort || ''
+                }))
+            }
         };
-        
-        const yamlStr = getJsyaml().dump(exportData, { indent: 2, lineWidth: 120 });
-        const blob = new Blob([yamlStr], { type: 'application/x-yaml' });
+
+        const yamlObj = convertClipboardToYaml(clipData);
+        const workflowYaml = getJsyaml().dump(yamlObj, {
+            indent: 4,
+            lineWidth: 120,
+            schema: getJsyaml().JSON_SCHEMA
+        });
+
+        const safeName = (workflow.name || 'workflow').replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '_');
+
+        const manifest = {
+            type: 'Workflow',
+            version: '1.0.0',
+            main: {
+                id: workflow.id || String(Date.now()),
+                name: workflow.name || 'my_workflow',
+                desc: workflow.description || 'Created with workflow editor',
+                icon: 'plugin_icon/workflow.png',
+                version: '',
+                flowMode: 0,
+                commitId: ''
+            },
+            sub: []
+        };
+        const manifestYaml = getJsyaml().dump(manifest, {
+            indent: 4,
+            lineWidth: 120,
+            schema: getJsyaml().JSON_SCHEMA
+        });
+
+        const JSZip = getJSZip();
+        const zip = new JSZip();
+        const root = zip.folder(safeName);
+        root.file('MANIFEST.yml', manifestYaml);
+        root.folder('workflow').file(`${safeName}.yaml`, workflowYaml);
+
+        const blob = await zip.generateAsync({ type: 'blob' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${workflow.name}.yaml`;
+        a.download = `${safeName}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -982,13 +867,20 @@ export class WorkflowManager {
 
         // 搜索过滤
         const searchTerm = this.elements.workflowSearch?.value?.trim().toLowerCase() || '';
+        const searchScope = this.elements.workflowSearchScope?.value || 'all';
         let filtered = this.workflows;
         if (searchTerm) {
+            const noDescText = t('manager.noDescription').toLowerCase();
             filtered = this.workflows.filter(w => {
                 const name = (w.name || '').toLowerCase();
                 const desc = (w.description || '').toLowerCase();
                 const id = (w.id || '').toLowerCase();
-                return name.includes(searchTerm) || desc.includes(searchTerm) || id.includes(searchTerm);
+                const matchName = name.includes(searchTerm);
+                const matchDesc = desc.includes(searchTerm) || (!desc && noDescText.includes(searchTerm));
+                const matchId = id.includes(searchTerm);
+                if (searchScope === 'name') return matchName;
+                if (searchScope === 'description') return matchDesc;
+                return matchName || matchDesc || matchId;
             });
         }
 

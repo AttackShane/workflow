@@ -5,12 +5,12 @@
  */
 import { StringUtils } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
-import { mixinContainerRender } from './workflow-container-render.js';
-import { mixinNodeDrag } from './workflow-node-drag.js';
+import { mixinContainerRender } from './editor-container-render.js';
+import { mixinNodeDrag } from './editor-node-drag.js';
 
 /**
  * 节点渲染相关的 mixin 方法
- * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
+ * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodeRender(node) {
     if (!node._elMap) {

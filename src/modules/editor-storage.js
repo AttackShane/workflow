@@ -7,7 +7,7 @@ import { Storage } from '../utils/helpers.js';
 
 /**
  * 存储相关的 mixin 方法
- * @param {import('./workflow-core.js').WorkflowCore} core - WorkflowCore 实例
+ * @param {import('./editor-core.js').WorkflowCore} core - WorkflowCore 实例
  */
 export function mixinStorage(core) {
     /**

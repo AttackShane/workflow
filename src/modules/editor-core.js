@@ -2,15 +2,15 @@
  * 工作流核心模块
  * 
  * 负责管理工作流的节点、边、历史记录和验证逻辑
- * 节点类型定义由 workflow-node-types.js 提供
+ * 节点类型定义由 editor-node-types.js 提供
  */
 import { TYPE_MAP, REV_TYPE_MAP, resolveNodeType } from '../utils/types.js';
 import { t } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
 import { deepClone } from '../utils/helpers.js';
-import { mixinStorage } from './workflow-storage.js';
-import { mixinSerializer } from './workflow-serializer.js';
-import { getNodeTypeInfo } from './workflow-node-types.js';
+import { mixinStorage } from './editor-storage.js';
+import { mixinSerializer } from './shared-serializer.js';
+import { getNodeTypeInfo } from './editor-node-types.js';
 
 export class WorkflowCore {
     /**

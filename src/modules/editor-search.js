@@ -40,7 +40,7 @@ export { invalidateTypeNameMapCache };
 
 /**
  * 搜索相关的 mixin 方法
- * @param {import('./workflow-ui.js').WorkflowUI} ui - WorkflowUI 实例
+ * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
  */
 export function mixinSearch(ui) {
     /**
@@ -48,18 +48,25 @@ export function mixinSearch(ui) {
      */
     ui.setupSearchHandler = function() {
         const searchInput = DOM.get('nodeSearchInput');
+        const searchScope = DOM.get('nodeSearchScope');
         const _searchCount = DOM.get('nodeSearchCount');
         if (!searchInput) return;
 
-        DOM.on(searchInput, 'input', () => {
+        const triggerSearch = () => {
             const term = searchInput.value.trim().toLowerCase();
-            this.performSearch(term);
-        });
+            this.performSearch(term, searchScope?.value || 'all');
+        };
+
+        DOM.on(searchInput, 'input', triggerSearch);
+
+        if (searchScope) {
+            DOM.on(searchScope, 'change', triggerSearch);
+        }
 
         DOM.on(searchInput, 'keydown', (e) => {
             if (e.key === 'Escape') {
                 searchInput.value = '';
-                this.performSearch('');
+                this.performSearch('', 'all');
                 searchInput.blur();
             }
         });
@@ -68,8 +75,9 @@ export function mixinSearch(ui) {
     /**
      * 执行节点搜索筛选
      * @param {string} term - 搜索关键词
+     * @param {string} scope - 搜索范围: 'all' | 'name' | 'description'
      */
-    ui.performSearch = function(term) {
+    ui.performSearch = function(term, scope = 'all') {
         const searchCount = DOM.get('nodeSearchCount');
         const nodeEls = document.querySelectorAll('.canvas-node');
         const edgeEls = document.querySelectorAll('[data-edge-id]');
@@ -92,6 +100,7 @@ export function mixinSearch(ui) {
         }
 
         const typeNameMap = getTypeNameMap();
+        const noDescText = t('editor.noDescription').toLowerCase();
 
         const nodeElMap = new Map();
         const matchedNodeIds = new Set();
@@ -99,11 +108,22 @@ export function mixinSearch(ui) {
 
         function checkNode(node) {
             const name = (node.title || '').toLowerCase();
+            const desc = (node.description || '').toLowerCase();
             const type = (node.type || '').toLowerCase();
             const typeName = (typeNameMap[type] || type).toLowerCase();
             const id = (node.id || '').toLowerCase();
 
-            const matches = name.includes(term) || type.includes(term) || typeName.includes(term) || id.includes(term);
+            const matchName = name.includes(term) || type.includes(term) || typeName.includes(term) || id.includes(term);
+            const matchDesc = desc.includes(term) || (!desc && noDescText.includes(term));
+
+            let matches;
+            if (scope === 'name') {
+                matches = matchName;
+            } else if (scope === 'description') {
+                matches = matchDesc;
+            } else {
+                matches = matchName || matchDesc;
+            }
 
             if (matches) {
                 matchedNodeIds.add(node.id);

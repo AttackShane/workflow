@@ -1,7 +1,7 @@
 /**
  * 工作流模板库测试
  */
-import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from '../src/modules/templates.js';
+import { WORKFLOW_TEMPLATES, resolveTemplateI18n } from '../src/modules/manager-templates.js';
 
 describe('Workflow Templates', () => {
     describe('template structure', () => {

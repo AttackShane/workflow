@@ -7,8 +7,8 @@
 
 /**
  * 自动优化布局
- * @param {import('./workflow-core').WorkflowCore} core - 工作流核心实例
- * @param {import('./workflow-canvas').WorkflowCanvas} canvas - 画布实例
+ * @param {import('./editor-core').WorkflowCore} core - 工作流核心实例
+* @param {import('./editor-canvas').WorkflowCanvas} canvas - 画布实例
  */
 export function autoOptimizeLayout(core, canvas) {
     if (!core || !core.nodes || core.nodes.length === 0) {

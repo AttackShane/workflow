@@ -6,9 +6,13 @@
 import { t } from '../i18n/i18n.js';
 import { deepClone, extractSlateText } from '../utils/helpers.js';
 
+function getDefaultSize(type) {
+    return { width: 200, height: 100 };
+}
+
 /**
  * 粘贴相关的 mixin 方法
- * @param {import('./workflow-clipboard.js').WorkflowClipboard} clipboard - WorkflowClipboard 实例
+ * @param {import('./editor-clipboard.js').WorkflowClipboard} clipboard - WorkflowClipboard 实例
  */
 export function mixinClipboardPaste(clipboard) {
     clipboard.pasteFromCozeFormat = function(data) {
@@ -241,8 +245,7 @@ export function mixinClipboardPaste(clipboard) {
                         description: o.description || ''
                     };
                 }),
-                width: 200,
-                height: 100
+                ...getDefaultSize(type)
             };
 
             return newNode;

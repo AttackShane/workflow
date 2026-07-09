@@ -4,7 +4,7 @@
  */
 
 import { i18n, setLanguage, getLanguage, SUPPORTED_LANGUAGES } from '../i18n/i18n.js';
-import { updateThemeButtonText } from './theme-controller.js';
+import { updateThemeButtonText } from './shared-theme.js';
 
 /**
  * 国际化控制器类

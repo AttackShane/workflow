@@ -6,7 +6,7 @@ import { DOM } from '../utils/helpers.js';
  */
 export class WorkflowAlign {
     /**
-     * @param {import('./workflow-ui.js').WorkflowUI} ui
+     * @param {import('./editor-ui.js').WorkflowUI} ui
      */
     constructor(ui) {
         this.ui = ui;

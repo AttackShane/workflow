@@ -46,18 +46,18 @@ function scanDependencies(entryFile) {
 const converterModules = scanDependencies('modules/app.js');
 
 const EDITOR_EXCLUDE = new Set([
-  'converter.js', 'reverse.js', 'highlighter.js', 'highlighter-worker.js',
-  'stats-view.js', 'stats-renderer.js', 'ui-controller.js',
-  'converter-keyboard.js', 'graph-view.js', 'virtual-scroll.js', 'converter-history.js',
+  'converter.js', 'converter-reverse.js', 'converter-highlighter.js', 'converter-highlighter-worker.js',
+  'converter-stats.js', 'converter-stats-renderer.js', 'converter-ui.js',
+  'converter-keyboard.js', 'shared-graph.js', 'converter-virtual-scroll.js', 'converter-history.js',
 ]);
 
 const editorModules = Array.from(new Set([
   ...scanDependencies('modules/app.js').filter(m => !EDITOR_EXCLUDE.has(path.basename(m))),
-  ...scanDependencies('modules/workflow-ui.js'),
-  ...scanDependencies('modules/workflow-core.js'),
+  ...scanDependencies('modules/editor-ui.js'),
+  ...scanDependencies('modules/editor-core.js'),
 ]));
 
-const managerModules = scanDependencies('modules/workflow-manager.js');
+const managerModules = scanDependencies('modules/manager.js');
 
 function stripMultilineImports(code) {
   const lines = code.split('\n');
@@ -89,17 +89,17 @@ function stripMultilineImports(code) {
 }
 
 function processDynamicImports(code) {
-  code = code.replace(/import\('\.\/ui-controller\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
+  code = code.replace(/import\('\.\/converter-ui\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
   code = code.replace(/import\('\.\/converter-keyboard\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
-  code = code.replace(/import\('\.\/stats-view\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
-  code = code.replace(/import\('\.\/graph-view\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
+  code = code.replace(/import\('\.\/converter-stats\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
+  code = code.replace(/import\('\.\/shared-graph\.js'\)\.then\(m => m\.(\w+)\(\)\)/g, '$1()');
 
-  code = code.replace(/import\('\.\/virtual-scroll\.js'\)\.then\(m => \{ VirtualScroll = m\.VirtualScroll; \}\)/g, '');
+  code = code.replace(/import\('\.\/converter-virtual-scroll\.js'\)\.then\(m => \{ VirtualScroll = m\.VirtualScroll; \}\)/g, '');
 
   code = code.replace(/^\s*(let|const|var)\s+VirtualScroll\s*=\s*null\s*;?\s*$/gm, '');
 
-  code = code.replace(/(?:const|var|let)\s*\{\s*(\w+(?:\s*,\s*\w+)*)\s*\}\s*=\s*await\s+import\(['"]\.\/ui-controller\.js['"]\);?/g, '');
-  code = code.replace(/(?:const|var|let)\s*\{\s*(\w+(?:\s*,\s*\w+)*)\s*\}\s*=\s*await\s+import\(['"]\.\/stats-view\.js['"]\);?/g, '');
+  code = code.replace(/(?:const|var|let)\s*\{\s*(\w+(?:\s*,\s*\w+)*)\s*\}\s*=\s*await\s+import\(['"]\.\/converter-ui\.js['"]\);?/g, '');
+  code = code.replace(/(?:const|var|let)\s*\{\s*(\w+(?:\s*,\s*\w+)*)\s*\}\s*=\s*await\s+import\(['"]\.\/converter-stats\.js['"]\);?/g, '');
   code = code.replace(/(?:const|var|let)\s*\{\s*t\s*\}\s*=\s*await\s+import\(['"]\.\.\/i18n\/i18n\.js['"]\);?/g, '');
 
   const lines = code.split('\n');
@@ -109,7 +109,7 @@ function processDynamicImports(code) {
   while (i < lines.length) {
     const line = lines[i];
 
-    const importMatch = line.match(/import\(['"]\.\/(ui-controller|stats-view|graph-view|converter-keyboard)\.js['"]\)\.then\(\(\{ [^}]+\}\) => \{/);
+    const importMatch = line.match(/import\(['"]\.\/(converter-ui|converter-stats|shared-graph|converter-keyboard)\.js['"]\)\.then\(\(\{ [^}]+\}\) => \{/);
     const jsYamlMatch = line.match(/import\(['"]js-yaml['"]\)\.then\(\(\{ load \}\) => \{/);
 
     if (importMatch || jsYamlMatch) {

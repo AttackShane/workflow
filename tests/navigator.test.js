@@ -52,7 +52,7 @@ describe('Navigator', () => {
 
         global.i18n = undefined;
 
-        navigatorExports = require('../src/modules/navigator.js');
+        navigatorExports = require('../src/modules/shared-navigator.js');
     });
 
     afterEach(() => {

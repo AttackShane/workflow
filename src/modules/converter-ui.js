@@ -1,9 +1,9 @@
 import { convertYamlToClipboard } from './converter.js';
-import { convertClipboardToYaml } from './reverse.js';
-import { showStats, saveToHistory } from './stats-view.js';
-import { goToEditor, goToManager, initNavigator } from './navigator.js';
+import { convertClipboardToYaml } from './converter-reverse.js';
+import { showStats, saveToHistory } from './converter-stats.js';
+import { goToEditor, goToManager, initNavigator } from './shared-navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
-import { DOM, ClipboardUtils, getJsyaml } from '../utils/helpers.js';
+import { DOM, ClipboardUtils, getJsyaml, Storage } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
 import { Logger } from '../utils/logger.js';
 import { t } from '../i18n/i18n.js';
@@ -43,7 +43,7 @@ class UIController {
             renderTime: 0
         };
 
-        import('./virtual-scroll.js').then(m => { this._VirtualScroll = m.VirtualScroll; });
+        import('./converter-virtual-scroll.js').then(m => { this._VirtualScroll = m.VirtualScroll; });
 
         window.addEventListener('beforeunload', () => this._terminateWorker());
     }
@@ -204,6 +204,9 @@ class UIController {
     };
 
     displayOutput = (data, type, saveToHistoryFlag = true) => {
+        if (typeof type === 'boolean') {
+            type = type ? 'json' : 'yaml';
+        }
         this._curData = data;
         this._curDataType = type;
 
@@ -256,9 +259,20 @@ class UIController {
     }
 
     copyOutput = async () => {
-        if (!this._curData) return;
+        const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
+        let dataToCopy = this._curData;
 
-        if (await ClipboardUtils.copy(this._curData)) {
+        if (selectedId !== null && selectedId !== undefined) {
+            const history = Storage.get(APP_CONFIG.HISTORY.KEY, []);
+            const entry = history.find(h => String(h.id) === String(selectedId));
+            if (entry && entry.data) {
+                dataToCopy = entry.data;
+            }
+        }
+
+        if (!dataToCopy) return;
+
+        if (await ClipboardUtils.copy(dataToCopy)) {
             this.msg(t('converter.copySuccess'));
         } else {
             this.msg(t('converter.copyError'), true);
@@ -266,19 +280,36 @@ class UIController {
     };
 
     downloadOutput = () => {
-        if (!this._curData || !this._curDataType) return;
+        const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
+        let dataToDownload = this._curData;
+        let dataType = this._curDataType;
 
-        const blob = new Blob([this._curData], { type: 'text/plain' });
+        if (selectedId !== null && selectedId !== undefined) {
+            const history = Storage.get(APP_CONFIG.HISTORY.KEY, []);
+            const entry = history.find(h => String(h.id) === String(selectedId));
+            if (entry && entry.data) {
+                dataToDownload = entry.data;
+                dataType = entry.isJson ? 'json' : 'yaml';
+            }
+        }
+
+        if (!dataToDownload || !dataType) return;
+
+        const blob = new Blob([dataToDownload], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = DOM.create('a', {
-            href: url,
-            download: `output.${this._curDataType}`
+            attributes: {
+                href: url,
+                download: `output.${dataType}`
+            }
         });
 
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
 
         this.msg(t('converter.downloadSuccess'));
     };

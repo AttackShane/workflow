@@ -1,4 +1,4 @@
-import { WorkflowCanvas } from '../src/modules/workflow-canvas.js';
+import { WorkflowCanvas } from '../src/modules/editor-canvas.js';
 import { DOM } from '../src/utils/helpers.js';
 
 jest.mock('../src/utils/helpers.js', () => ({
@@ -11,6 +11,54 @@ jest.mock('../src/utils/helpers.js', () => ({
         addClass: jest.fn(),
         removeClass: jest.fn(),
         create: jest.fn(() => ({ style: {}, appendChild: jest.fn() }))
+    },
+    NodeUtils: {
+        getBounds: jest.fn((nodes) => {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodes.forEach(node => {
+                const x = node.x || 0;
+                const y = node.y || 0;
+                const w = node.width || 200;
+                const h = node.height || 100;
+                if (node.parentId) {
+                    const parent = nodes.find(n => n.id === node.parentId);
+                    if (parent) {
+                        const absX = (parent.x || 0) + x;
+                        const absY = (parent.y || 0) + 56 + y;
+                        minX = Math.min(minX, absX);
+                        minY = Math.min(minY, absY);
+                        maxX = Math.max(maxX, absX + w);
+                        maxY = Math.max(maxY, absY + h);
+                    }
+                } else {
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x + w);
+                    maxY = Math.max(maxY, y + h);
+                }
+            });
+            return { minX, minY, maxX, maxY };
+        }),
+        translateToCanvasOrigin: jest.fn((nodes, padding = 100) => {
+            if (!nodes.length) return;
+            let minX = Infinity, minY = Infinity;
+            nodes.forEach(node => {
+                if (!node.parentId) {
+                    minX = Math.min(minX, node.x || 0);
+                    minY = Math.min(minY, node.y || 0);
+                }
+            });
+            if (isFinite(minX) && isFinite(minY)) {
+                const offsetX = padding - minX;
+                const offsetY = padding - minY;
+                nodes.forEach(node => {
+                    if (!node.parentId) {
+                        if (node.x !== undefined) node.x += offsetX;
+                        if (node.y !== undefined) node.y += offsetY;
+                    }
+                });
+            }
+        })
     }
 }));
 

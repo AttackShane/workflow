@@ -5,11 +5,11 @@
  */
 import { StringUtils } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
-import { mixinParamEditor } from './workflow-param-editor.js';
+import { mixinParamEditor } from './editor-param-editor.js';
 
 /**
  * 属性面板相关的 mixin 方法
- * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
+ * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodePanel(node) {
 

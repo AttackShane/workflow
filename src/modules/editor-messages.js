@@ -7,7 +7,7 @@ import { DOM } from '../utils/helpers.js';
 
 /**
  * 消息相关的 mixin 方法
- * @param {import('./workflow-ui.js').WorkflowUI} ui - WorkflowUI 实例
+ * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
  */
 export function mixinMessages(ui) {
     /**

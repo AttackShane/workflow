@@ -1,5 +1,5 @@
-import { msg } from './ui-controller.js';
-import { Dialog } from './dialog.js';
+import { msg } from './converter-ui.js';
+import { Dialog } from './shared-dialog.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, Storage, StringUtils } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
@@ -12,7 +12,7 @@ import {
     importHistory as importData,
     clearHistory as clearData
 } from './converter-history.js';
-import { renderStats, renderStatsDetail } from './stats-renderer.js';
+import { renderStats, renderStatsDetail } from './converter-stats-renderer.js';
 
 class StatsView {
     constructor() {
@@ -59,8 +59,8 @@ class StatsView {
                     </div>
                 </div>
                 <div class="history-actions">
-                    <button class="edit-btn" title="编辑名称">✏️</button>
-                    <button class="delete-btn" title="删除">🗑️</button>
+                    <button class="edit-btn" title="${t('common.edit')}">✏️</button>
+                    <button class="delete-btn" title="${t('common.delete')}">🗑️</button>
                 </div>
             </div>
         `).join(''));
@@ -140,14 +140,18 @@ class StatsView {
         const blob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = DOM.create('a', {
-            href: url,
-            download: `workflow-history-${new Date().toISOString().split('T')[0]}.json`
+            attributes: {
+                href: url,
+                download: `workflow-history-${new Date().toISOString().split('T')[0]}.json`
+            }
         });
 
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 100);
     };
 
     importHistory = (event) => {
@@ -204,7 +208,7 @@ class StatsView {
         const history = this._getHistory();
         const entry = history.find(h => h.id === id);
         if (entry) {
-            import('./ui-controller.js').then(({ displayOutput }) => {
+            import('./converter-ui.js').then(({ displayOutput }) => {
                 displayOutput(entry.data, entry.isJson, false);
 
                 const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
@@ -274,8 +278,10 @@ class StatsView {
         const historySearchInput = DOM.get(SELECTORS.CONVERTER.HISTORY_SEARCH);
 
         const importFileInput = DOM.create('input', {
-            type: 'file',
-            accept: '.json',
+            attributes: {
+                type: 'file',
+                accept: '.json'
+            },
             style: { display: 'none' }
         });
         DOM.on(importFileInput, 'change', this.importHistory);
@@ -312,7 +318,7 @@ class StatsView {
             const history = this._getHistory();
             const entry = history.find(h => String(h.id) === String(selectedId));
             if (entry) {
-                import('./ui-controller.js').then(({ displayOutput }) => {
+                import('./converter-ui.js').then(({ displayOutput }) => {
                     displayOutput(entry.data, entry.isJson, false);
                 });
             }

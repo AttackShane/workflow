@@ -1,23 +1,22 @@
 // @ts-nocheck
-import { WorkflowCanvas } from './workflow-canvas.js';
-import { WorkflowNode } from './workflow-node.js';
-import { WorkflowEdge } from './workflow-edge.js';
-import { WorkflowHistory } from './workflow-history.js';
-import { WorkflowClipboard } from './workflow-clipboard.js';
-import { WorkflowAlign } from './workflow-align.js';
-import { WorkflowKeyboard } from './workflow-keyboard.js';
-import { WorkflowSelection } from './workflow-selection.js';
+import { WorkflowCanvas } from './editor-canvas.js';
+import { WorkflowNode } from './editor-node.js';
+import { WorkflowEdge } from './editor-edge.js';
+import { WorkflowHistory } from './editor-history.js';
+import { WorkflowClipboard } from './editor-clipboard.js';
+import { WorkflowAlign } from './editor-align.js';
+import { WorkflowKeyboard } from './editor-keyboard.js';
+import { WorkflowSelection } from './editor-selection.js';
 import { Logger } from '../utils/logger.js';
-import { Dialog } from './dialog.js';
-import { goToManager } from './navigator.js';
+import { Dialog } from './shared-dialog.js';
+import { goToManager } from './shared-navigator.js';
 import { SELECTORS } from '../config/constants.js';
 import { DOM, deepClone } from '../utils/helpers.js';
-import { base64ToUtf8 } from '../utils/utils.js';
 import { t, i18n } from '../i18n/i18n.js';
-import { mixinMessages } from './workflow-messages.js';
-import { mixinSearch, invalidateTypeNameMapCache } from './workflow-search.js';
-import { mixinAutoSave } from './workflow-autosave.js';
-import { mixinShare } from './workflow-share.js';
+import { mixinMessages } from './editor-messages.js';
+import { mixinSearch, invalidateTypeNameMapCache } from './editor-search.js';
+import { mixinAutoSave } from './editor-autosave.js';
+import { mixinShare } from './editor-share.js';
 
 export class WorkflowUI {
     constructor(core) {
@@ -515,26 +514,6 @@ export class WorkflowUI {
         } else {
             this.showMessage(t('editor.validateError') + '：<br>' + result.message.replace(/\n/g, '<br>'), 'error');
         }
-    }
-    
-    /**
-     * 从分享链接加载工作流
-     * @param {string} encoded - Base64编码的工作流数据
-     * @returns {boolean} 是否加载成功
-     */
-    static loadFromShareLink(encoded) {
-        try {
-            const json = base64ToUtf8(encoded);
-            const workflow = JSON.parse(json);
-            if (workflow.nodes && Array.isArray(workflow.nodes)) {
-                sessionStorage.setItem('editingWorkflow', JSON.stringify(workflow));
-                sessionStorage.setItem('editingWorkflowId', workflow.id || '');
-                return true;
-            }
-        } catch (e) {
-            Logger.error('分享链接解析失败:', e);
-        }
-        return false;
     }
     
     /**

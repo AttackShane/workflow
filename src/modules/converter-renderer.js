@@ -2,7 +2,7 @@
  * 转换器渲染模块
  * 负责转换结果的语法高亮渲染、虚拟滚动、异步渲染
  */
-import { highlightJson, highlightYaml } from './highlighter.js';
+import { highlightJson, highlightYaml } from './converter-highlighter.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, StringUtils } from '../utils/helpers.js';
 import { Logger } from '../utils/logger.js';
@@ -74,7 +74,7 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     const currentTaskId = ++ctrl._workerTaskId;
 
     if (!ctrl._worker) {
-        ctrl._worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
+        ctrl._worker = new Worker('./modules/converter-highlighter-worker.js', { type: 'module' });
     }
 
     ctrl._isHighlighting = true;
@@ -85,6 +85,7 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     ctrl._worker.addEventListener('message', function handler(e) {
         if (e.data.id === currentTaskId) {
             ctrl._worker.removeEventListener('message', handler);
+            ctrl._worker.onerror = null;
             ctrl._isHighlighting = false;
             const result = e.data.result;
             const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
@@ -93,6 +94,18 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
             ctrl._virtualScroll.scrollToTop();
         }
     });
+
+    ctrl._worker.onerror = function errorHandler(error) {
+        if (error.message) {
+            Logger.error('Worker error:', error);
+        }
+        ctrl._isHighlighting = false;
+        const highlighted = type === 'json' ? highlightJson(data) : highlightYaml(data);
+        const safe = isHighlightHtmlSafe(highlighted) ? highlighted : StringUtils.escapeHtml(data);
+        addToCache(ctrl._highlightCache, contentKey, safe);
+        ctrl._virtualScroll.setContent(safe, originalLineCount);
+        ctrl._virtualScroll.scrollToTop();
+    };
 }
 
 export function renderSync(ctrl, data, type, contentKey) {
@@ -128,23 +141,28 @@ export async function renderAsync(ctrl, data, type, contentKey) {
 
     try {
         if (!ctrl._worker) {
-            ctrl._worker = new Worker('./modules/highlighter-worker.js', { type: 'module' });
+            ctrl._worker = new Worker('./modules/converter-highlighter-worker.js', { type: 'module' });
         }
 
         ctrl._worker.postMessage({ id: currentTaskId, text: data, type });
 
-        await new Promise((resolve) => {
+        await new Promise((resolve, reject) => {
             const handler = (e) => {
                 if (e.data.id === currentTaskId) {
+                    ctrl._worker.removeEventListener('message', handler);
+                    ctrl._worker.onerror = null;
                     const result = e.data.result;
                     const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
                     addToCache(ctrl._highlightCache, contentKey, safe);
                     outputArea.innerHTML = safe;
-                    ctrl._worker.removeEventListener('message', handler);
                     resolve();
                 }
             };
             ctrl._worker.addEventListener('message', handler);
+            ctrl._worker.onerror = (error) => {
+                ctrl._worker.removeEventListener('message', handler);
+                reject(new Error(error.message || 'Worker error'));
+            };
         });
     } catch (error) {
         Logger.error('Worker error:', error);

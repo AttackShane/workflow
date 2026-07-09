@@ -14,8 +14,20 @@ global.localStorage = {
 
 // Mock document for DOM tests
 global.document = {
+    _bodyChildren: [],
+    get body() { return this._body; },
+    set body(v) { this._body = v; },
     getElementById: function(id) {
         if (!this._elements) this._elements = {};
+        if (!this._body) {
+            this._body = {
+                appendChild: (el) => { this._bodyChildren.push(el); },
+                removeChild: (el) => {
+                    const idx = this._bodyChildren.indexOf(el);
+                    if (idx >= 0) this._bodyChildren.splice(idx, 1);
+                }
+            };
+        }
         return this._elements[id] || null;
     },
     createElement: function(tag) {
@@ -51,7 +63,9 @@ global.document = {
             },
             removeEventListener: function(event, handler) {
                 if (this._events) delete this._events[event];
-            }
+            },
+            select: function() {},
+            focus: function() {}
         };
     },
     createElementNS: function(ns, tag) {
@@ -60,7 +74,8 @@ global.document = {
             setAttribute: function(name, value) { this._attrs = this._attrs || {}; this._attrs[name] = value; },
             getAttribute: function(name) { return this._attrs ? this._attrs[name] : null; }
         };
-    }
+    },
+    execCommand: function(cmd) { return cmd === 'copy'; }
 };
 
 // Mock navigator for ClipboardUtils
@@ -496,11 +511,11 @@ describe('ClipboardUtils', () => {
             expect(result).toBe(true);
         });
 
-        it('should handle copy failure gracefully', async () => {
+        it('should fallback to document.execCommand when clipboard API fails', async () => {
             const originalWriteText = navigator.clipboard.writeText;
             navigator.clipboard.writeText = async () => { throw new Error('denied'); };
             const result = await ClipboardUtils.copy('test');
-            expect(result).toBe(false);
+            expect(result).toBe(true);
             navigator.clipboard.writeText = originalWriteText;
         });
     });
@@ -522,9 +537,11 @@ describe('ClipboardUtils', () => {
             expect(result).toBe(true);
         });
 
-        it('should show error feedback on copy failure', async () => {
+        it('should show error feedback on complete copy failure', async () => {
             const originalWriteText = navigator.clipboard.writeText;
             navigator.clipboard.writeText = async () => { throw new Error('denied'); };
+            const originalExecCommand = document.execCommand;
+            document.execCommand = () => false;
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
             const btn = document.createElement('button');
@@ -537,6 +554,7 @@ describe('ClipboardUtils', () => {
             expect(btn.textContent).toBe('FAIL');
 
             navigator.clipboard.writeText = originalWriteText;
+            document.execCommand = originalExecCommand;
             consoleSpy.mockRestore();
         });
 

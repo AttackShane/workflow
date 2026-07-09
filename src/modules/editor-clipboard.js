@@ -2,7 +2,7 @@
 import { TYPE_MAP, getMainColor, getSubTitle, resolveNodeType } from "../utils/types.js";
 import { ClipboardUtils, deepClone, extractSlateText } from "../utils/helpers.js";
 import { t } from "../i18n/i18n.js";
-import { mixinClipboardPaste } from './workflow-clipboard-paste.js';
+import { mixinClipboardPaste } from './editor-clipboard-paste.js';
 
 export class WorkflowClipboard {
     constructor(ui) {
@@ -635,9 +635,8 @@ export class WorkflowClipboard {
         };
         stripNodePrefix(copyData.json);
         
-        if (!await ClipboardUtils.copy(JSON.stringify(copyData, null, 2))) {
-            this.copiedNode = copyData;
-        }
+        this.copiedNode = copyData;
+        await ClipboardUtils.copy(JSON.stringify(copyData, null, 2));
     }
 
     _convertPortToCoze(port, node) {

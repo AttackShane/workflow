@@ -8,7 +8,7 @@ import { t } from '../i18n/i18n.js';
 
 /**
  * 变量选择器相关的 mixin 方法
- * @param {import('./workflow-node.js').WorkflowNode} node - WorkflowNode 实例
+ * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
  */
 export function mixinNodeSelector(node) {
     node.openInputParamRefSelector = function(prefix, index) {
