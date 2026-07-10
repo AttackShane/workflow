@@ -1,10 +1,10 @@
-# Changelog
+﻿# Changelog
 
 ## v1.4.4 - 2026-07-08
 
 ### Bug 修复
 
-- **workflow-align.js distribute 方法重复保存历史**：`distribute` 每次调用都会触发历史保存，修复为仅在操作完成时保存一次
+- **editor-align.js distribute 方法重复保存历史**：`distribute` 每次调用都会触发历史保存，修复为仅在操作完成时保存一次
 - **框选/拖拽时按 Escape 事件监听器泄漏**：`_onKeyDown` 绑定后未在操作取消时移除，修复为在 Escape 处理中清理监听器
 - **_pendingContainers/_ctrlDetached 清理不完整**：容器子节点状态数组在操作完成后未完全清理，添加完整的清理逻辑
 - **hasDraggedCanvas 标志位残留**：拖拽画布后标志位未重置，导致后续操作行为异常，修复为在操作完成后重置
@@ -12,7 +12,7 @@
 - **Ctrl+F 触发浏览器查询事件**：`matchShortcut` 方法对字母键大小写敏感，`e.key` 返回小写 `'f'` 而配置为大写 `'F'`，改为大小写不敏感比较
 - **管理页面拖动工作流无效**：`draggable="true"` 设在卡片上但拖拽手柄是子元素，浏览器无法触发父元素 dragstart，修复为将 draggable 移至手柄
 - **多选时点击工作流跳转页面**：批量模式下点击复选框或工作流卡片仍触发跳转，修复为在 click 处理器中排除复选框并检查批量模式
-- **GET /utils/storage.js 404 错误**：`workflow-keyboard.js` 错误导入 `../utils/storage.js`（不存在），修复为使用 `../utils/helpers.js` 中的 `Storage` 并合并重复的 `DOM` 导入
+- **GET /utils/storage.js 404 错误**：`editor-keyboard.js` 错误导入 `../utils/storage.js`（不存在），修复为使用 `../utils/helpers.js` 中的 `Storage` 并合并重复的 `DOM` 导入
 
 ### Feature 实现
 
@@ -135,11 +135,11 @@
 - `keyboard-shortcuts.js` → 重命名为 `converter-keyboard.js`
 
 #### 编辑器模块拆分
-- `workflow-node.js` 拆分出以下子模块:
-  - `workflow-container-render.js` - 容器节点（loop/batch）子节点管理与自动布局
-  - `workflow-node-detail-modal.js` - 节点详情模态框（JSON/YAML 复制、编辑器跳转）
-  - `workflow-node-types.js` - 节点类型定义（20+ 种节点类型配置）
-  - `workflow-param-editor.js` - 参数编辑器（输入输出参数、合并组变量编辑）
+- `editor-node.js` 拆分出以下子模块:
+  - `editor-container-render.js` - 容器节点（loop/batch）子节点管理与自动布局
+  - `shared-node-detail.js` - 节点详情模态框（JSON/YAML 复制、编辑器跳转）
+  - `editor-node-types.js` - 节点类型定义（20+ 种节点类型配置）
+  - `editor-param-editor.js` - 参数编辑器（输入输出参数、合并组变量编辑）
 - 移除 `workflow-canvas-optimized.js`（功能合并到 canvas 模块）
 
 ### 工程化建设
@@ -165,8 +165,8 @@
 ### 修改文件
 - `package.json` - 新增 eslint、husky 依赖
 - `src/modules/converter.js` - 拆分渲染逻辑
-- `src/modules/workflow-node.js` - 拆分节点模块
-- `src/modules/ui-controller.js` - 适配模块拆分
+- `src/modules/editor-node.js` - 拆分节点模块
+- `src/modules/converter-ui.js` - 适配模块拆分
 - 其他 30+ 文件 - 适配模块重命名和导入路径调整
 
 ---
@@ -197,14 +197,14 @@
 - 新增剪贴板模块测试用例（+241 行），覆盖粘贴、导出、参数解析等场景
 
 ### 修改文件
-- `workflow-clipboard-paste.js` - 重构粘贴逻辑，增强参数解析
-- `workflow-clipboard.js` - 优化导出逻辑
-- `workflow-core.js` - 修复 ID 计数器
-- `workflow-serializer.js` - 改进序列化逻辑
-- `workflow-storage.js` - 修复保存逻辑
-- `workflow-manager.js` - 同步属性面板与节点数据
-- `workflow-node-render.js` - 修复参数引用渲染
-- `workflow-canvas.js` / `workflow-keyboard.js` / `workflow-ui.js` - 细节修复
+- `editor-clipboard-paste.js` - 重构粘贴逻辑，增强参数解析
+- `editor-clipboard.js` - 优化导出逻辑
+- `editor-core.js` - 修复 ID 计数器
+- `shared-serializer.js` - 改进序列化逻辑
+- `editor-storage.js` - 修复保存逻辑
+- `manager.js` - 同步属性面板与节点数据
+- `editor-node-render.js` - 修复参数引用渲染
+- `editor-canvas.js` / `editor-keyboard.js` / `editor-ui.js` - 细节修复
 - `tests/clipboard.test.js` - 新增测试
 
 ---

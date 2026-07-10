@@ -1,4 +1,4 @@
-# Coze 工作流编辑器 & 转换器 - 项目上下文
+﻿# Coze 工作流编辑器 & 转换器 - 项目上下文
 
 > 此文件为后续 AI 会话提供项目上下文，每次会话开始时优先阅读。
 
@@ -43,37 +43,37 @@ src/
 │   └── workflow-converter.html # YAML ↔ JSON 转换器
 ├── modules/                  # 核心模块
 │   ├── app.js                # 入口：动态按需加载
-│   ├── workflow-core.js      # 核心数据结构：节点、边、历史
-│   ├── workflow-ui.js        # UI orchestration
-│   ├── workflow-canvas.js    # 画布：缩放、拖拽、视口剔除
-│   ├── workflow-node.js      # 节点：聚合多个 mixin
-│   │   ├── workflow-node-render.js      # 节点渲染
-│   │   ├── workflow-container-render.js # 容器子节点渲染
-│   │   ├── workflow-node-panel.js       # 属性面板渲染
-│   │   ├── workflow-node-selector.js    # 变量选择器
-│   │   └── workflow-param-editor.js    # 参数编辑（输入输出/循环变量）
-│   ├── workflow-edge.js      # 边渲染
-│   ├── workflow-history.js   # 历史记录（撤销/重做，最多50步）
-│   ├── workflow-clipboard.js # 复制（导出到 Coze）
-│   ├── workflow-clipboard-paste.js # 粘贴（从 Coze 导入）
-│   ├── workflow-serializer.js # 文件加载反序列化
-│   ├── workflow-search.js    # 节点搜索高亮定位
-│   ├── workflow-selection.js # 多选与框选
-│   ├── workflow-keyboard.js  # 快捷键支持（含自定义配置）
-│   ├── workflow-align.js     # 节点对齐 + 网格吸附
-│   ├── workflow-autosave.js  # 自动保存 + 状态提示
-│   ├── workflow-storage.js   # 本地存储
-│   ├── workflow-manager.js   # 工作流列表管理（批量删除、拖拽排序）
-│   ├── dialog.js             # 模态对话框
+│   ├── editor-core.js      # 核心数据结构：节点、边、历史
+│   ├── editor-ui.js        # UI orchestration
+│   ├── editor-canvas.js    # 画布：缩放、拖拽、视口剔除
+│   ├── editor-node.js      # 节点：聚合多个 mixin
+│   │   ├── editor-node-render.js      # 节点渲染
+│   │   ├── editor-container-render.js # 容器子节点渲染
+│   │   ├── editor-node-panel.js       # 属性面板渲染
+│   │   ├── editor-node-selector.js    # 变量选择器
+│   │   └── editor-param-editor.js    # 参数编辑（输入输出/循环变量）
+│   ├── editor-edge.js      # 边渲染
+│   ├── editor-history.js   # 历史记录（撤销/重做，最多50步）
+│   ├── editor-clipboard.js # 复制（导出到 Coze）
+│   ├── editor-clipboard-paste.js # 粘贴（从 Coze 导入）
+│   ├── shared-serializer.js # 文件加载反序列化
+│   ├── editor-search.js    # 节点搜索高亮定位
+│   ├── editor-selection.js # 多选与框选
+│   ├── editor-keyboard.js  # 快捷键支持（含自定义配置）
+│   ├── editor-align.js     # 节点对齐 + 网格吸附
+│   ├── editor-autosave.js  # 自动保存 + 状态提示
+│   ├── editor-storage.js   # 本地存储
+│   ├── manager.js   # 工作流列表管理（批量删除、拖拽排序）
+│   ├── shared-dialog.js             # 模态对话框
 │   ├── converter.js          # YAML → Coze JSON 转换
 │   ├── converter-keyboard.js # 转换器页面快捷键
-│   ├── stats-view.js         # 统计视图
-│   ├── graph-view.js         # 依赖图视图
-│   ├── navigator.js          # 页面导航
-│   ├── i18n-controller.js    # i18n 控制器
-│   ├── theme-controller.js   # 主题控制器
-│   ├── reverse.js            # 反向转换（JSON → YAML）
-│   └── ui-controller.js      # 转换器页面 UI
+│   ├── converter-stats.js         # 统计视图
+│   ├── shared-graph.js         # 依赖图视图
+│   ├── shared-navigator.js          # 页面导航
+│   ├── shared-i18n.js    # i18n 控制器
+│   ├── shared-theme.js   # 主题控制器
+│   ├── converter-reverse.js            # 反向转换（JSON → YAML）
+│   └── converter-ui.js      # 转换器页面 UI
 ├── components/               # 转换器组件
 │   ├── nodeHandlers.js       # 各节点类型导出处理器
 │   ├── inputMapper.js        # 输入参数转换
@@ -133,8 +133,8 @@ export class WorkflowNode {
 | **推荐** | 使用箭头函数作为实例属性：`this.method = () => { ... }` |
 
 **已修复的典型案例**：
-- `workflow-node-panel.js` - `document.addEventListener` 缺 `.bind(node)` → `this.addInputParam is not a function`
-- `workflow-search.js` - 递归 `checkNode(child)` 未绑定 `this` → `Cannot read properties of undefined (reading 'core')`
+- `editor-node-panel.js` - `document.addEventListener` 缺 `.bind(node)` → `this.addInputParam is not a function`
+- `editor-search.js` - 递归 `checkNode(child)` 未绑定 `this` → `Cannot read properties of undefined (reading 'core')`
 
 ### 3. 容器节点 CSS 规范（CRITICAL）
 
@@ -224,10 +224,10 @@ variables: '变量定义',
 
 | 阶段 | 处理 | 文件 |
 |---|---|---|
-| **复制导出** | 将 `node.parameters.variables` 直接赋值给 `cozeNode.data.inputs.inputParameters` | [workflow-clipboard.js](src/modules/workflow-clipboard.js) |
-| **粘贴导入** | 遍历 `variables` 数组，重映射 `left.value.content.blockID` 和 `right.value.content.blockID` | [workflow-clipboard-paste.js](src/modules/workflow-clipboard-paste.js) |
-| **文件加载** | 同上，重映射 `blockID` | [workflow-serializer.js](src/modules/workflow-serializer.js) |
-| **属性面板** | 跳过 JSON 文本框，使用可视化编辑器渲染 | [workflow-node-panel.js](src/modules/workflow-node-panel.js) + [workflow-param-editor.js](src/modules/workflow-param-editor.js) |
+| **复制导出** | 将 `node.parameters.variables` 直接赋值给 `cozeNode.data.inputs.inputParameters` | [editor-clipboard.js](src/modules/editor-clipboard.js) |
+| **粘贴导入** | 遍历 `variables` 数组，重映射 `left.value.content.blockID` 和 `right.value.content.blockID` | [editor-clipboard-paste.js](src/modules/editor-clipboard-paste.js) |
+| **文件加载** | 同上，重映射 `blockID` | [shared-serializer.js](src/modules/shared-serializer.js) |
+| **属性面板** | 跳过 JSON 文本框，使用可视化编辑器渲染 | [editor-node-panel.js](src/modules/editor-node-panel.js) + [editor-param-editor.js](src/modules/editor-param-editor.js) |
 
 ### 可视化编辑器功能
 
@@ -310,7 +310,7 @@ TYPE_MAP = {
 | `loop_set_variable` 粘贴后参数丢失 | Coze 使用 `left/right` 格式，转换时未保留原始结构 | 粘贴/加载时保留 `variables` 数组，导出直接赋值 |
 | 导出时 `inputs` 同时有 `inputParameters` 和 `variables` | 复制时走了通用处理分支 | 添加专属处理分支 |
 | 粘贴后 `left/right` 引用无效 | `blockID` 未重映射 | 遍历 `variables` 数组进行重映射 |
-| `variables` 默认值错误 | `defaultValue: '{}'` 应为 `'[]'` | 修改 workflow-node-types.js |
+| `variables` 默认值错误 | `defaultValue: '{}'` 应为 `'[]'` | 修改 editor-node-types.js |
 | 翻译键显示原始文本 | 翻译键在根级别而非 `nodes` 对象 | 移动到 `nodes` 对象内 |
 | `this.addInputParam is not a function` | `document.addEventListener` 缺 `.bind(node)` | 添加 `.bind(node)` |
 | 搜索功能崩溃 | 递归 `checkNode(child)` 未绑定 `this` | `checkNode.call(this, child)` |
