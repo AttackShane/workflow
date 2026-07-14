@@ -15,6 +15,7 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "lint-staged": "^16.4.0",
+    "prettier": "^3.9.5",
     "terser": "^5.48.0",
     "typescript": "^6.0.3"
   },
@@ -29,7 +30,9 @@
     "check": "node check_types.cjs && node check_i18n.cjs",
     "typecheck": "tsc --noEmit --project jsconfig.json",
     "lint": "eslint src/ tests/",
-    "lint:fix": "eslint src/ tests/ --fix",
+        "lint:fix": "eslint src/ tests/ --fix",
+        "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+        "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\"",
     "prepare": "husky"
   },
   "dependencies": {
@@ -37,6 +40,7 @@
   },
   "lint-staged": {
     "*.js": [
+      "prettier --write",
       "eslint --fix",
       "jest --bail --findRelatedTests"
     ]

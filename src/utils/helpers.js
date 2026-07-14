@@ -26,25 +26,25 @@ export const DOM = {
     get(id) {
         return document.getElementById(id);
     },
-    
+
     /**
      * 安全设置元素文本内容
-     * @param {HTMLElement|null} element - 元素
-     * @param {string} text - 文本内容
+     * @param {Element|null} element - 元素
+     * @param {string|number} text - 文本内容
      */
     setText(element, text) {
         if (element) {
             if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
                 /** @type {*} */ (element).value = text;
             } else {
-                element.textContent = text;
+                element.textContent = String(text);
             }
         }
     },
-    
+
     /**
      * 安全设置元素 HTML 内容
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} html - HTML 内容
      */
     setHtml(element, html) {
@@ -52,34 +52,54 @@ export const DOM = {
             element.innerHTML = html;
         }
     },
-    
+
     /**
      * 安全设置元素属性
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} name - 属性名
-     * @param {string} value - 属性值
+     * @param {string|number} value - 属性值
      */
     setAttr(element, name, value) {
         if (element) {
-            element.setAttribute(name, value);
+            element.setAttribute(name, String(value));
         }
     },
-    
+
     /**
      * 安全设置元素样式
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} property - CSS 属性
      * @param {string} value - 属性值
      */
     setStyle(element, property, value) {
         if (element) {
-            element.style[property] = value;
+            /** @type {HTMLElement|SVGElement} */ (element).style[property] = value;
         }
     },
-    
+
+    /**
+     * 显示元素（恢复默认 display）
+     * @param {Element|null} element - 元素
+     */
+    show(element) {
+        if (element) {
+            /** @type {HTMLElement|SVGElement} */ (element).style.display = '';
+        }
+    },
+
+    /**
+     * 隐藏元素
+     * @param {Element|null} element - 元素
+     */
+    hide(element) {
+        if (element) {
+            /** @type {HTMLElement|SVGElement} */ (element).style.display = 'none';
+        }
+    },
+
     /**
      * 安全设置元素禁用状态
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {boolean} disabled - 是否禁用
      */
     setDisabled(element, disabled) {
@@ -87,22 +107,23 @@ export const DOM = {
             /** @type {*} */ (element).disabled = disabled;
         }
     },
-    
+
     /**
      * 添加事件监听器
-     * @param {HTMLElement|null} element - 元素
+     * @param {EventTarget|null} element - 元素
      * @param {string} event - 事件名
      * @param {EventListenerOrEventListenerObject} handler - 事件处理函数
+     * @param {AddEventListenerOptions|boolean} [options] - 事件监听选项
      */
-    on(element, event, handler) {
+    on(element, event, handler, options) {
         if (element) {
-            element.addEventListener(event, handler);
+            element.addEventListener(event, handler, options);
         }
     },
-    
+
     /**
      * 移除事件监听器
-     * @param {HTMLElement|null} element - 元素
+     * @param {EventTarget|null} element - 元素
      * @param {string} event - 事件名
      * @param {EventListenerOrEventListenerObject} handler - 事件处理函数
      */
@@ -111,10 +132,10 @@ export const DOM = {
             element.removeEventListener(event, handler);
         }
     },
-    
+
     /**
      * 切换元素类名
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} className - 类名
      * @param {boolean} force - 强制添加或移除
      */
@@ -123,10 +144,10 @@ export const DOM = {
             element.classList.toggle(className, force);
         }
     },
-    
+
     /**
      * 添加类名
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} className - 类名
      */
     addClass(element, className) {
@@ -134,10 +155,10 @@ export const DOM = {
             element.classList.add(className);
         }
     },
-    
+
     /**
      * 移除类名
-     * @param {HTMLElement|null} element - 元素
+     * @param {Element|null} element - 元素
      * @param {string} className - 类名
      */
     removeClass(element, className) {
@@ -145,7 +166,7 @@ export const DOM = {
             element.classList.remove(className);
         }
     },
-    
+
     /**
      * 创建元素
      * @param {string} tag - 标签名
@@ -154,41 +175,41 @@ export const DOM = {
      */
     create(tag, options = {}) {
         const element = document.createElement(tag);
-        
+
         if (options.className) {
             element.className = options.className;
         }
-        
+
         if (options.id) {
             element.id = options.id;
         }
-        
+
         if (options.text) {
             element.textContent = options.text;
         }
-        
+
         if (options.html) {
             element.innerHTML = options.html;
         }
-        
+
         // 处理 value 属性（用于 input、textarea 等元素）
         if (options.value !== undefined) {
             /** @type {*} */ (element).value = options.value;
         }
-        
+
         if (options.style) {
             Object.assign(element.style, options.style);
         }
-        
+
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
                 element.setAttribute(key, value);
             });
         }
-        
+
         return element;
     },
-    
+
     /**
      * 创建 SVG 元素
      * @param {string} tag - 标签名
@@ -197,72 +218,93 @@ export const DOM = {
      */
     createSVG(tag, options = {}) {
         const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
-        
+
         if (options.attributes) {
             Object.entries(options.attributes).forEach(([key, value]) => {
                 element.setAttribute(key, value);
             });
         }
-        
+
         return element;
-    }
+    },
 };
 
 /**
- * 存储操作工具函数
+ * 创建存储操作对象
+ * @param {Storage|null} backend - localStorage 或 sessionStorage
+ * @returns {object}
  */
-export const Storage = {
-    /**
-     * 获取存储值
-     * @param {string} key - 键名
-     * @param {*} defaultValue - 默认值
-     * @returns {*}
-     */
-    get(key, defaultValue = null) {
-        try {
-            const value = localStorage.getItem(key);
-            return value !== null ? JSON.parse(value) : defaultValue;
-        } catch {
-            return defaultValue;
-        }
-    },
-    
-    /**
-     * 设置存储值
-     * @param {string} key - 键名
-     * @param {*} value - 值
-     */
-    set(key, value) {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-        } catch (error) {
-            Logger.error('Storage set error:', error);
-        }
-    },
-    
-    /**
-     * 移除存储值
-     * @param {string} key - 键名
-     */
-    remove(key) {
-        try {
-            localStorage.removeItem(key);
-        } catch {
-            // Node.js 测试环境无 localStorage
-        }
-    },
-    
-    /**
-     * 清空所有存储
-     */
-    clear() {
-        try {
-            localStorage.clear();
-        } catch {
-            // Node.js 测试环境无 localStorage
-        }
-    }
-};
+function createStorage(backend) {
+    return {
+        /**
+         * 获取存储值
+         * @param {string} key - 键名
+         * @param {*} defaultValue - 默认值
+         * @returns {*}
+         */
+        get(key, defaultValue = null) {
+            if (!backend) return defaultValue;
+            try {
+                const value = backend.getItem(key);
+                return value !== null ? JSON.parse(value) : defaultValue;
+            } catch {
+                return defaultValue;
+            }
+        },
+
+        /**
+         * 设置存储值
+         * @param {string} key - 键名
+         * @param {*} value - 值
+         */
+        set(key, value) {
+            if (!backend) return;
+            try {
+                backend.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                Logger.error('Storage set error:', error);
+            }
+        },
+
+        /**
+         * 移除存储值
+         * @param {string} key - 键名
+         */
+        remove(key) {
+            if (!backend) return;
+            try {
+                backend.removeItem(key);
+            } catch {
+                // 环境不支持
+            }
+        },
+
+        /**
+         * 清空所有存储
+         */
+        clear() {
+            if (!backend) return;
+            try {
+                backend.clear();
+            } catch {
+                // 环境不支持
+            }
+        },
+    };
+}
+
+const _local = typeof localStorage !== 'undefined' ? localStorage : null;
+const _session = typeof sessionStorage !== 'undefined' ? sessionStorage : null;
+
+/**
+ * 存储操作工具函数（localStorage）
+ */
+export const Storage = createStorage(_local);
+
+/**
+ * 会话存储操作（sessionStorage）
+ */
+Storage.session = createStorage(_session);
 
 /**
  * 字符串操作工具函数
@@ -276,9 +318,9 @@ export const StringUtils = {
     escapeHtml(str) {
         if (str == null || str === '') return '';
         const ESCAPE_MAP = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return String(str).replace(/[&<>"']/g, c => ESCAPE_MAP[c]);
+        return String(str).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
     },
-    
+
     /**
      * 截取字符串并添加省略号
      * @param {string} str - 原始字符串
@@ -289,7 +331,7 @@ export const StringUtils = {
         if (!str) return '';
         return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
     },
-    
+
     /**
      * 格式化时间戳
      * @param {string} timestamp - 时间戳字符串
@@ -302,17 +344,17 @@ export const StringUtils = {
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
         });
     },
-    
+
     /**
      * 生成唯一 ID
      * @returns {string}
      */
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).slice(2);
-    }
+    },
 };
 
 /**
@@ -329,7 +371,7 @@ export const ArrayUtils = {
         if (!Array.isArray(array)) return undefined;
         return array.find(predicate);
     },
-    
+
     /**
      * 过滤数组
      * @param {Array} array - 数组
@@ -340,7 +382,7 @@ export const ArrayUtils = {
         if (!Array.isArray(array)) return [];
         return array.filter(predicate);
     },
-    
+
     /**
      * 数组去重
      * @param {Array} array - 数组
@@ -350,14 +392,14 @@ export const ArrayUtils = {
     unique(array, keyFn = (item) => item) {
         if (!Array.isArray(array)) return [];
         const seen = new Set();
-        return array.filter(item => {
+        return array.filter((item) => {
             const key = keyFn(item);
             if (seen.has(key)) return false;
             seen.add(key);
             return true;
         });
     },
-    
+
     /**
      * 限制数组长度
      * @param {Array} array - 数组
@@ -367,7 +409,7 @@ export const ArrayUtils = {
     limit(array, maxLength) {
         if (!Array.isArray(array)) return [];
         return array.slice(0, maxLength);
-    }
+    },
 };
 
 /**
@@ -412,7 +454,7 @@ export const ClipboardUtils = {
             return false;
         }
     },
-    
+
     /**
      * 复制文本到剪贴板并显示反馈
      * @param {string} text - 要复制的文本
@@ -422,10 +464,12 @@ export const ClipboardUtils = {
      */
     async copyWithFeedback(text, btn, successText = '✓ 已复制', errorText = '复制失败') {
         const originalText = btn?.textContent;
-        const originalStyle = btn ? {
-            background: btn.style.background,
-            borderColor: btn.style.borderColor
-        } : null;
+        const originalStyle = btn
+            ? {
+                  background: btn.style.background,
+                  borderColor: btn.style.borderColor,
+              }
+            : null;
 
         const updateBtn = (success) => {
             if (btn) {
@@ -447,7 +491,7 @@ export const ClipboardUtils = {
         const result = await this.copy(text);
         updateBtn(result);
         return result;
-    }
+    },
 };
 
 /**
@@ -473,11 +517,13 @@ export function deepClone(obj) {
  */
 export function extractSlateText(slate) {
     if (!Array.isArray(slate)) return '';
-    return slate.map(node => {
-        if (node.text !== undefined) return node.text;
-        if (node.children) return extractSlateText(node.children);
-        return '';
-    }).join('\n');
+    return slate
+        .map((node) => {
+            if (node.text !== undefined) return node.text;
+            if (node.children) return extractSlateText(node.children);
+            return '';
+        })
+        .join('\n');
 }
 
 /**
@@ -490,12 +536,14 @@ export const NodeUtils = {
      * @returns {{ minX: number, minY: number, maxX: number, maxY: number }}
      */
     getBounds(nodes) {
-        let minX = Infinity, minY = Infinity;
-        let maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity,
+            minY = Infinity;
+        let maxX = -Infinity,
+            maxY = -Infinity;
 
-        nodes.forEach(node => {
+        nodes.forEach((node) => {
             if (node.parentId) {
-                const parent = nodes.find(n => n.id === node.parentId);
+                const parent = nodes.find((n) => n.id === node.parentId);
                 if (!parent) return;
                 const absX = (parent.x || 0) + (node.x || 0);
                 const absY = (parent.y || 0) + 56 + (node.y || 0);
@@ -543,5 +591,5 @@ export const NodeUtils = {
                 node.y += offsetY;
             }
         }
-    }
+    },
 };

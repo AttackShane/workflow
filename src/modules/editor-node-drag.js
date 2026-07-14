@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 工作流节点拖拽模块
  * 处理节点拖拽、多选拖拽、智能对齐吸附、容器拖入拖出
@@ -8,22 +7,28 @@
  * 混入拖拽和对齐相关方法到 WorkflowNode
  * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
  */
-export function mixinNodeDrag(node) {
+export class WorkflowNodeDrag {
+    /**
+     * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
+     */
+    constructor(node) {
+        this.node = node;
+    }
 
     /**
      * 处理鼠标按下开始拖拽
      * @param {MouseEvent} e - 鼠标事件
      * @param {HTMLElement} el - 节点元素
      */
-    node.onMouseDown = function(e, el) {
-        if (e.target.classList.contains('connection-point')) return;
+    onMouseDown(e, el) {
+        if (/** @type {Element} */ (e.target).classList.contains('connection-point')) return;
 
-        if (el.classList.contains('container') && e.target.closest('.container-body')) {
+        if (el.classList.contains('container') && /** @type {Element} */ (e.target).closest('.container-body')) {
             return;
         }
 
         const nodeId = el.dataset.nodeId;
-        const nodeData = this.core.nodes.find(n => n.id === nodeId);
+        const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
         if (nodeData && nodeData.locked) {
             if (e.shiftKey) {
                 e.preventDefault();
@@ -34,40 +39,42 @@ export function mixinNodeDrag(node) {
                     el.classList.remove('selected');
                     const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
                     if (newSelectedNodes.length === 0) {
-                        this.ui.isMultiSelectMode = false;
-                        this.core.selectNode(null);
-                        this.ui.showSummaryPanel();
+                        this.node.ui.isMultiSelectMode = false;
+                        this.node.core.selectNode(null);
+                        this.node.ui.showSummaryPanel();
                     } else {
                         const lastSelected = newSelectedNodes[newSelectedNodes.length - 1];
-                        this.core.selectNode(lastSelected.dataset.nodeId);
-                        const clickedNode = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
-                        if (clickedNode) this.renderPropertyPanel(clickedNode);
+                        this.node.core.selectNode(/** @type {HTMLElement} */ (lastSelected).dataset.nodeId);
+                        const clickedNode = this.node.core.nodes.find(
+                            (n) => n.id === /** @type {HTMLElement} */ (lastSelected).dataset.nodeId
+                        );
+                        if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
                     }
                 } else {
                     el.classList.add('selected');
                     const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
                     if (newSelectedNodes.length > 1) {
-                        this.ui.isMultiSelectMode = true;
-                        this.ui.showSummaryPanel();
+                        this.node.ui.isMultiSelectMode = true;
+                        this.node.ui.showSummaryPanel();
                     } else {
-                        this.ui.isMultiSelectMode = false;
-                        this.core.selectNode(el.dataset.nodeId);
-                        const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
-                        if (clickedNode) this.renderPropertyPanel(clickedNode);
+                        this.node.ui.isMultiSelectMode = false;
+                        this.node.core.selectNode(el.dataset.nodeId);
+                        const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+                        if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
                     }
+                    this.node.ui.align.updateAlignToolbar();
                 }
-                this.ui.align.updateAlignToolbar();
             } else if (!el.classList.contains('selected')) {
                 e.preventDefault();
                 e.stopPropagation();
-                document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
-                document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
+                document.querySelectorAll('.canvas-node').forEach((n) => n.classList.remove('selected'));
+                document.querySelectorAll('.workflow-edge').forEach((edge) => edge.classList.remove('selected'));
                 el.classList.add('selected');
-                this.ui.isMultiSelectMode = false;
-                this.core.selectNode(el.dataset.nodeId);
-                const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
-                if (clickedNode) this.renderPropertyPanel(clickedNode);
-                this.ui.align.updateAlignToolbar();
+                this.node.ui.isMultiSelectMode = false;
+                this.node.core.selectNode(el.dataset.nodeId);
+                const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+                if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
+                this.node.ui.align.updateAlignToolbar();
             }
             return;
         }
@@ -75,9 +82,9 @@ export function mixinNodeDrag(node) {
         e.preventDefault();
         e.stopPropagation();
 
-        this.ui.dragStartX = e.clientX;
-        this.ui.dragStartY = e.clientY;
-        this.ui.hasDragged = false;
+        this.node.ui.dragStartX = e.clientX;
+        this.node.ui.dragStartY = e.clientY;
+        this.node.ui.hasDragged = false;
 
         const preSelectedNodes = document.querySelectorAll('.canvas-node.selected');
         const hasMultipleSelected = preSelectedNodes.length > 1;
@@ -88,70 +95,75 @@ export function mixinNodeDrag(node) {
             el.classList.remove('selected');
             const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
             if (newSelectedNodes.length === 0) {
-                this.ui.isMultiSelectMode = false;
-                this.core.selectNode(null);
-                this.ui.showSummaryPanel();
+                this.node.ui.isMultiSelectMode = false;
+                this.node.core.selectNode(null);
+                this.node.ui.showSummaryPanel();
             } else {
                 const lastSelected = newSelectedNodes[newSelectedNodes.length - 1];
-                this.core.selectNode(lastSelected.dataset.nodeId);
-                const clickedNode = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
-                if (clickedNode) this.renderPropertyPanel(clickedNode);
+                this.node.core.selectNode(/** @type {HTMLElement} */ (lastSelected).dataset.nodeId);
+                const clickedNode = this.node.core.nodes.find(
+                    (n) => n.id === /** @type {HTMLElement} */ (lastSelected).dataset.nodeId
+                );
+                if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
             }
         } else if (shiftPressed && !isAlreadySelected) {
             el.classList.add('selected');
             const newSelectedNodes = document.querySelectorAll('.canvas-node.selected');
             if (newSelectedNodes.length > 1) {
-                this.ui.isMultiSelectMode = true;
-                this.ui.showSummaryPanel();
+                this.node.ui.isMultiSelectMode = true;
+                this.node.ui.showSummaryPanel();
             } else {
-                this.ui.isMultiSelectMode = false;
-                this.core.selectNode(el.dataset.nodeId);
-                const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
-                if (clickedNode) this.renderPropertyPanel(clickedNode);
+                this.node.ui.isMultiSelectMode = false;
+                this.node.core.selectNode(el.dataset.nodeId);
+                const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+                if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
             }
-        } else if (!this.ui.isMultiSelectMode && !shiftPressed && !hasMultipleSelected) {
-            document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
-            document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
+        } else if (!this.node.ui.isMultiSelectMode && !shiftPressed && !hasMultipleSelected) {
+            document.querySelectorAll('.canvas-node').forEach((n) => n.classList.remove('selected'));
+            document.querySelectorAll('.workflow-edge').forEach((edge) => edge.classList.remove('selected'));
             el.classList.add('selected');
-            this.ui.isMultiSelectMode = false;
-            this.core.selectNode(el.dataset.nodeId);
-            const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
-            if (clickedNode) this.renderPropertyPanel(clickedNode);
-        } else if (shiftPressed && (this.ui.isMultiSelectMode || hasMultipleSelected)) {
+            this.node.ui.isMultiSelectMode = false;
+            this.node.core.selectNode(el.dataset.nodeId);
+            const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+            if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
+        } else if (shiftPressed && (this.node.ui.isMultiSelectMode || hasMultipleSelected)) {
             if (!isAlreadySelected) {
                 el.classList.add('selected');
             }
-            this.ui.isMultiSelectMode = true;
-            this.ui.showSummaryPanel();
+            this.node.ui.isMultiSelectMode = true;
+            this.node.ui.showSummaryPanel();
         } else {
-            if (!isAlreadySelected && (hasMultipleSelected || this.ui.isMultiSelectMode)) {
-                document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
-                document.querySelectorAll('.workflow-edge').forEach(edge => edge.classList.remove('selected'));
-                this.ui.isMultiSelectMode = false;
-                this.core.selectNode(el.dataset.nodeId);
-                const clickedNode = this.core.nodes.find(n => n.id === el.dataset.nodeId);
-                if (clickedNode) this.renderPropertyPanel(clickedNode);
+            if (!isAlreadySelected && (hasMultipleSelected || this.node.ui.isMultiSelectMode)) {
+                document.querySelectorAll('.canvas-node').forEach((n) => n.classList.remove('selected'));
+                document.querySelectorAll('.workflow-edge').forEach((edge) => edge.classList.remove('selected'));
+                this.node.ui.isMultiSelectMode = false;
+                this.node.core.selectNode(el.dataset.nodeId);
+                const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+                if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
             }
             el.classList.add('selected');
         }
 
-        this.ui.align.updateAlignToolbar();
+        this.node.ui.align.updateAlignToolbar();
 
         el.classList.add('dragging');
-        el.style.zIndex = 1000;
+        el.style.zIndex = '1000';
 
         const guidesEl = document.getElementById('alignmentGuides');
         if (guidesEl) guidesEl.innerHTML = '';
 
         const nodeStartPositions = {};
-        const selectedNodeEls = Array.from(document.querySelectorAll('.canvas-node.selected')).filter(nodeEl => {
-            const nodeData = this.core.nodes.find(n => n.id === nodeEl.dataset.nodeId);
+        const selectedNodeEls = Array.from(document.querySelectorAll('.canvas-node.selected')).filter((nodeEl) => {
+            const nodeData = this.node.core.nodes.find(
+                (n) => n.id === /** @type {HTMLElement} */ (nodeEl).dataset.nodeId
+            );
             return !nodeData || !nodeData.locked;
         });
-        selectedNodeEls.forEach(nodeEl => {
-            nodeStartPositions[nodeEl.dataset.nodeId] = {
-                x: parseFloat(nodeEl.dataset.x) || 0,
-                y: parseFloat(nodeEl.dataset.y) || 0
+        selectedNodeEls.forEach((nodeEl) => {
+            const el = /** @type {HTMLElement} */ (nodeEl);
+            nodeStartPositions[el.dataset.nodeId] = {
+                x: parseFloat(el.dataset.x) || 0,
+                y: parseFloat(el.dataset.y) || 0,
             };
         });
 
@@ -166,32 +178,32 @@ export function mixinNodeDrag(node) {
         };
 
         const findDropTarget = (clientX, clientY) => {
-            const canvasRect = this.ui.canvas.canvas.getBoundingClientRect();
+            const canvasRect = this.node.ui.canvas.canvas.getBoundingClientRect();
             const screenX = clientX - canvasRect.left;
             const screenY = clientY - canvasRect.top;
-            const { canvasX, canvasY } = this.ui.canvas.screenToCanvas(screenX, screenY);
+            const { canvasX, canvasY } = this.node.ui.canvas.screenToCanvas(screenX, screenY);
 
-            const containers = this.core.nodes.filter(n => this.core.isContainerNode(n.id));
+            const containers = this.node.core.nodes.filter((n) => this.node.core.isContainerNode(n.id));
             for (const c of containers) {
-                if (selectedNodeEls.some(el => el.dataset.nodeId === c.id)) continue;
+                if (selectedNodeEls.some((el) => /** @type {HTMLElement} */ (el).dataset.nodeId === c.id)) continue;
                 const cx = c.x || 0;
                 const cy = c.y || 0;
-                const cInfo = this.core.nodeTypeInfo[c.type] || {};
-                const cw = c.width || (cInfo.containerMinWidth || 300);
-                const ch = c.height || (cInfo.containerMinHeight || 200);
+                const cInfo = this.node.core.nodeTypeInfo[c.type] || {};
+                const cw = c.width || cInfo.containerMinWidth || 300;
+                const ch = c.height || cInfo.containerMinHeight || 200;
                 const headerH = 58;
                 if (canvasX >= cx && canvasX <= cx + cw && canvasY >= cy + headerH && canvasY <= cy + ch) {
-                    return this._elMap.get(c.id) || null;
+                    return /** @type {*} */ (this.node)._elMap.get(c.id) || null;
                 }
             }
             return null;
         };
 
         const onMouseMove = (e) => {
-            const dx = Math.abs(e.clientX - this.ui.dragStartX);
-            const dy = Math.abs(e.clientY - this.ui.dragStartY);
+            const dx = Math.abs(e.clientX - this.node.ui.dragStartX);
+            const dy = Math.abs(e.clientY - this.node.ui.dragStartY);
             if (dx > 5 || dy > 5) {
-                this.ui.hasDragged = true;
+                this.node.ui.hasDragged = true;
             }
 
             if (rafId) {
@@ -200,54 +212,61 @@ export function mixinNodeDrag(node) {
 
             rafId = requestAnimationFrame(() => {
                 const ctrlHeld = e.ctrlKey || e.metaKey;
-                const moveDx = (e.clientX - this.ui.dragStartX) / this.ui.canvas.canvasScale;
-                const moveDy = (e.clientY - this.ui.dragStartY) / this.ui.canvas.canvasScale;
+                const moveDx = (e.clientX - this.node.ui.dragStartX) / this.node.ui.canvas.canvasScale;
+                const moveDy = (e.clientY - this.node.ui.dragStartY) / this.node.ui.canvas.canvasScale;
 
-                if (!this.ui._pendingContainers) {
-                    this.ui._pendingContainers = new Set();
+                if (!this.node.ui._pendingContainers) {
+                    this.node.ui._pendingContainers = new Set();
                 }
-                const parentContainers = this.ui._pendingContainers;
-                const detachedSet = this.ui._ctrlDetached || (this.ui._ctrlDetached = new Set());
+                const parentContainers = this.node.ui._pendingContainers;
+                const detachedSet = this.node.ui._ctrlDetached || (this.node.ui._ctrlDetached = new Set());
 
                 const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
 
                 const primaryEl = selectedNodeEls[0];
-                const primaryStartPos = nodeStartPositions[primaryEl.dataset.nodeId];
-                const snapOffsets = this.computeAlignment(primaryEl, primaryStartPos.x + moveDx, primaryStartPos.y + moveDy, selectedNodeEls);
+                const primaryStartPos = nodeStartPositions[/** @type {HTMLElement} */ (primaryEl).dataset.nodeId];
+                const snapOffsets = /** @type {*} */ (this).computeAlignment(
+                    /** @type {HTMLElement} */ (primaryEl),
+                    primaryStartPos.x + moveDx,
+                    primaryStartPos.y + moveDy,
+                    selectedNodeEls
+                );
                 const snapDX = snapOffsets.snapX;
                 const snapDY = snapOffsets.snapY;
 
                 for (const nodeEl of selectedNodeEls) {
-                    const startPos = nodeStartPositions[nodeEl.dataset.nodeId];
+                    const el = /** @type {HTMLElement} */ (nodeEl);
+                    const startPos = nodeStartPositions[el.dataset.nodeId];
                     let newX = startPos.x + moveDx + snapDX;
                     let newY = startPos.y + moveDy + snapDY;
-                    const nodeId = nodeEl.dataset.nodeId;
-                    const nodeData = this.core.nodes.find(n => n.id === nodeId);
+                    const nodeId = el.dataset.nodeId;
+                    const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
 
-                    if (this.ui.canvas.snapEnabled) {
-                        newX = this.ui.canvas.snapToGrid(newX);
-                        newY = this.ui.canvas.snapToGrid(newY);
+                    if (this.node.ui.canvas.snapEnabled) {
+                        newX = this.node.ui.canvas.snapToGrid(newX);
+                        newY = this.node.ui.canvas.snapToGrid(newY);
                     }
 
-                    nodeEl.dataset.x = newX;
-                    nodeEl.dataset.y = newY;
-                    nodeEl.style.transform = `translate(${newX}px, ${newY}px)`;
+                    el.dataset.x = newX;
+                    el.dataset.y = newY;
+                    el.style.transform = `translate(${newX}px, ${newY}px)`;
 
                     if (ctrlHeld && nodeData && nodeData.parentId && !detachedSet.has(nodeId)) {
                         if (LOOP_ONLY_NODES.has(nodeData.type)) {
                             parentContainers.add(nodeData.parentId);
                             continue;
                         }
-                        const parent = this.core.nodes.find(n => n.id === nodeData.parentId);
+                        const parent = this.node.core.nodes.find((n) => n.id === nodeData.parentId);
                         if (parent) {
                             const absX = (parent.x || 0) + newX;
                             const absY = (parent.y || 0) + 58 + newY;
 
                             nodeEl.remove();
-                            this.ui.canvas.canvasContent.appendChild(nodeEl);
-                            nodeEl.dataset.x = absX;
-                            nodeEl.dataset.y = absY;
-                            nodeEl.style.transform = `translate(${absX}px, ${absY}px)`;
+                            this.node.ui.canvas.canvasContent.appendChild(nodeEl);
+                            const detachedEl = /** @type {HTMLElement} */ (nodeEl);
+                            detachedEl.dataset.x = absX;
+                            detachedEl.dataset.y = absY;
+                            detachedEl.style.transform = `translate(${absX}px, ${absY}px)`;
 
                             nodeData.parentId = null;
                             nodeData.x = absX;
@@ -258,9 +277,9 @@ export function mixinNodeDrag(node) {
 
                             parentContainers.add(parent.id);
 
-                            const oldChildren2 = this.core.getChildNodes(parent.id);
-                            const childIds2 = new Set(oldChildren2.map(c => c.id));
-                            this.core.edges = this.core.edges.filter(edge => {
+                            const oldChildren2 = this.node.core.getChildNodes(parent.id);
+                            const childIds2 = new Set(oldChildren2.map((c) => c.id));
+                            this.node.core.edges = this.node.core.edges.filter((edge) => {
                                 if (edge.source === nodeId) {
                                     if (childIds2.has(edge.target)) return false;
                                     if (edge.target === parent.id) return edge.targetPort !== 'container_end';
@@ -302,62 +321,63 @@ export function mixinNodeDrag(node) {
             clearDropHighlight();
 
             const ctrlHeld = e.ctrlKey || e.metaKey;
-            const draggedNodeIds = selectedNodeEls.map(el => el.dataset.nodeId);
+            const draggedNodeIds = selectedNodeEls.map((el) => /** @type {HTMLElement} */ (el).dataset.nodeId);
             const affectedNodeIds = new Set(draggedNodeIds);
-            selectedNodeEls.forEach(nodeEl => {
-                nodeEl.classList.remove('dragging');
-                nodeEl.style.zIndex = '';
+            selectedNodeEls.forEach((nodeEl) => {
+                const el = /** @type {HTMLElement} */ (nodeEl);
+                el.classList.remove('dragging');
+                el.style.zIndex = '';
 
-                const nodeId = nodeEl.dataset.nodeId;
-                const nodeData = this.core.nodes.find(n => n.id === nodeId);
+                const nodeId = el.dataset.nodeId;
+                const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
                 if (!nodeData) return;
 
-                const newX = parseFloat(nodeEl.dataset.x) || 0;
-                const newY = parseFloat(nodeEl.dataset.y) || 0;
+                const newX = parseFloat(el.dataset.x) || 0;
+                const newY = parseFloat(el.dataset.y) || 0;
 
                 if (finalTarget && !ctrlHeld && finalTarget.dataset.nodeId !== nodeId) {
                     const containerId = finalTarget.dataset.nodeId;
-                    const containerNode = this.core.nodes.find(n => n.id === containerId);
+                    const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
                     const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
                     if (LOOP_ONLY_NODES.has(nodeData.type) && nodeData.parentId !== containerId) {
                         if (nodeData.parentId) {
-                            this.updateContainerSize(nodeData.parentId);
+                            this.node.container.updateContainerSize(nodeData.parentId);
                             affectedNodeIds.add(nodeData.parentId);
                         }
                         return;
                     }
                     if (nodeData.parentId !== containerId) {
                         const oldParentId = nodeData.parentId;
-                        const oldParent = oldParentId ? this.core.nodes.find(n => n.id === oldParentId) : null;
+                        const oldParent = oldParentId ? this.node.core.nodes.find((n) => n.id === oldParentId) : null;
                         const oldHeaderH = oldParent ? 58 : 0;
                         if (nodeData.parentId) {
                             nodeData.parentId = null;
                         }
-                        const containerEl = this._elMap.get(containerId);
+                        const containerEl = /** @type {*} */ (this.node)._elMap.get(containerId);
                         const _body = containerEl.querySelector('.container-body');
                         const headerH = 36;
                         const descH = 20;
                         const containerAbsX = containerNode.x;
                         const containerAbsY = containerNode.y;
-                        const canvasX = oldParent ? (oldParent.x + newX) : newX;
-                        const canvasY = oldParent ? (oldParent.y + oldHeaderH + newY) : newY;
+                        const canvasX = oldParent ? oldParent.x + newX : newX;
+                        const canvasY = oldParent ? oldParent.y + oldHeaderH + newY : newY;
                         const relX = canvasX - containerAbsX;
                         const relY = canvasY - containerAbsY - headerH - descH;
                         nodeData.parentId = containerId;
                         nodeData.x = Math.max(5, Math.round(relX));
                         nodeData.y = Math.max(5, Math.round(relY));
                         nodeEl.remove();
-                        this.renderContainerChildren(containerId);
+                        this.node.container.renderContainerChildren(containerId);
 
                         if (oldParentId && oldParentId !== containerId) {
-                            this.updateContainerSize(oldParentId);
+                            this.node.container.updateContainerSize(oldParentId);
                             affectedNodeIds.add(oldParentId);
                         }
                         affectedNodeIds.add(containerId);
 
-                        const containerChildren = this.core.getChildNodes(containerId);
-                        const childIds = new Set(containerChildren.map(c => c.id));
-                        this.core.edges = this.core.edges.filter(edge => {
+                        const containerChildren = this.node.core.getChildNodes(containerId);
+                        const childIds = new Set(containerChildren.map((c) => c.id));
+                        this.node.core.edges = this.node.core.edges.filter((edge) => {
                             if (edge.source === nodeId) {
                                 if (childIds.has(edge.target)) return true;
                                 if (edge.target === containerId) return edge.targetPort === 'container_end';
@@ -371,21 +391,21 @@ export function mixinNodeDrag(node) {
                             return true;
                         });
                     } else {
-                        this.core.updateNodePosition(nodeId, newX, newY);
-                        this.updateContainerSize(containerId);
+                        this.node.core.updateNodePosition(nodeId, newX, newY);
+                        this.node.container.updateContainerSize(containerId);
                         affectedNodeIds.add(containerId);
                     }
                 } else if (ctrlHeld && nodeData.parentId) {
                     const LOOP_ONLY_NODES = new Set(['break', 'loop_set_variable', 'loop_continue']);
                     if (LOOP_ONLY_NODES.has(nodeData.type)) {
                         if (nodeData.parentId) {
-                            this.updateContainerSize(nodeData.parentId);
+                            this.node.container.updateContainerSize(nodeData.parentId);
                             affectedNodeIds.add(nodeData.parentId);
                         }
                         return;
                     }
                     const oldParentId = nodeData.parentId;
-                    const oldContainer = this.core.nodes.find(n => n.id === oldParentId);
+                    const oldContainer = this.node.core.nodes.find((n) => n.id === oldParentId);
                     const headerH = 36;
                     const descH = 20;
                     const absX = (oldContainer.x || 0) + newX;
@@ -394,16 +414,17 @@ export function mixinNodeDrag(node) {
                     nodeData.x = Math.round(absX);
                     nodeData.y = Math.round(absY);
                     nodeEl.remove();
-                    this.ui.canvas.canvasContent.appendChild(nodeEl);
-                    nodeEl.dataset.x = absX;
-                    nodeEl.dataset.y = absY;
-                    nodeEl.style.transform = `translate(${absX}px, ${absY}px)`;
-                    this.renderContainerChildren(oldParentId);
+                    this.node.ui.canvas.canvasContent.appendChild(nodeEl);
+                    const reattachedEl = /** @type {HTMLElement} */ (nodeEl);
+                    reattachedEl.dataset.x = absX;
+                    reattachedEl.dataset.y = absY;
+                    reattachedEl.style.transform = `translate(${absX}px, ${absY}px)`;
+                    this.node.container.renderContainerChildren(oldParentId);
                     affectedNodeIds.add(oldParentId);
 
-                    const oldChildren = this.core.getChildNodes(oldParentId);
-                    const childIds = new Set(oldChildren.map(c => c.id));
-                    this.core.edges = this.core.edges.filter(edge => {
+                    const oldChildren = this.node.core.getChildNodes(oldParentId);
+                    const childIds = new Set(oldChildren.map((c) => c.id));
+                    this.node.core.edges = this.node.core.edges.filter((edge) => {
                         if (edge.source === nodeId) {
                             if (childIds.has(edge.target)) return false;
                             if (edge.target === oldParentId) return edge.targetPort !== 'container_end';
@@ -417,9 +438,9 @@ export function mixinNodeDrag(node) {
                         return true;
                     });
                 } else {
-                    this.core.updateNodePosition(nodeId, newX, newY);
+                    this.node.core.updateNodePosition(nodeId, newX, newY);
                     if (nodeData.parentId) {
-                        this.updateContainerSize(nodeData.parentId);
+                        this.node.container.updateContainerSize(nodeData.parentId);
                         affectedNodeIds.add(nodeData.parentId);
                     }
                 }
@@ -428,26 +449,26 @@ export function mixinNodeDrag(node) {
             el.classList.remove('dragging');
             el.style.zIndex = '';
 
-            this.ui._ctrlDetached = null;
+            this.node.ui._ctrlDetached = null;
 
-            if (this.ui._pendingContainers) {
-                this.ui._pendingContainers.forEach(pid => {
+            if (this.node.ui._pendingContainers) {
+                this.node.ui._pendingContainers.forEach((pid) => {
                     affectedNodeIds.add(pid);
-                    this.updateContainerSize(pid);
+                    this.node.container.updateContainerSize(pid);
                 });
-                this.ui._pendingContainers = null;
+                this.node.ui._pendingContainers = null;
             }
 
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
             document.removeEventListener('keydown', onKeyDown);
 
-            if (this.ui.hasDragged) {
-                this.core.saveHistory('messages.moveNode');
+            if (this.node.ui.hasDragged) {
+                this.node.core.saveHistory('messages.moveNode');
             }
 
-            this.ui.edge.updateAffectedEdges(Array.from(affectedNodeIds));
-            this.ui.canvas.updateSvgSize();
+            this.node.ui.edge.updateAffectedEdges(Array.from(affectedNodeIds));
+            this.node.ui.canvas.updateSvgSize();
 
             const guidesEl = document.getElementById('alignmentGuides');
             if (guidesEl) guidesEl.innerHTML = '';
@@ -459,16 +480,17 @@ export function mixinNodeDrag(node) {
                 rafId = null;
             }
             clearDropHighlight();
-            selectedNodeEls.forEach(nodeEl => {
-                nodeEl.classList.remove('dragging');
-                nodeEl.style.zIndex = '';
+            selectedNodeEls.forEach((nodeEl) => {
+                const el = /** @type {HTMLElement} */ (nodeEl);
+                el.classList.remove('dragging');
+                el.style.zIndex = '';
             });
             el.classList.remove('dragging');
             el.style.zIndex = '';
 
-            this.ui._ctrlDetached = null;
-            if (this.ui._pendingContainers) {
-                this.ui._pendingContainers = null;
+            this.node.ui._ctrlDetached = null;
+            if (this.node.ui._pendingContainers) {
+                this.node.ui._pendingContainers = null;
             }
 
             document.removeEventListener('mousemove', onMouseMove);
@@ -489,7 +511,7 @@ export function mixinNodeDrag(node) {
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
         document.addEventListener('keydown', onKeyDown);
-    };
+    }
 
     /**
      * 计算智能对齐辅助线，返回需要吸附的偏移量
@@ -499,17 +521,17 @@ export function mixinNodeDrag(node) {
      * @param {HTMLElement[]} selectedNodeEls - 所有被选中拖拽的节点元素
      * @returns {{ snapX: number, snapY: number }}
      */
-    node.computeAlignment = function(draggedEl, dragX, dragY, selectedNodeEls) {
+    computeAlignment(draggedEl, dragX, dragY, selectedNodeEls) {
         const guidesEl = document.getElementById('alignmentGuides');
         if (!guidesEl) return { snapX: 0, snapY: 0 };
 
         guidesEl.innerHTML = '';
 
         const SNAP_THRESHOLD = 5;
-        const selectedIds = new Set(selectedNodeEls.map(el => el.dataset.nodeId));
+        const selectedIds = new Set(selectedNodeEls.map((el) => /** @type {HTMLElement} */ (el).dataset.nodeId));
 
-        const dw = draggedEl.offsetWidth || 200;
-        const dh = draggedEl.offsetHeight || 100;
+        const dw = /** @type {HTMLElement} */ (draggedEl).offsetWidth || 200;
+        const dh = /** @type {HTMLElement} */ (draggedEl).offsetHeight || 100;
 
         let draggedCanvasX = dragX;
         let draggedCanvasY = dragY;
@@ -517,7 +539,9 @@ export function mixinNodeDrag(node) {
         if (draggedContainer) {
             const containerNode = draggedContainer.closest('.canvas-node.container');
             if (containerNode) {
-                const containerData = this.core.nodes.find(n => n.id === containerNode.dataset.nodeId);
+                const containerData = this.node.core.nodes.find(
+                    (n) => n.id === /** @type {HTMLElement} */ (containerNode).dataset.nodeId
+                );
                 if (containerData) {
                     draggedCanvasX = (containerData.x || 0) + dragX;
                     draggedCanvasY = (containerData.y || 0) + 58 + dragY;
@@ -531,7 +555,7 @@ export function mixinNodeDrag(node) {
             right: draggedCanvasX + dw,
             top: draggedCanvasY,
             centerY: draggedCanvasY + dh / 2,
-            bottom: draggedCanvasY + dh
+            bottom: draggedCanvasY + dh,
         };
 
         let bestSnapX = null;
@@ -543,15 +567,18 @@ export function mixinNodeDrag(node) {
         const allNodeEls = document.querySelectorAll('#canvasContent .canvas-node');
 
         for (const otherEl of allNodeEls) {
-            if (selectedIds.has(otherEl.dataset.nodeId)) continue;
+            const oEl = /** @type {HTMLElement} */ (otherEl);
+            if (selectedIds.has(oEl.dataset.nodeId)) continue;
 
-            let ox = parseFloat(otherEl.dataset.x) || 0;
-            let oy = parseFloat(otherEl.dataset.y) || 0;
+            let ox = parseFloat(oEl.dataset.x) || 0;
+            let oy = parseFloat(oEl.dataset.y) || 0;
             const otherContainer = otherEl.closest('.container-body');
             if (otherContainer) {
-                const otherContainerNode = otherContainer.closest('.canvas-node.container');
+                const otherContainerNode = otherEl.closest('.canvas-node.container');
                 if (otherContainerNode) {
-                    const otherContainerData = this.core.nodes.find(n => n.id === otherContainerNode.dataset.nodeId);
+                    const otherContainerData = this.node.core.nodes.find(
+                        (n) => n.id === /** @type {HTMLElement} */ (otherContainerNode).dataset.nodeId
+                    );
                     if (otherContainerData) {
                         ox = (otherContainerData.x || 0) + ox;
                         oy = (otherContainerData.y || 0) + 58 + oy;
@@ -559,8 +586,8 @@ export function mixinNodeDrag(node) {
                 }
             }
 
-            const ow = otherEl.offsetWidth || 200;
-            const oh = otherEl.offsetHeight || 100;
+            const ow = oEl.offsetWidth || 200;
+            const oh = oEl.offsetHeight || 100;
 
             const otherEdges = {
                 left: ox,
@@ -568,7 +595,7 @@ export function mixinNodeDrag(node) {
                 right: ox + ow,
                 top: oy,
                 centerY: oy + oh / 2,
-                bottom: oy + oh
+                bottom: oy + oh,
             };
 
             const xChecks = [
@@ -576,7 +603,7 @@ export function mixinNodeDrag(node) {
                 { d: 'centerX', o: 'centerX' },
                 { d: 'right', o: 'right' },
                 { d: 'left', o: 'right' },
-                { d: 'right', o: 'left' }
+                { d: 'right', o: 'left' },
             ];
 
             for (const c of xChecks) {
@@ -593,7 +620,7 @@ export function mixinNodeDrag(node) {
                 { d: 'centerY', o: 'centerY' },
                 { d: 'bottom', o: 'bottom' },
                 { d: 'top', o: 'bottom' },
-                { d: 'bottom', o: 'top' }
+                { d: 'bottom', o: 'top' },
             ];
 
             for (const c of yChecks) {
@@ -606,8 +633,8 @@ export function mixinNodeDrag(node) {
             }
         }
 
-        const uniqueXLines = [...new Set(guideLines.filter(g => g.axis === 'x').map(g => g.pos))];
-        const uniqueYLines = [...new Set(guideLines.filter(g => g.axis === 'y').map(g => g.pos))];
+        const uniqueXLines = [...new Set(guideLines.filter((g) => g.axis === 'x').map((g) => g.pos))];
+        const uniqueYLines = [...new Set(guideLines.filter((g) => g.axis === 'y').map((g) => g.pos))];
 
         if (uniqueXLines.length > 0 || uniqueYLines.length > 0) {
             const svgW = guidesEl.getAttribute('width') || 5000;
@@ -626,7 +653,7 @@ export function mixinNodeDrag(node) {
 
         return {
             snapX: bestSnapX !== null ? bestSnapX - draggedCanvasX : 0,
-            snapY: bestSnapY !== null ? bestSnapY - draggedCanvasY : 0
+            snapY: bestSnapY !== null ? bestSnapY - draggedCanvasY : 0,
         };
-    };
+    }
 }

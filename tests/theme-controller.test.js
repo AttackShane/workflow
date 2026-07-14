@@ -7,20 +7,20 @@ jest.mock('../src/utils/helpers.js', () => ({
         setText: jest.fn(),
         setStyle: jest.fn(),
         setAttr: jest.fn(),
-        on: jest.fn()
+        on: jest.fn(),
     },
     Storage: {
         get: jest.fn(),
-        set: jest.fn()
-    }
+        set: jest.fn(),
+    },
 }));
 
 jest.mock('../src/utils/logger.js', () => ({
-    Logger: { warn: jest.fn() }
+    Logger: { warn: jest.fn() },
 }));
 
 jest.mock('../src/i18n/i18n.js', () => ({
-    t: (key) => key
+    t: (key) => key,
 }));
 
 jest.mock('../src/config/constants.js', () => ({
@@ -32,24 +32,32 @@ jest.mock('../src/config/constants.js', () => ({
             DEFAULT_FONT_SIZE: 14,
             FONT_SIZE_MIN: 12,
             FONT_SIZE_MAX: 20,
-            FONT_SIZE_STEP: 1
+            FONT_SIZE_STEP: 1,
         },
         LINE_NUMBERS: {
-            WIDTH_CALC: (fontSize) => Math.max(65, 20 + fontSize * 3)
-        }
-    }
+            WIDTH_CALC: (fontSize) => Math.max(65, 20 + fontSize * 3),
+        },
+    },
 }));
 
 function createMockElement() {
     return {
         style: {},
         _checked: false,
-        get checked() { return this._checked; },
-        set checked(v) { this._checked = v; },
+        get checked() {
+            return this._checked;
+        },
+        set checked(v) {
+            this._checked = v;
+        },
         _text: '',
-        get textContent() { return this._text; },
-        set textContent(v) { this._text = v; },
-        _events: {}
+        get textContent() {
+            return this._text;
+        },
+        set textContent(v) {
+            this._text = v;
+        },
+        _events: {},
     };
 }
 
@@ -95,22 +103,18 @@ function loadWithStorage(storageValues = {}) {
 describe('ThemeController', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-
-        global.document = {
-            documentElement: {
-                style: { setProperty: jest.fn() },
-                setAttribute: jest.fn()
-            },
-            dispatchEvent: jest.fn()
-        };
-        global.CustomEvent = class {
-            constructor(type, options) {
-                this.type = type;
-                this.detail = options?.detail || {};
-            }
-        };
-        global.setTimeout = jest.fn((fn) => { fn(); return 1; });
+        jest.spyOn(document.documentElement, 'setAttribute').mockImplementation(() => {});
+        jest.spyOn(document.documentElement.style, 'setProperty').mockImplementation(() => {});
+        jest.spyOn(document, 'dispatchEvent').mockImplementation(() => {});
+        global.setTimeout = jest.fn((fn) => {
+            fn();
+            return 1;
+        });
         global.clearTimeout = jest.fn();
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     describe('initThemeController', () => {
@@ -133,7 +137,7 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            expect(global.document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'dark');
+            expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'dark');
         });
 
         it('should set default theme when no storage value', () => {
@@ -141,7 +145,7 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            expect(global.document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'light');
+            expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'light');
         });
 
         it('should update font size display', () => {
@@ -165,10 +169,10 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
             expect(clickCalls.length).toBeGreaterThanOrEqual(3);
 
-            const changeCalls = DOM.on.mock.calls.filter(c => c[1] === 'change');
+            const changeCalls = DOM.on.mock.calls.filter((c) => c[1] === 'change');
             expect(changeCalls.length).toBeGreaterThanOrEqual(1);
         });
     });
@@ -179,14 +183,14 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const themeClickCall = clickCalls.find(c => c[0] === elements.themeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const themeClickCall = clickCalls.find((c) => c[0] === elements.themeBtn);
             expect(themeClickCall).toBeTruthy();
             const themeToggleHandler = themeClickCall[2];
 
             themeToggleHandler();
 
-            expect(global.document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'dark');
+            expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'dark');
             expect(DOM.setText).toHaveBeenCalledWith(elements.themeBtn, 'converter.themeLight');
         });
 
@@ -195,14 +199,14 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const themeClickCall = clickCalls.find(c => c[0] === elements.themeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const themeClickCall = clickCalls.find((c) => c[0] === elements.themeBtn);
             expect(themeClickCall).toBeTruthy();
             const themeToggleHandler = themeClickCall[2];
 
             themeToggleHandler();
 
-            expect(global.document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'light');
+            expect(document.documentElement.setAttribute).toHaveBeenCalledWith('data-theme', 'light');
         });
     });
 
@@ -212,8 +216,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontSmallCall = clickCalls.find(c => c[0] === elements.fontSmallBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontSmallCall = clickCalls.find((c) => c[0] === elements.fontSmallBtn);
             expect(fontSmallCall).toBeTruthy();
 
             fontSmallCall[2]();
@@ -226,8 +230,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontSmallCall = clickCalls.find(c => c[0] === elements.fontSmallBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontSmallCall = clickCalls.find((c) => c[0] === elements.fontSmallBtn);
             expect(fontSmallCall).toBeTruthy();
 
             fontSmallCall[2]();
@@ -240,8 +244,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontLargeCall = clickCalls.find(c => c[0] === elements.fontLargeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontLargeCall = clickCalls.find((c) => c[0] === elements.fontLargeBtn);
             expect(fontLargeCall).toBeTruthy();
 
             fontLargeCall[2]();
@@ -254,8 +258,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontLargeCall = clickCalls.find(c => c[0] === elements.fontLargeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontLargeCall = clickCalls.find((c) => c[0] === elements.fontLargeBtn);
             expect(fontLargeCall).toBeTruthy();
 
             fontLargeCall[2]();
@@ -268,14 +272,14 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontLargeCall = clickCalls.find(c => c[0] === elements.fontLargeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontLargeCall = clickCalls.find((c) => c[0] === elements.fontLargeBtn);
             expect(fontLargeCall).toBeTruthy();
 
             fontLargeCall[2]();
 
-            expect(global.document.documentElement.style.setProperty).toHaveBeenCalledWith('--code-font-size', '15px');
-            expect(global.document.documentElement.style.setProperty).toHaveBeenCalledWith('--code-line-height', '22.5px');
+            expect(document.documentElement.style.setProperty).toHaveBeenCalledWith('--code-font-size', '15px');
+            expect(document.documentElement.style.setProperty).toHaveBeenCalledWith('--code-line-height', '22.5px');
         });
 
         it('should dispatch fontsizechange event on font size change', () => {
@@ -283,14 +287,14 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const clickCalls = DOM.on.mock.calls.filter(c => c[1] === 'click');
-            const fontLargeCall = clickCalls.find(c => c[0] === elements.fontLargeBtn);
+            const clickCalls = DOM.on.mock.calls.filter((c) => c[1] === 'click');
+            const fontLargeCall = clickCalls.find((c) => c[0] === elements.fontLargeBtn);
             expect(fontLargeCall).toBeTruthy();
 
             fontLargeCall[2]();
 
-            expect(global.document.dispatchEvent).toHaveBeenCalledTimes(2);
-            const event = global.document.dispatchEvent.mock.calls[1][0];
+            expect(document.dispatchEvent).toHaveBeenCalledTimes(2);
+            const event = document.dispatchEvent.mock.calls[1][0];
             expect(event.type).toBe('fontsizechange');
             expect(event.detail.fontSize).toBe(15);
         });
@@ -302,8 +306,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const changeCalls = DOM.on.mock.calls.filter(c => c[1] === 'change');
-            const toggleCall = changeCalls.find(c => c[0] === elements.lineNumbersToggle);
+            const changeCalls = DOM.on.mock.calls.filter((c) => c[1] === 'change');
+            const toggleCall = changeCalls.find((c) => c[0] === elements.lineNumbersToggle);
             expect(toggleCall).toBeTruthy();
 
             elements.lineNumbersToggle._checked = true;
@@ -318,8 +322,8 @@ describe('ThemeController', () => {
 
             initThemeController();
 
-            const changeCalls = DOM.on.mock.calls.filter(c => c[1] === 'change');
-            const toggleCall = changeCalls.find(c => c[0] === elements.lineNumbersToggle);
+            const changeCalls = DOM.on.mock.calls.filter((c) => c[1] === 'change');
+            const toggleCall = changeCalls.find((c) => c[0] === elements.lineNumbersToggle);
             expect(toggleCall).toBeTruthy();
 
             elements.lineNumbersToggle._checked = false;

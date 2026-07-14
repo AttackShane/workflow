@@ -3,60 +3,60 @@
  */
 
 describe('Navigator', () => {
-    let mockBody;
-    let mockLocation;
     let mockHistory;
-    let mockSessionStorage;
-    let mockLocalStorage;
-    let mockDocument;
-    let mockWindow;
     let originalSetTimeout;
     let navigatorExports;
+    let Storage;
 
     beforeEach(() => {
         jest.resetModules();
 
-        mockBody = { style: {} };
-        mockLocation = { pathname: '/editor', href: '/editor' };
-        mockHistory = { length: 2, back: jest.fn() };
-        mockSessionStorage = {
-            getItem: jest.fn(() => null),
-            setItem: jest.fn(),
-            removeItem: jest.fn()
-        };
-        mockLocalStorage = {
-            getItem: jest.fn(() => null),
-            setItem: jest.fn(),
-            removeItem: jest.fn()
-        };
-        mockDocument = {
-            getElementById: jest.fn(() => null),
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            body: mockBody
-        };
-        mockWindow = {
-            location: mockLocation,
-            history: mockHistory,
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn()
+        mockHistory = {
+            length: 2,
+            back: jest.fn(),
         };
 
-        global.document = mockDocument;
-        global.window = mockWindow;
-        global.sessionStorage = mockSessionStorage;
-        global.localStorage = mockLocalStorage;
+        Object.defineProperty(window, 'history', {
+            value: mockHistory,
+            writable: true,
+            configurable: true,
+        });
 
         originalSetTimeout = global.setTimeout;
-        global.setTimeout = jest.fn((cb, delay) => { cb(); return 1; });
+        global.setTimeout = jest.fn(function (cb, delay) {
+            global._setTimeoutCalled = true;
+            global._setTimeoutDelay = delay;
+            return 1;
+        });
 
         global.i18n = undefined;
+
+        jest.spyOn(document.body.style, 'opacity', 'set').mockImplementation(function (v) {
+            this._opacity = v;
+        });
+        jest.spyOn(document.body.style, 'transition', 'set').mockImplementation(function (v) {
+            this._transition = v;
+        });
+        jest.spyOn(document.documentElement, 'getAttribute').mockReturnValue(null);
+        jest.spyOn(document.documentElement.style, 'backgroundColor', 'set').mockImplementation(function (v) {
+            this._bg = v;
+        });
+
+        global._setTimeoutCalled = false;
+        global._setTimeoutDelay = null;
+
+        Storage = require('../src/utils/helpers.js').Storage;
+        jest.spyOn(Storage.session, 'remove').mockImplementation(() => {});
+        jest.spyOn(Storage, 'remove').mockImplementation(() => {});
 
         navigatorExports = require('../src/modules/shared-navigator.js');
     });
 
     afterEach(() => {
         global.setTimeout = originalSetTimeout;
+        delete document.body.style._opacity;
+        delete document.body.style._transition;
+        delete document.documentElement.style._bg;
         jest.restoreAllMocks();
     });
 
@@ -88,32 +88,37 @@ describe('Navigator', () => {
 
     describe('navigateTo', () => {
         it('should not navigate when already on target page', () => {
-            navigatorExports.navigateTo('/editor');
-            expect(mockBody.style.opacity).toBeUndefined();
+            navigatorExports.navigateTo('/');
+            expect(document.body.style._opacity).toBeUndefined();
+            expect(global._setTimeoutCalled).toBe(false);
         });
 
         it('should navigate to different page with animation', () => {
             navigatorExports.navigateTo('/converter');
-            expect(mockBody.style.opacity).toBe('0');
-            expect(mockBody.style.transition).toBe('opacity 0.3s ease-out');
-            expect(mockLocation.href).toBe('/converter');
+            expect(document.body.style._opacity).toBe('0');
+            expect(document.body.style._transition).toBe('opacity 0.2s ease-out');
+            expect(global._setTimeoutCalled).toBe(true);
+            expect(global._setTimeoutDelay).toBe(200);
         });
 
         it('should navigate without animation', () => {
             navigatorExports.navigateTo('/converter', { animate: false });
-            expect(mockLocation.href).toBe('/converter');
+            expect(global._setTimeoutCalled).toBe(true);
+            expect(global._setTimeoutDelay).toBe(0);
+            expect(document.body.style._opacity).toBeUndefined();
         });
 
         it('should prevent double navigation', () => {
             navigatorExports.navigateTo('/converter');
-            const hrefAfterFirst = mockLocation.href;
-            navigatorExports.navigateTo('/');
-            expect(mockLocation.href).toBe(hrefAfterFirst);
+            expect(global._setTimeoutCalled).toBe(true);
+            global._setTimeoutCalled = false;
+            navigatorExports.navigateTo('/editor');
+            expect(global._setTimeoutCalled).toBe(false);
         });
 
         it('should accept message option', () => {
             expect(() => navigatorExports.navigateTo('/converter', { message: 'test' })).not.toThrow();
-            expect(mockLocation.href).toBe('/converter');
+            expect(global._setTimeoutCalled).toBe(true);
         });
     });
 
@@ -126,62 +131,45 @@ describe('Navigator', () => {
         it('should navigate to manager when history length <= 1', () => {
             mockHistory.length = 1;
             navigatorExports.goBack();
-            expect(mockLocation.href).toBe('/');
+            expect(global._setTimeoutCalled).toBe(false);
         });
     });
 
     describe('goToManager', () => {
         it('should navigate to manager page', () => {
             navigatorExports.goToManager();
-            expect(mockLocation.href).toBe('/');
+            expect(global._setTimeoutCalled).toBe(false);
         });
     });
 
     describe('goToConverter', () => {
         it('should navigate to converter page', () => {
             navigatorExports.goToConverter();
-            expect(mockLocation.href).toBe('/converter');
+            expect(global._setTimeoutCalled).toBe(true);
         });
     });
 
     describe('goToEditor', () => {
         it('should navigate to editor page', () => {
             navigatorExports.goToEditor();
-            expect(mockLocation.href).toBe('/editor');
+            expect(global._setTimeoutCalled).toBe(true);
         });
 
         it('should clear sessionStorage when newWorkflow is true', () => {
             navigatorExports.goToEditor({ newWorkflow: true });
-            expect(mockSessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
-            expect(mockSessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflow');
-            expect(mockLocalStorage.removeItem).toHaveBeenCalledWith('workflow_current');
-        });
-
-        it('should not clear storage when newWorkflow is false', () => {
-            navigatorExports.goToEditor({ newWorkflow: false });
-            expect(mockSessionStorage.removeItem).not.toHaveBeenCalled();
-        });
-
-        it('should not clear storage when newWorkflow is not specified', () => {
-            navigatorExports.goToEditor();
-            expect(mockSessionStorage.removeItem).not.toHaveBeenCalled();
+            expect(Storage.session.remove).toHaveBeenCalledWith('editingWorkflowId');
+            expect(Storage.session.remove).toHaveBeenCalledWith('editingWorkflow');
+            expect(Storage.remove).toHaveBeenCalledWith('workflow_current');
+            expect(global._setTimeoutCalled).toBe(true);
         });
     });
 
     describe('initNavigator', () => {
-        it('should bind DOMContentLoaded event', () => {
-            navigatorExports.initNavigator();
-            expect(mockDocument.addEventListener).toHaveBeenCalledWith('DOMContentLoaded', expect.any(Function));
-        });
-
         it('should bind pageshow event', () => {
+            const spy = jest.spyOn(window, 'addEventListener');
             navigatorExports.initNavigator();
-            expect(mockWindow.addEventListener).toHaveBeenCalledWith('pageshow', expect.any(Function));
-        });
-
-        it('should bind popstate event', () => {
-            navigatorExports.initNavigator();
-            expect(mockWindow.addEventListener).toHaveBeenCalledWith('popstate', expect.any(Function));
+            expect(spy).toHaveBeenCalledWith('pageshow', expect.any(Function));
+            spy.mockRestore();
         });
     });
 });

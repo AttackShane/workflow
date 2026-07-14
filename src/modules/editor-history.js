@@ -14,7 +14,6 @@ export class WorkflowHistory {
         this.historyList = document.getElementById(this.prefix + 'historyList');
         this._languageChangeHandler = () => this.updatePanel();
         document.addEventListener('languagechange', this._languageChangeHandler);
-        window.addEventListener('beforeunload', () => this.destroy());
     }
 
     destroy() {
@@ -26,37 +25,37 @@ export class WorkflowHistory {
 
     updatePanel() {
         if (!this.historyList) return;
-        
+
         while (this.historyList.firstChild) {
             this.historyList.removeChild(this.historyList.firstChild);
         }
-        
+
         this.core.history.forEach((state, index) => {
             const item = document.createElement('div');
             item.className = `history-item ${index === this.core.historyIndex ? 'current' : ''} ${index === 0 ? 'initial' : ''}`;
             item.textContent = t(state.actionKey, state.actionParams);
             item.style.order = index;
-            
+
             item.addEventListener('click', () => {
                 this.goTo(index);
             });
-            
+
             this.historyList.appendChild(item);
         });
     }
 
     goTo(index) {
         if (index < 0 || index >= this.core.history.length) return;
-        
+
         this.core.historyIndex = index;
         const state = this.core.history[index];
-        
+
         // 使用深拷贝避免污染历史记录
         this.core.nodes = deepClone(state.nodes);
         this.core.edges = deepClone(state.edges);
         this.core.selectedNode = state.selectedNode;
         this.core.selectedEdge = state.selectedEdge;
-        
+
         this.core._emitChange('jumpToHistory');
         this.ui.showMessage(t('history.jumpTo', { action: t(state.actionKey, state.actionParams) }), 'info');
     }

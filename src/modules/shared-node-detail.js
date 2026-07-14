@@ -3,6 +3,7 @@
  * 负责显示节点详情弹窗，支持 JSON/YAML 复制和编辑器跳转
  */
 import { cleanIcon } from '../utils/utils.js';
+import { Storage } from '../utils/helpers.js';
 import { ClipboardUtils, getJsyaml } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 
@@ -13,7 +14,7 @@ function convertToClipboardFormat(node) {
         icon: node.icon || '',
         description: node.description || '',
         mainColor: node.mainColor || '#5C62FF',
-        subTitle: node.subTitle || ''
+        subTitle: node.subTitle || '',
     };
 
     let inputs = {};
@@ -35,68 +36,70 @@ function convertToClipboardFormat(node) {
         }
     }
 
-    let nodeWidth = 360;
+    const nodeWidth = 360;
     let nodeHeight = 112;
     const nodeType = String(node.type).toLowerCase();
-    if (nodeType === "question" || nodeType === "18") {
+    if (nodeType === 'question' || nodeType === '18') {
         nodeHeight = 295;
     }
 
     const cleanIconUrl = cleanIcon(nodeMeta.icon);
 
     return {
-        type: "coze-workflow-clipboard-data",
+        type: 'coze-workflow-clipboard-data',
         source: {
-            workflowId: node.id || "exported_workflow",
+            workflowId: node.id || 'exported_workflow',
             flowMode: 0,
-            spaceId: "7638450388769374260",
+            spaceId: '7638450388769374260',
             isDouyin: false,
-            host: "www.coze.cn"
+            host: 'www.coze.cn',
         },
         json: {
-            nodes: [{
-                id: node.id || "exported_node",
-                type: node.type,
-                meta: {
-                    position: {
-                        x: pos.x,
-                        y: pos.y
-                    }
-                },
-                data: {
-                    inputs: inputs,
-                    nodeMeta: {
-                        title: nodeMeta.title,
-                        icon: cleanIconUrl,
-                        description: nodeMeta.description,
-                        mainColor: nodeMeta.mainColor,
-                        subTitle: nodeMeta.subTitle
+            nodes: [
+                {
+                    id: node.id || 'exported_node',
+                    type: node.type,
+                    meta: {
+                        position: {
+                            x: pos.x,
+                            y: pos.y,
+                        },
                     },
-                    outputs: node.outputs || node.data?.outputs || []
-                },
-                _temp: {
-                    bounds: {
-                        x: pos.x - nodeWidth / 2,
-                        y: pos.y - nodeHeight / 2,
-                        width: nodeWidth,
-                        height: nodeHeight
+                    data: {
+                        inputs: inputs,
+                        nodeMeta: {
+                            title: nodeMeta.title,
+                            icon: cleanIconUrl,
+                            description: nodeMeta.description,
+                            mainColor: nodeMeta.mainColor,
+                            subTitle: nodeMeta.subTitle,
+                        },
+                        outputs: node.outputs || node.data?.outputs || [],
                     },
-                    externalData: {
-                        icon: cleanIconUrl,
-                        description: nodeMeta.description,
-                        title: nodeMeta.title,
-                        mainColor: nodeMeta.mainColor
-                    }
-                }
-            }],
-            edges: []
+                    _temp: {
+                        bounds: {
+                            x: pos.x - nodeWidth / 2,
+                            y: pos.y - nodeHeight / 2,
+                            width: nodeWidth,
+                            height: nodeHeight,
+                        },
+                        externalData: {
+                            icon: cleanIconUrl,
+                            description: nodeMeta.description,
+                            title: nodeMeta.title,
+                            mainColor: nodeMeta.mainColor,
+                        },
+                    },
+                },
+            ],
+            edges: [],
         },
         bounds: {
             x: pos.x - nodeWidth / 2,
             y: pos.y - nodeHeight / 2,
             width: nodeWidth,
-            height: nodeHeight
-        }
+            height: nodeHeight,
+        },
     };
 }
 
@@ -146,7 +149,8 @@ export function showNodeDetail(node) {
         cursor: pointer;
         padding: 0 0.5rem;
     `;
-    modalHeader.innerHTML = '<h3 style="margin: 0; color: var(--text-primary, #f1f5f9); font-size: 1rem;">📦 节点详情</h3>';
+    modalHeader.innerHTML =
+        '<h3 style="margin: 0; color: var(--text-primary, #f1f5f9); font-size: 1rem;">📦 节点详情</h3>';
     modalHeader.appendChild(closeBtn);
 
     const modalBody = document.createElement('div');
@@ -248,7 +252,7 @@ export function showNodeDetail(node) {
     `;
     openEditorBtn.addEventListener('click', async () => {
         const clipboardData = convertToClipboardFormat(node);
-        sessionStorage.setItem('workflow-node-data', JSON.stringify(clipboardData));
+        Storage.session.set('workflow-node-data', clipboardData);
         window.open('workflow-editor.html', '_blank');
     });
 

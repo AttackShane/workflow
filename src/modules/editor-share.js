@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 工作流导出模块
  * 负责将编辑器节点通过逆向转换器转为 Coze YAML，打包为压缩包
@@ -8,18 +7,21 @@ import { t } from '../i18n/i18n.js';
 import { convertClipboardToYaml } from './converter-reverse.js';
 import { convertInternalToClipboardNode } from './shared-serializer.js';
 
-/**
- * 导出/分享相关的 mixin 方法
- * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
- */
-export function mixinShare(ui) {
+export class WorkflowShare {
+    /**
+     * @param {import('./editor-ui.js').WorkflowUI} ui - 主 UI 实例
+     */
+    constructor(ui) {
+        this.ui = ui;
+    }
+
     /**
      * 导出工作流为 Coze 平台兼容的 .zip 压缩包
      */
-    ui.exportWorkflow = async function() {
+    async exportWorkflow() {
         const workflowName = document.getElementById('workflowName')?.textContent || '';
         const workflowId = document.getElementById('workflowId')?.textContent || '';
-        const workflowDesc = ui.currentDescription || '';
+        const workflowDesc = this.ui.currentDescription || '';
 
         const safeName = workflowName || 'my_workflow';
         const safeDesc = workflowDesc || 'Created with workflow editor';
@@ -31,22 +33,22 @@ export function mixinShare(ui) {
             source: { workflowId: numericId },
             json: {
                 name: safeName,
-                nodes: this.core.nodes
-                    .filter(n => !n.parentId)
-                    .map(n => convertInternalToClipboardNode(n, this.core.nodes)),
-                edges: this.core.edges.map(e => ({
+                nodes: this.ui.core.nodes
+                    .filter((n) => !n.parentId)
+                    .map((n) => convertInternalToClipboardNode(n, this.ui.core.nodes)),
+                edges: this.ui.core.edges.map((e) => ({
                     sourceNodeID: String(e.source).replace('node_', ''),
                     targetNodeID: String(e.target).replace('node_', ''),
-                    sourcePortID: e.sourcePort || ''
-                }))
-            }
+                    sourcePortID: e.sourcePort || '',
+                })),
+            },
         };
 
         const yamlObj = convertClipboardToYaml(clipData);
         const yamlStr = getJsyaml().dump(yamlObj, {
             indent: 4,
             lineWidth: 120,
-            schema: getJsyaml().JSON_SCHEMA
+            schema: getJsyaml().JSON_SCHEMA,
         });
 
         const manifest = {
@@ -59,14 +61,14 @@ export function mixinShare(ui) {
                 icon: 'plugin_icon/workflow.png',
                 version: '',
                 flowMode: 0,
-                commitId: ''
+                commitId: '',
             },
-            sub: []
+            sub: [],
         };
         const manifestYaml = getJsyaml().dump(manifest, {
             indent: 4,
             lineWidth: 120,
-            schema: getJsyaml().JSON_SCHEMA
+            schema: getJsyaml().JSON_SCHEMA,
         });
 
         const zip = new (getJSZip())();
@@ -83,6 +85,6 @@ export function mixinShare(ui) {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        this.showMessage(t('messages.workflowExported'), 'success');
-    };
+        this.ui.showMessage(t('messages.workflowExported'), 'success');
+    }
 }

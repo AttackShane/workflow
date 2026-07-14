@@ -10,7 +10,7 @@ import {
     updateHistoryItem as updateData,
     exportHistory as exportData,
     importHistory as importData,
-    clearHistory as clearData
+    clearHistory as clearData,
 } from './converter-history.js';
 import { renderStats, renderStatsDetail } from './converter-stats-renderer.js';
 
@@ -31,7 +31,7 @@ class StatsView {
         let filteredHistory = history;
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            filteredHistory = history.filter(entry => {
+            filteredHistory = history.filter((entry) => {
                 const name = (entry.name || '').toLowerCase();
                 const type = (entry.isJson ? 'json' : 'yaml').toLowerCase();
                 const data = (entry.data || '').toLowerCase();
@@ -40,14 +40,16 @@ class StatsView {
         }
 
         if (filteredHistory.length === 0) {
-            const message = searchQuery.trim()
-                ? t('converter.noData')
-                : t('converter.noHistory');
+            const message = searchQuery.trim() ? t('converter.noData') : t('converter.noHistory');
             DOM.setHtml(historyList, `<div class="history-item empty">${message}</div>`);
             return;
         }
 
-        DOM.setHtml(historyList, filteredHistory.map(entry => `
+        DOM.setHtml(
+            historyList,
+            filteredHistory
+                .map(
+                    (entry) => `
             <div class="history-item" data-id="${entry.id}">
                 <div class="history-content">
                     <div class="history-info">
@@ -63,13 +65,18 @@ class StatsView {
                     <button class="delete-btn" title="${t('common.delete')}">🗑️</button>
                 </div>
             </div>
-        `).join(''));
+        `
+                )
+                .join('')
+        );
 
         this._bindHistoryItemEvents();
 
         const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
         if (selectedId !== null && selectedId !== undefined) {
-            historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
+            historyList
+                .querySelectorAll('.history-item')
+                .forEach((el) => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
 
             const selectedItem = historyList.querySelector(`[data-id="${selectedId}"]`);
             if (selectedItem) {
@@ -82,7 +89,7 @@ class StatsView {
         const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
         if (!historyList) return;
 
-        historyList.querySelectorAll('.history-item').forEach(item => {
+        historyList.querySelectorAll('.history-item').forEach((item) => {
             const id = parseInt(/** @type {HTMLElement} */ (item).dataset.id);
 
             const content = item.querySelector('.history-content');
@@ -142,8 +149,8 @@ class StatsView {
         const a = DOM.create('a', {
             attributes: {
                 href: url,
-                download: `workflow-history-${new Date().toISOString().split('T')[0]}.json`
-            }
+                download: `workflow-history-${new Date().toISOString().split('T')[0]}.json`,
+            },
         });
 
         document.body.appendChild(a);
@@ -206,13 +213,15 @@ class StatsView {
 
     _handleHistoryItemClick(id) {
         const history = this._getHistory();
-        const entry = history.find(h => h.id === id);
+        const entry = history.find((h) => h.id === id);
         if (entry) {
             import('./converter-ui.js').then(({ displayOutput }) => {
                 displayOutput(entry.data, entry.isJson, false);
 
                 const historyList = DOM.get(SELECTORS.CONVERTER.HISTORY_LIST);
-                historyList.querySelectorAll('.history-item').forEach(el => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
+                historyList
+                    .querySelectorAll('.history-item')
+                    .forEach((el) => DOM.removeClass(/** @type {HTMLElement} */ (el), 'active'));
 
                 const item = historyList.querySelector(`[data-id="${id}"]`);
                 if (item) {
@@ -225,7 +234,7 @@ class StatsView {
 
     _handleHistoryItemEdit(id) {
         const history = this._getHistory();
-        const entry = history.find(h => h.id === id);
+        const entry = history.find((h) => h.id === id);
         if (entry) {
             this._showEditModal(id, entry.name);
         }
@@ -240,8 +249,8 @@ class StatsView {
             descPlaceholder: '',
             descValue: '',
             okText: '保存',
-            cancelText: '取消'
-        }).then(result => {
+            cancelText: '取消',
+        }).then((result) => {
             if (result && result.name) {
                 this.updateHistoryItem(id, result.name);
             }
@@ -253,21 +262,27 @@ class StatsView {
     }
 
     _showDeleteConfirm(id) {
-        Dialog.confirm('确定要删除这条记录吗？\n此操作无法撤销', '🗑️ 删除', { danger: true, okText: '删除', cancelText: '取消' })
-            .then(confirmed => {
-                if (confirmed) {
-                    this.deleteHistoryItem(id);
-                }
-            });
+        Dialog.confirm('确定要删除这条记录吗？\n此操作无法撤销', '🗑️ 删除', {
+            danger: true,
+            okText: '删除',
+            cancelText: '取消',
+        }).then((confirmed) => {
+            if (confirmed) {
+                this.deleteHistoryItem(id);
+            }
+        });
     }
 
     _showClearConfirm() {
-        Dialog.confirm('确定要清空所有历史记录吗？\n此操作无法撤销', '⚠️ 清空', { danger: true, okText: '清空', cancelText: '取消' })
-            .then(confirmed => {
-                if (confirmed) {
-                    this.clearHistory();
-                }
-            });
+        Dialog.confirm('确定要清空所有历史记录吗？\n此操作无法撤销', '⚠️ 清空', {
+            danger: true,
+            okText: '清空',
+            cancelText: '取消',
+        }).then((confirmed) => {
+            if (confirmed) {
+                this.clearHistory();
+            }
+        });
     }
 
     initHistoryPanel = () => {
@@ -280,9 +295,9 @@ class StatsView {
         const importFileInput = DOM.create('input', {
             attributes: {
                 type: 'file',
-                accept: '.json'
+                accept: '.json',
             },
-            style: { display: 'none' }
+            style: { display: 'none' },
         });
         DOM.on(importFileInput, 'change', this.importHistory);
         document.body.appendChild(importFileInput);
@@ -297,32 +312,27 @@ class StatsView {
 
         this.updateHistoryPanel();
 
-        this._loadSelectedHistory();
-
         this._languageChangeHandler = () => {
             const searchInput = DOM.get(SELECTORS.CONVERTER.HISTORY_SEARCH);
             this.updateHistoryPanel(searchInput ? /** @type {HTMLInputElement} */ (searchInput).value : '');
         };
         document.addEventListener('languagechange', this._languageChangeHandler);
-        window.addEventListener('beforeunload', () => {
-            if (this._languageChangeHandler) {
-                document.removeEventListener('languagechange', this._languageChangeHandler);
-                this._languageChangeHandler = null;
-            }
-        });
+
+        return this._loadSelectedHistory();
     };
 
     _loadSelectedHistory() {
         const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
         if (selectedId !== null && selectedId !== undefined) {
             const history = this._getHistory();
-            const entry = history.find(h => String(h.id) === String(selectedId));
+            const entry = history.find((h) => String(h.id) === String(selectedId));
             if (entry) {
-                import('./converter-ui.js').then(({ displayOutput }) => {
+                return import('./converter-ui.js').then(({ displayOutput }) => {
                     displayOutput(entry.data, entry.isJson, false);
                 });
             }
         }
+        return Promise.resolve();
     }
 }
 

@@ -1,8 +1,26 @@
 <!DOCTYPE html>
 <html data-i18n-lang>
 <head>
+<style>
+    html { background-color: #1a1a2e; }
+    body.preload { opacity: 0; pointer-events: none; }
+    body.preload,
+    body.preload *,
+    body.preload *::before,
+    body.preload *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
 <script>
-(function(){try{var t=localStorage.getItem('workflow-converter-theme')||'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+(function(){
+    try {
+        var t = localStorage.getItem('workflow-converter-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0e17' : '#f1f5f9';
+        document.documentElement.style.colorScheme = t === 'dark' ? 'dark' : 'light';
+    } catch(e) {}
+})();
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +31,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script type="module" src="/modules/app.js"></script>
 </head>
-<body>
+<body class="preload">
     <div class="workflow-manager">
         <header class="header">
             <div class="header-left">

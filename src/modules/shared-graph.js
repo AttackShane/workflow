@@ -1,6 +1,5 @@
 import { getNodeTypeName, getNodeColor, convertLargeNumbersToStrings } from '../utils/utils.js';
-import { StringUtils, ClipboardUtils, getJsyaml } from '../utils/helpers.js';
-import { t } from '../i18n/i18n.js';
+import { StringUtils, getJsyaml } from '../utils/helpers.js';
 import { Logger } from '../utils/logger.js';
 import { showNodeDetail } from './shared-node-detail.js';
 
@@ -82,8 +81,11 @@ class GraphView {
             const nodeMap = new Map();
             const nodePositions = new Map();
             const nodeTypes = new Map();
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            const hasPositionData = nodes.some(node => {
+            let minX = Infinity,
+                minY = Infinity,
+                maxX = -Infinity,
+                maxY = -Infinity;
+            const hasPositionData = nodes.some((node) => {
                 const pos = this._findField(node, 'position', 'meta.position', 'data.position');
                 return pos && (pos.x !== undefined || pos.y !== undefined);
             });
@@ -91,8 +93,17 @@ class GraphView {
             nodes.forEach((node, index) => {
                 const nodeId = this._findField(node, 'id', 'nodeId', 'key', 'uid', 'uuid', 'node.id', 'data.id', '_id');
                 const finalId = nodeId !== undefined ? nodeId : JSON.stringify(node).substring(0, 20);
-                const rawType = this._findField(node, 'type', 'nodeType', 'category', 'kind',
-                                          'data.type', 'node.type', 'config.type', 'data.nodeMeta.type');
+                const rawType = this._findField(
+                    node,
+                    'type',
+                    'nodeType',
+                    'category',
+                    'kind',
+                    'data.type',
+                    'node.type',
+                    'config.type',
+                    'data.nodeMeta.type'
+                );
 
                 const pos = this._findField(node, 'position', 'meta.position', 'data.position');
 
@@ -129,37 +140,63 @@ class GraphView {
             const offsetX = padding - minX;
             const offsetY = padding - minY;
 
-            const nodesSvg = nodes.map(node => {
-                const nodeId = this._findField(node, 'id', 'nodeId', 'key', 'uid', 'uuid', 'node.id', 'data.id', '_id') || '';
-                const nodeName = this._findField(node, 'title', 'name', 'label', 'displayName', 'nodeName',
-                                          'data.nodeMeta.title', 'data.name', 'data.label', 'data.title',
-                                          'props.name', 'config.name', 'node.name', 'meta.name') || '未命名';
-                const rawType = this._findField(node, 'type', 'nodeType', 'category', 'kind',
-                                          'data.type', 'node.type', 'config.type', 'data.nodeMeta.type');
-                const nodeType = getNodeTypeName(rawType);
-                const color = getNodeColor(rawType);
-                const typeStr = String(rawType);
+            const nodesSvg = nodes
+                .map((node) => {
+                    const nodeId =
+                        this._findField(node, 'id', 'nodeId', 'key', 'uid', 'uuid', 'node.id', 'data.id', '_id') || '';
+                    const nodeName =
+                        this._findField(
+                            node,
+                            'title',
+                            'name',
+                            'label',
+                            'displayName',
+                            'nodeName',
+                            'data.nodeMeta.title',
+                            'data.name',
+                            'data.label',
+                            'data.title',
+                            'props.name',
+                            'config.name',
+                            'node.name',
+                            'meta.name'
+                        ) || '未命名';
+                    const rawType = this._findField(
+                        node,
+                        'type',
+                        'nodeType',
+                        'category',
+                        'kind',
+                        'data.type',
+                        'node.type',
+                        'config.type',
+                        'data.nodeMeta.type'
+                    );
+                    const nodeType = getNodeTypeName(rawType);
+                    const color = getNodeColor(rawType);
+                    const typeStr = String(rawType);
 
-                const pos = this._findField(node, 'position', 'meta.position', 'data.position');
-                const x = (pos?.x || 0) + offsetX;
-                const y = (pos?.y || 0) + offsetY;
+                    const pos = this._findField(node, 'position', 'meta.position', 'data.position');
+                    const x = (pos?.x || 0) + offsetX;
+                    const y = (pos?.y || 0) + offsetY;
 
-                const displayName = String(nodeName).length > 14 ? String(nodeName).substring(0, 14) + '...' : nodeName;
+                    const displayName =
+                        String(nodeName).length > 14 ? String(nodeName).substring(0, 14) + '...' : nodeName;
 
-                const fontSize = Math.min(13, Math.max(10, 140 / displayName.length));
-                const typeFontSize = Math.min(11, Math.max(9, 120 / String(nodeType).length));
+                    const fontSize = Math.min(13, Math.max(10, 140 / displayName.length));
+                    const typeFontSize = Math.min(11, Math.max(9, 120 / String(nodeType).length));
 
-                let connectionPoints = '';
-                if (typeStr !== '31') {
-                    if (typeStr !== '1') {
-                        connectionPoints += `<circle cx="0" cy="${nodeHeight/2}" r="6" fill="white" stroke="#64748B" stroke-width="2" opacity="0.9"/>`;
+                    let connectionPoints = '';
+                    if (typeStr !== '31') {
+                        if (typeStr !== '1') {
+                            connectionPoints += `<circle cx="0" cy="${nodeHeight / 2}" r="6" fill="white" stroke="#64748B" stroke-width="2" opacity="0.9"/>`;
+                        }
+                        if (typeStr !== '2') {
+                            connectionPoints += `<circle cx="${nodeWidth}" cy="${nodeHeight / 2}" r="6" fill="white" stroke="#64748B" stroke-width="2" opacity="0.9"/>`;
+                        }
                     }
-                    if (typeStr !== '2') {
-                        connectionPoints += `<circle cx="${nodeWidth}" cy="${nodeHeight/2}" r="6" fill="white" stroke="#64748B" stroke-width="2" opacity="0.9"/>`;
-                    }
-                }
 
-                return `
+                    return `
                     <g class="workflow-graph-node" data-node-id="${StringUtils.escapeHtml(String(nodeId))}"
                        transform="translate(${x}, ${y})"
                        style="cursor: pointer; transition: transform 0.2s;" title="${StringUtils.escapeHtml(String(nodeName))}">
@@ -169,57 +206,84 @@ class GraphView {
                         <rect x="3" y="3" width="${nodeWidth - 6}" height="${nodeHeight - 6}"
                               rx="10" ry="10" fill="rgba(255,255,255,0.12)"/>
                         ${connectionPoints}
-                        <text x="${nodeWidth/2}" y="${nodeHeight/2 - 5}" text-anchor="middle" fill="white" font-size="${fontSize}px" font-weight="600">
+                        <text x="${nodeWidth / 2}" y="${nodeHeight / 2 - 5}" text-anchor="middle" fill="white" font-size="${fontSize}px" font-weight="600">
                             ${StringUtils.escapeHtml(displayName)}
                         </text>
-                        <text x="${nodeWidth/2}" y="${nodeHeight/2 + 15}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${typeFontSize}px">
+                        <text x="${nodeWidth / 2}" y="${nodeHeight / 2 + 15}" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="${typeFontSize}px">
                             ${StringUtils.escapeHtml(String(nodeType))}
                         </text>
                     </g>
                 `;
-            }).join('');
+                })
+                .join('');
 
             this._graphRenderCount++;
             const uniqueId = `graph-${this._graphRenderCount}`;
 
-            const edgesSvg = edges.map((edge, index) => {
-                const sourceId = this._findField(edge, 'sourceNodeID', 'source_node', 'source', 'from', 'src', 'startNodeId',
-                                          'sourceNodeId', 'data.source', 'node.source', 'data.source_node') || '';
-                const targetId = this._findField(edge, 'targetNodeID', 'target_node', 'target', 'to', 'dest', 'endNodeId',
-                                          'targetNodeId', 'data.target', 'node.target', 'data.target_node') || '';
+            const edgesSvg = edges
+                .map((edge, index) => {
+                    const sourceId =
+                        this._findField(
+                            edge,
+                            'sourceNodeID',
+                            'source_node',
+                            'source',
+                            'from',
+                            'src',
+                            'startNodeId',
+                            'sourceNodeId',
+                            'data.source',
+                            'node.source',
+                            'data.source_node'
+                        ) || '';
+                    const targetId =
+                        this._findField(
+                            edge,
+                            'targetNodeID',
+                            'target_node',
+                            'target',
+                            'to',
+                            'dest',
+                            'endNodeId',
+                            'targetNodeId',
+                            'data.target',
+                            'node.target',
+                            'data.target_node'
+                        ) || '';
 
-                const sourcePos = nodePositions.get(String(sourceId));
-                const targetPos = nodePositions.get(String(targetId));
+                    const sourcePos = nodePositions.get(String(sourceId));
+                    const targetPos = nodePositions.get(String(targetId));
 
-                if (!sourcePos || !targetPos) return '';
+                    if (!sourcePos || !targetPos) return '';
 
-                const x1 = sourcePos.x + offsetX + nodeWidth;
-                const y1 = sourcePos.y + offsetY + nodeHeight/2;
-                const x2 = targetPos.x + offsetX;
-                const y2 = targetPos.y + offsetY + nodeHeight/2;
+                    const x1 = sourcePos.x + offsetX + nodeWidth;
+                    const y1 = sourcePos.y + offsetY + nodeHeight / 2;
+                    const x2 = targetPos.x + offsetX;
+                    const y2 = targetPos.y + offsetY + nodeHeight / 2;
 
-                const dx = Math.abs(x2 - x1);
-                const dy = Math.abs(y2 - y1);
-                const controlOffset = Math.max(dx * 0.4, 50);
+                    const dx = Math.abs(x2 - x1);
+                    const _dy = Math.abs(y2 - y1);
+                    const controlOffset = Math.max(dx * 0.4, 50);
 
-                const angle = Math.atan2(y2 - y1, x2 - x1);
-                const arrowOffset = 8;
-                const finalX2 = x2 - Math.cos(angle) * arrowOffset;
-                const finalY2 = y2 - Math.sin(angle) * arrowOffset;
+                    const angle = Math.atan2(y2 - y1, x2 - x1);
+                    const arrowOffset = 8;
+                    const finalX2 = x2 - Math.cos(angle) * arrowOffset;
+                    const finalY2 = y2 - Math.sin(angle) * arrowOffset;
 
-                let pathD;
-                if (dx < nodeWidth) {
-                    pathD = `M ${x1} ${y1} L ${finalX2} ${finalY2}`;
-                } else {
-                    pathD = `M ${x1} ${y1} C ${x1 + controlOffset} ${y1}, ${finalX2 - controlOffset} ${finalY2}, ${finalX2} ${finalY2}`;
-                }
+                    let pathD;
+                    if (dx < nodeWidth) {
+                        pathD = `M ${x1} ${y1} L ${finalX2} ${finalY2}`;
+                    } else {
+                        pathD = `M ${x1} ${y1} C ${x1 + controlOffset} ${y1}, ${finalX2 - controlOffset} ${finalY2}, ${finalX2} ${finalY2}`;
+                    }
 
-                return `
+                    return `
                     <path d="${pathD}"
                           stroke="#64748B" stroke-width="2.5" fill="none" marker-end="url(#arrowhead-${uniqueId})"
                           class="workflow-edge" data-edge-index="${index}"/>
                 `;
-            }).join('');
+                })
+                .join('');
 
             const svg = `
                 <svg width="${actualWidth}" height="${actualHeight}"
@@ -268,7 +332,11 @@ class GraphView {
                     let startX, startY, scrollLeft, scrollTop;
 
                     const handleMouseDown = (e) => {
-                        if (e.target.tagName === 'rect' || e.target.tagName === 'text' || e.target.tagName === 'circle') {
+                        if (
+                            e.target.tagName === 'rect' ||
+                            e.target.tagName === 'text' ||
+                            e.target.tagName === 'circle'
+                        ) {
                             const parent = e.target.closest('g');
                             if (parent && parent.classList.contains('workflow-graph-node')) {
                                 return;
@@ -307,7 +375,7 @@ class GraphView {
                 }
             }, 50);
 
-            this._workflowGraph.querySelectorAll('.workflow-graph-node').forEach(nodeEl => {
+            this._workflowGraph.querySelectorAll('.workflow-graph-node').forEach((nodeEl) => {
                 nodeEl.addEventListener('click', () => {
                     const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
                     const node = nodeMap.get(nodeId);
@@ -318,7 +386,6 @@ class GraphView {
                     }
                 });
             });
-
         } catch (e) {
             Logger.error('Graph render error:', e);
             this._workflowGraph.innerHTML = `

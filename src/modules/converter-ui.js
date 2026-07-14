@@ -1,7 +1,7 @@
 import { convertYamlToClipboard } from './converter.js';
 import { convertClipboardToYaml } from './converter-reverse.js';
 import { showStats, saveToHistory } from './converter-stats.js';
-import { goToEditor, goToManager, initNavigator } from './shared-navigator.js';
+import { goToEditor, goToManager } from './shared-navigator.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, ClipboardUtils, getJsyaml, Storage } from '../utils/helpers.js';
 import { convertLargeNumbersToStrings } from '../utils/utils.js';
@@ -18,7 +18,7 @@ function _loadYamlWithStringIds(input) {
 function _generateHash(content) {
     let hash = 0;
     for (let i = 0; i < content.length; i++) {
-        hash = ((hash << 5) - hash) + content.charCodeAt(i);
+        hash = (hash << 5) - hash + content.charCodeAt(i);
         hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
@@ -40,12 +40,12 @@ class UIController {
         this._performanceStats = {
             conversionTime: 0,
             highlightTime: 0,
-            renderTime: 0
+            renderTime: 0,
         };
 
-        import('./converter-virtual-scroll.js').then(m => { this._VirtualScroll = m.VirtualScroll; });
-
-        window.addEventListener('beforeunload', () => this._terminateWorker());
+        import('./converter-virtual-scroll.js').then((m) => {
+            this._VirtualScroll = m.VirtualScroll;
+        });
     }
 
     _terminateWorker() {
@@ -264,7 +264,7 @@ class UIController {
 
         if (selectedId !== null && selectedId !== undefined) {
             const history = Storage.get(APP_CONFIG.HISTORY.KEY, []);
-            const entry = history.find(h => String(h.id) === String(selectedId));
+            const entry = history.find((h) => String(h.id) === String(selectedId));
             if (entry && entry.data) {
                 dataToCopy = entry.data;
             }
@@ -286,7 +286,7 @@ class UIController {
 
         if (selectedId !== null && selectedId !== undefined) {
             const history = Storage.get(APP_CONFIG.HISTORY.KEY, []);
-            const entry = history.find(h => String(h.id) === String(selectedId));
+            const entry = history.find((h) => String(h.id) === String(selectedId));
             if (entry && entry.data) {
                 dataToDownload = entry.data;
                 dataType = entry.isJson ? 'json' : 'yaml';
@@ -300,8 +300,8 @@ class UIController {
         const a = DOM.create('a', {
             attributes: {
                 href: url,
-                download: `output.${dataType}`
-            }
+                download: `output.${dataType}`,
+            },
         });
 
         document.body.appendChild(a);
@@ -334,7 +334,7 @@ class UIController {
             copyStatus: DOM.get(SELECTORS.CONVERTER.COPY_STATUS),
             lineNumbers: DOM.get(SELECTORS.CONVERTER.LINE_NUMBERS),
             uploadArea: DOM.get('uploadArea'),
-            codeContainer: DOM.get(SELECTORS.CONVERTER.CODE_CONTAINER)
+            codeContainer: DOM.get(SELECTORS.CONVERTER.CODE_CONTAINER),
         };
 
         this._bindEvents();
@@ -382,7 +382,7 @@ class UIController {
             copyOutputBtn,
             downloadBtn,
             resetBtn,
-            uploadArea
+            uploadArea,
         } = this._elements;
 
         DOM.on(modeFileBtn, 'click', () => this._switchMode('file'));
@@ -456,7 +456,7 @@ class UIController {
             'text/yaml',
             'text/x-yaml',
             'text/plain',
-            'application/octet-stream'
+            'application/octet-stream',
         ];
         const mime = file.type || '';
         return !mime || validMimeTypes.includes(mime) || mime.startsWith('text/');

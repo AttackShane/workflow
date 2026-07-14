@@ -1,8 +1,26 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html data-i18n-lang>
 <head>
+<style>
+    html { background-color: #1a1a2e; }
+    body.preload { opacity: 0; pointer-events: none; }
+    body.preload,
+    body.preload *,
+    body.preload *::before,
+    body.preload *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
 <script>
-(function(){try{var t=localStorage.getItem('workflow-converter-theme')||'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+(function(){
+    try {
+        var t = localStorage.getItem('workflow-converter-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0e17' : '#f1f5f9';
+        document.documentElement.style.colorScheme = t === 'dark' ? 'dark' : 'light';
+    } catch(e) {}
+})();
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +28,9 @@
     <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/styles/style.css">
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-    <script type="module" src="/modules/app.js?v=3"></script>
+    <script type="module" src="/modules/app.js"></script>
 </head>
-<body>
+<body class="preload">
 <div class="container">
     <div class="header">
         <h1 data-i18n="converter.title">🔧 工作流转换器</h1>

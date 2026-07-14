@@ -14,7 +14,7 @@ export class WorkflowManager {
         this.currentEditingId = null;
         this.batchMode = false;
         this.selectedIds = new Set();
-        
+
         this.elements = {
             workflowList: null,
             emptyState: null,
@@ -35,41 +35,43 @@ export class WorkflowManager {
             btnTemplates: null,
             templateModalOverlay: null,
             templateModalClose: null,
-            templateGrid: null
+            templateGrid: null,
         };
     }
 
     init() {
+        this._hasRendered = false;
         this.loadElements();
         this.loadWorkflows();
         this.loadSavedWorkflow();
         this.bindEvents();
-        this.renderWorkflowList();
-        
+        if (!this._hasRendered) {
+            this.renderWorkflowList();
+        }
+
         // 监听语言切换，重新渲染列表
         i18n.addListener(() => this.handleLanguageChange());
     }
-    
+
     handleLanguageChange() {
         this.renderWorkflowList();
         this.renderTemplateGrid();
     }
-    
+
     loadSavedWorkflow() {
-        const savedWorkflow = sessionStorage.getItem('savedWorkflow');
-        
-        if (savedWorkflow) {
+        const workflow = Storage.session.get('savedWorkflow');
+
+        if (workflow) {
             try {
-                const workflow = JSON.parse(savedWorkflow);
-                sessionStorage.removeItem('savedWorkflow');
-                
-                const editingWorkflowId = sessionStorage.getItem('editingWorkflowId');
-                
+                Storage.session.remove('savedWorkflow');
+
+                const editingWorkflowId = Storage.session.get('editingWorkflowId');
+
                 if (editingWorkflowId) {
-                    sessionStorage.removeItem('editingWorkflowId');
-                    
-                    const index = this.workflows.findIndex(w => w.id === editingWorkflowId);
-                    
+                    Storage.session.remove('editingWorkflowId');
+
+                    const index = this.workflows.findIndex((w) => w.id === editingWorkflowId);
+
                     if (index !== -1) {
                         this.workflows[index] = {
                             ...this.workflows[index],
@@ -77,19 +79,19 @@ export class WorkflowManager {
                             edges: Array.isArray(workflow.edges) ? workflow.edges : [],
                             selectedNode: workflow.selectedNode,
                             selectedEdge: workflow.selectedEdge,
-                            updatedAt: workflow.updatedAt
+                            updatedAt: workflow.updatedAt,
                         };
                         this.saveWorkflowVersion(editingWorkflowId, this.workflows[index]);
                         this.saveWorkflows();
                         this.renderWorkflowList();
                     }
                 } else if (workflow.id && workflow.name) {
-                    const name = sessionStorage.getItem('savedWorkflowName') || workflow.name;
-                    const description = sessionStorage.getItem('savedWorkflowDesc') || workflow.description || '';
-                    sessionStorage.removeItem('savedWorkflowName');
-                    sessionStorage.removeItem('savedWorkflowDesc');
-                    
-                    const existingIndex = this.workflows.findIndex(w => w.id === workflow.id);
+                    const name = Storage.session.get('savedWorkflowName') || workflow.name;
+                    const description = Storage.session.get('savedWorkflowDesc') || workflow.description || '';
+                    Storage.session.remove('savedWorkflowName');
+                    Storage.session.remove('savedWorkflowDesc');
+
+                    const existingIndex = this.workflows.findIndex((w) => w.id === workflow.id);
                     if (existingIndex !== -1) {
                         this.workflows[existingIndex] = {
                             ...this.workflows[existingIndex],
@@ -97,7 +99,7 @@ export class WorkflowManager {
                             edges: workflow.edges || [],
                             selectedNode: workflow.selectedNode,
                             selectedEdge: workflow.selectedEdge,
-                            updatedAt: workflow.updatedAt || Date.now()
+                            updatedAt: workflow.updatedAt || Date.now(),
                         };
                         this.saveWorkflowVersion(workflow.id, this.workflows[existingIndex]);
                     } else {
@@ -108,7 +110,7 @@ export class WorkflowManager {
                             nodes: workflow.nodes || [],
                             edges: workflow.edges || [],
                             createdAt: workflow.createdAt || Date.now(),
-                            updatedAt: workflow.updatedAt || Date.now()
+                            updatedAt: workflow.updatedAt || Date.now(),
                         };
                         this.workflows.push(newWorkflow);
                         this.saveWorkflowVersion(workflow.id, newWorkflow);
@@ -155,7 +157,7 @@ export class WorkflowManager {
 
     loadWorkflows() {
         const stored = Storage.get('workflows');
-        
+
         if (stored && Array.isArray(stored)) {
             this.workflows = stored;
         } else {
@@ -171,35 +173,86 @@ export class WorkflowManager {
                 name: t('manager.defaultFlow1Name'),
                 description: t('manager.defaultFlow1Desc'),
                 nodes: [
-                    { id: 'node_100001', type: 'start', x: 400, y: 80, title: t('nodeTypes.start'), description: t('nodeTypes.description.start') },
-                    { id: 'node_100002', type: 'llm', x: 400, y: 200, title: t('nodeTypes.llm'), description: t('nodeTypes.description.llm'), parameters: { prompt: t('manager.defaultFlow1Prompt') } },
-                    { id: 'node_100003', type: 'end', x: 400, y: 320, title: t('nodeTypes.end'), description: t('nodeTypes.description.end') }
+                    {
+                        id: 'node_100001',
+                        type: 'start',
+                        x: 400,
+                        y: 80,
+                        title: t('nodeTypes.start'),
+                        description: t('nodeTypes.description.start'),
+                    },
+                    {
+                        id: 'node_100002',
+                        type: 'llm',
+                        x: 400,
+                        y: 200,
+                        title: t('nodeTypes.llm'),
+                        description: t('nodeTypes.description.llm'),
+                        parameters: { prompt: t('manager.defaultFlow1Prompt') },
+                    },
+                    {
+                        id: 'node_100003',
+                        type: 'end',
+                        x: 400,
+                        y: 320,
+                        title: t('nodeTypes.end'),
+                        description: t('nodeTypes.description.end'),
+                    },
                 ],
                 edges: [
                     { id: 'edge_1', source: 'node_100001', target: 'node_100002' },
-                    { id: 'edge_2', source: 'node_100002', target: 'node_100003' }
+                    { id: 'edge_2', source: 'node_100002', target: 'node_100003' },
                 ],
                 createdAt: Date.now() - 86400000,
-                updatedAt: Date.now() - 86400000
+                updatedAt: Date.now() - 86400000,
             },
             {
                 id: 'wf_2',
                 name: t('manager.defaultFlow2Name'),
                 description: t('manager.defaultFlow2Desc'),
                 nodes: [
-                    { id: 'node_200001', type: 'start', x: 400, y: 80, title: t('nodeTypes.start'), description: t('nodeTypes.description.start') },
-                    { id: 'node_200002', type: 'text', x: 400, y: 200, title: t('nodeTypes.text'), description: t('nodeTypes.description.text'), parameters: { text: t('manager.defaultFlow2Prompt') } },
-                    { id: 'node_200003', type: 'image_generate', x: 400, y: 320, title: t('nodeTypes.image_generate'), description: t('nodeTypes.description.image_generate') },
-                    { id: 'node_200004', type: 'end', x: 400, y: 440, title: t('nodeTypes.end'), description: t('nodeTypes.description.end') }
+                    {
+                        id: 'node_200001',
+                        type: 'start',
+                        x: 400,
+                        y: 80,
+                        title: t('nodeTypes.start'),
+                        description: t('nodeTypes.description.start'),
+                    },
+                    {
+                        id: 'node_200002',
+                        type: 'text',
+                        x: 400,
+                        y: 200,
+                        title: t('nodeTypes.text'),
+                        description: t('nodeTypes.description.text'),
+                        parameters: { text: t('manager.defaultFlow2Prompt') },
+                    },
+                    {
+                        id: 'node_200003',
+                        type: 'image_generate',
+                        x: 400,
+                        y: 320,
+                        title: t('nodeTypes.image_generate'),
+                        description: t('nodeTypes.description.image_generate'),
+                    },
+                    {
+                        id: 'node_200004',
+                        type: 'end',
+                        x: 400,
+                        y: 440,
+                        title: t('nodeTypes.end'),
+                        description: t('nodeTypes.description.end'),
+                    },
                 ],
                 edges: [
                     { id: 'edge_3', source: 'node_200001', target: 'node_200002' },
                     { id: 'edge_4', source: 'node_200002', target: 'node_200003' },
-                    { id: 'edge_5', source: 'node_200003', target: 'node_200004' }
+                    { id: 'edge_5', source: 'node_200003', target: 'node_200004' },
                 ],
                 createdAt: Date.now() - 172800000,
-                updatedAt: Date.now() - 172800000
-            }
+                updatedAt: Date.now() - 172800000,
+            },
         ];
     }
 
@@ -216,7 +269,7 @@ export class WorkflowManager {
             versionId: `v_${Date.now()}`,
             nodes: deepClone(workflowData.nodes || []),
             edges: deepClone(workflowData.edges || []),
-            timestamp: Date.now()
+            timestamp: Date.now(),
         });
         if (versions[workflowId].length > 50) {
             versions[workflowId] = versions[workflowId].slice(-50);
@@ -230,7 +283,7 @@ export class WorkflowManager {
     }
 
     showVersionCompare(workflowId) {
-        const workflow = this.workflows.find(w => w.id === workflowId);
+        const workflow = this.workflows.find((w) => w.id === workflowId);
         if (!workflow) return;
         const versions = this.getWorkflowVersions(workflowId);
         if (versions.length === 0) {
@@ -248,12 +301,14 @@ export class WorkflowManager {
         overlay.className = 'modal-overlay';
         overlay.id = 'versionCompareOverlay';
 
-        const versionOptions = versions.map((v, i) => {
-            const d = new Date(v.timestamp);
-            const ts = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-            const nodeCount = v.nodes ? v.nodes.length : 0;
-            return `<option value="${i}">${t('manager.versionOption', { index: i + 1, time: ts, count: nodeCount })}</option>`;
-        }).join('');
+        const versionOptions = versions
+            .map((v, i) => {
+                const d = new Date(v.timestamp);
+                const ts = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+                const nodeCount = v.nodes ? v.nodes.length : 0;
+                return `<option value="${i}">${t('manager.versionOption', { index: i + 1, time: ts, count: nodeCount })}</option>`;
+            })
+            .join('');
 
         overlay.innerHTML = `
             <div class="modal" style="max-width: 800px;">
@@ -286,18 +341,26 @@ export class WorkflowManager {
         const closeBtn = overlay.querySelector('#versionCompareClose');
         const closeBtn2 = overlay.querySelector('#btnVersionCompareClose');
         const compareBtn = overlay.querySelector('#btnCompareRun');
-        const closeFn = () => { overlay.style.display = 'none'; overlay.remove(); };
+        const closeFn = () => {
+            overlay.style.display = 'none';
+            overlay.remove();
+        };
 
         closeBtn.addEventListener('click', closeFn);
         closeBtn2.addEventListener('click', closeFn);
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeFn(); });
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeFn();
+        });
 
         compareBtn.addEventListener('click', () => {
             const idxA = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value);
             const idxB = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionB')).value);
             const resultDiv = overlay.querySelector('#versionCompareResult');
             if (idxA === idxB) {
-                resultDiv.innerHTML = '<p style="color:var(--text-secondary);text-align:center;">' + t('manager.versionCompareSelect') + '</p>';
+                resultDiv.innerHTML =
+                    '<p style="color:var(--text-secondary);text-align:center;">' +
+                    t('manager.versionCompareSelect') +
+                    '</p>';
                 return;
             }
             resultDiv.innerHTML = this._generateVersionDiff(versions[idxA], versions[idxB]);
@@ -305,7 +368,9 @@ export class WorkflowManager {
 
         if (versions.length >= 2) {
             /** @type {HTMLSelectElement} */ (overlay.querySelector('#versionB')).value = String(versions.length - 1);
-            /** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value = String(Math.max(0, versions.length - 2));
+            /** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value = String(
+                Math.max(0, versions.length - 2)
+            );
         }
     }
 
@@ -315,21 +380,22 @@ export class WorkflowManager {
         const edgesA = versionA.edges || [];
         const edgesB = versionB.edges || [];
 
-        const mapA = new Map(nodesA.map(n => [n.id, n]));
-        const mapB = new Map(nodesB.map(n => [n.id, n]));
+        const mapA = new Map(nodesA.map((n) => [n.id, n]));
+        const mapB = new Map(nodesB.map((n) => [n.id, n]));
 
-        const addedNodes = nodesB.filter(n => !mapA.has(n.id));
-        const removedNodes = nodesA.filter(n => !mapB.has(n.id));
+        const addedNodes = nodesB.filter((n) => !mapA.has(n.id));
+        const removedNodes = nodesA.filter((n) => !mapB.has(n.id));
         const modifiedNodes = [];
         const unchangedNodes = [];
 
-        nodesB.forEach(n => {
+        nodesB.forEach((n) => {
             if (mapA.has(n.id)) {
                 const a = mapA.get(n.id);
                 const changes = [];
                 if (a.title !== n.title) changes.push(t('manager.versionChangeTitle', { old: a.title, new: n.title }));
                 if (a.type !== n.type) changes.push(t('manager.versionChangeType', { old: a.type, new: n.type }));
-                if (a.x !== n.x || a.y !== n.y) changes.push(t('manager.versionChangePosition', { x1: a.x, y1: a.y, x2: n.x, y2: n.y }));
+                if (a.x !== n.x || a.y !== n.y)
+                    changes.push(t('manager.versionChangePosition', { x1: a.x, y1: a.y, x2: n.x, y2: n.y }));
                 if (JSON.stringify(a.data) !== JSON.stringify(n.data)) changes.push(t('manager.versionChangeParams'));
                 if (changes.length > 0) {
                     modifiedNodes.push({ id: n.id, title: n.title, changes });
@@ -339,10 +405,10 @@ export class WorkflowManager {
             }
         });
 
-        const edgeIdsA = new Set(edgesA.map(e => `${e.source}-${e.target}`));
-        const edgeIdsB = new Set(edgesB.map(e => `${e.source}-${e.target}`));
-        const addedEdges = edgesB.filter(e => !edgeIdsA.has(`${e.source}-${e.target}`));
-        const removedEdges = edgesA.filter(e => !edgeIdsB.has(`${e.source}-${e.target}`));
+        const edgeIdsA = new Set(edgesA.map((e) => `${e.source}-${e.target}`));
+        const edgeIdsB = new Set(edgesB.map((e) => `${e.source}-${e.target}`));
+        const addedEdges = edgesB.filter((e) => !edgeIdsA.has(`${e.source}-${e.target}`));
+        const removedEdges = edgesA.filter((e) => !edgeIdsB.has(`${e.source}-${e.target}`));
 
         let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">';
 
@@ -350,7 +416,11 @@ export class WorkflowManager {
             [t('editor.nodeCount'), nodesA.length, nodesB.length],
             [t('editor.edgeCount'), edgesA.length, edgesB.length],
             [t('manager.versionNewNodes').replace('{count}', '{0}').replace('{list}', ''), '-', addedNodes.length],
-            [t('manager.versionDeletedNodes').replace('{count}', '{0}').replace('{list}', ''), removedNodes.length, '-'],
+            [
+                t('manager.versionDeletedNodes').replace('{count}', '{0}').replace('{list}', ''),
+                removedNodes.length,
+                '-',
+            ],
             [t('manager.versionModifiedNodes').replace('{count}', '{0}'), '-', modifiedNodes.length],
             [t('manager.versionNewEdges').replace('{count}', '{0}'), '-', addedEdges.length],
             [t('manager.versionDeletedEdges').replace('{count}', '{0}'), removedEdges.length, '-'],
@@ -358,7 +428,14 @@ export class WorkflowManager {
 
         html += '<div><h4 style="margin:0 0 0.5rem;">📊 ' + t('manager.versionSummary') + '</h4>';
         html += '<table style="width:100%;border-collapse:collapse;font-size:0.8rem;">';
-        html += '<tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionItem') + '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionAOld') + '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' + t('manager.versionBNew') + '</th></tr>';
+        html +=
+            '<tr><th style="text-align:left;padding:4px;border-bottom:1px solid var(--border);">' +
+            t('manager.versionItem') +
+            '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' +
+            t('manager.versionAOld') +
+            '</th><th style="text-align:center;padding:4px;border-bottom:1px solid var(--border);">' +
+            t('manager.versionBNew') +
+            '</th></tr>';
         for (const [label, a, b] of summaryItems) {
             const aClass = typeof a === 'number' && typeof b === 'number' && a !== b ? 'color:#F59E0B;' : '';
             const bClass = typeof a === 'number' && typeof b === 'number' && a !== b ? 'color:#F59E0B;' : '';
@@ -370,14 +447,14 @@ export class WorkflowManager {
         html += '<h4 style="margin:0 0 0.5rem;">📝 ' + t('manager.versionDetail') + '</h4>';
 
         if (addedNodes.length > 0) {
-            html += `<div style="margin-bottom:0.5rem;color:#4CAF50;">✅ ${t('manager.versionNewNodes', { count: addedNodes.length, list: addedNodes.map(n => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
+            html += `<div style="margin-bottom:0.5rem;color:#4CAF50;">✅ ${t('manager.versionNewNodes', { count: addedNodes.length, list: addedNodes.map((n) => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
         }
         if (removedNodes.length > 0) {
-            html += `<div style="margin-bottom:0.5rem;color:#EF4444;">❌ ${t('manager.versionDeletedNodes', { count: removedNodes.length, list: removedNodes.map(n => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
+            html += `<div style="margin-bottom:0.5rem;color:#EF4444;">❌ ${t('manager.versionDeletedNodes', { count: removedNodes.length, list: removedNodes.map((n) => StringUtils.escapeHtml(n.title)).join(', ') })}</div>`;
         }
         if (modifiedNodes.length > 0) {
             html += `<div style="margin-bottom:0.5rem;color:#F59E0B;">✏️ ${t('manager.versionModifiedNodes', { count: modifiedNodes.length })}</div>`;
-            modifiedNodes.forEach(n => {
+            modifiedNodes.forEach((n) => {
                 html += `<div style="margin-left:1rem;margin-bottom:0.3rem;font-size:0.8rem;">• <b>${StringUtils.escapeHtml(n.title)}</b>: ${n.changes.join('; ')}</div>`;
             });
         }
@@ -387,7 +464,13 @@ export class WorkflowManager {
         if (removedEdges.length > 0) {
             html += `<div style="margin-bottom:0.5rem;color:#EF4444;">🔗 ${t('manager.versionDeletedEdges', { count: removedEdges.length })}</div>`;
         }
-        if (addedNodes.length === 0 && removedNodes.length === 0 && modifiedNodes.length === 0 && addedEdges.length === 0 && removedEdges.length === 0) {
+        if (
+            addedNodes.length === 0 &&
+            removedNodes.length === 0 &&
+            modifiedNodes.length === 0 &&
+            addedEdges.length === 0 &&
+            removedEdges.length === 0
+        ) {
             html += '<div style="color:var(--text-secondary);">' + t('manager.versionNoDiff') + '</div>';
         }
 
@@ -410,7 +493,7 @@ export class WorkflowManager {
         this.elements.btnTemplates.addEventListener('click', () => this.openTemplateModal());
         this.elements.templateModalClose.addEventListener('click', () => this.closeTemplateModal());
         this.elements.templateGrid.addEventListener('click', (e) => this.handleTemplateClick(e));
-        
+
         // 搜索和排序
         if (this.elements.workflowSearch) {
             this.elements.workflowSearch.addEventListener('input', () => this.renderWorkflowList());
@@ -436,7 +519,13 @@ export class WorkflowManager {
         let longPressTimer = null;
         this.elements.workflowList.addEventListener('mousedown', (e) => {
             const card = e.target.closest('.workflow-card');
-            if (!card || e.target.closest('.action-btn') || e.target.closest('.workflow-checkbox') || e.target.closest('.drag-handle')) return;
+            if (
+                !card ||
+                e.target.closest('.action-btn') ||
+                e.target.closest('.workflow-checkbox') ||
+                e.target.closest('.drag-handle')
+            )
+                return;
             longPressTimer = setTimeout(() => {
                 if (!this.batchMode) {
                     this.enterBatchMode();
@@ -470,29 +559,29 @@ export class WorkflowManager {
                 this.elements.selectAllCheckbox.checked = this.selectedIds.size === this.workflows.length;
             }
         });
-        
+
         // 导航按钮
         const navConverterBtn = document.getElementById('navConverterBtn');
         const navEditorBtn = document.getElementById('navEditorBtn');
         if (navConverterBtn) navConverterBtn.addEventListener('click', goToConverter);
         if (navEditorBtn) navEditorBtn.addEventListener('click', () => goToEditor({ newWorkflow: true }));
-        
+
         // 添加页面可见性监听，当页面重新获得焦点时自动刷新
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 this.handlePageVisible();
             }
         });
-        
+
         // 添加焦点监听
         window.addEventListener('focus', () => {
             this.handlePageVisible();
         });
     }
-    
+
     handlePageVisible() {
         // 检查是否有新保存的工作流需要加载
-        const savedWorkflow = sessionStorage.getItem('savedWorkflow');
+        const savedWorkflow = Storage.session.get('savedWorkflow');
         if (savedWorkflow) {
             this.loadSavedWorkflow();
         } else {
@@ -503,7 +592,7 @@ export class WorkflowManager {
     }
 
     openNewWorkflowModal() {
-        Dialog.prompt(t('manager.createNew')).then(result => {
+        Dialog.prompt(t('manager.createNew')).then((result) => {
             if (!result) return;
             const newWorkflow = {
                 id: `wf_${Date.now()}`,
@@ -512,7 +601,7 @@ export class WorkflowManager {
                 nodes: [],
                 edges: [],
                 createdAt: Date.now(),
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
             };
             this.workflows.push(newWorkflow);
             this.saveWorkflows();
@@ -564,7 +653,7 @@ export class WorkflowManager {
         }
 
         if (this.currentEditingId) {
-            const index = this.workflows.findIndex(w => w.id === this.currentEditingId);
+            const index = this.workflows.findIndex((w) => w.id === this.currentEditingId);
             if (index !== -1) {
                 this.workflows[index].name = name;
                 this.workflows[index].description = description;
@@ -581,7 +670,7 @@ export class WorkflowManager {
         const JSZip = getJSZip();
         const zip = await JSZip.loadAsync(zipFile);
 
-        const fileNames = Object.keys(zip.files).filter(f => !zip.files[f].dir);
+        const fileNames = Object.keys(zip.files).filter((f) => !zip.files[f].dir);
 
         let manifestYaml = null;
         let workflowYamlStr = null;
@@ -590,13 +679,19 @@ export class WorkflowManager {
             const basename = filename.split('/').pop();
             if (basename === 'MANIFEST.yml' || basename === 'MANIFEST.yaml') {
                 const content = await zip.file(filename).async('string');
-                manifestYaml = /** @type {{ main?: { name?: string, desc?: string } } | null} */ (getJsyaml().load(content));
+                manifestYaml = /** @type {{ main?: { name?: string, desc?: string } } | null} */ (
+                    getJsyaml().load(content)
+                );
             }
         }
 
         for (const filename of fileNames) {
             const basename = filename.split('/').pop();
-            if ((basename.endsWith('.yaml') || basename.endsWith('.yml')) && basename !== 'MANIFEST.yml' && basename !== 'MANIFEST.yaml') {
+            if (
+                (basename.endsWith('.yaml') || basename.endsWith('.yml')) &&
+                basename !== 'MANIFEST.yml' &&
+                basename !== 'MANIFEST.yaml'
+            ) {
                 workflowYamlStr = await zip.file(filename).async('string');
                 break;
             }
@@ -606,7 +701,10 @@ export class WorkflowManager {
             throw new Error('No workflow YAML found in zip package');
         }
 
-        const parsedYaml = /** @type {{ id: any, name?: string, description?: string, nodes: any[], edges?: any[] }} */ (getJsyaml().load(workflowYamlStr));
+        const parsedYaml =
+            /** @type {{ id: any, name?: string, description?: string, nodes: any[], edges?: any[] }} */ (
+                getJsyaml().load(workflowYamlStr)
+            );
 
         if (!parsedYaml || !parsedYaml.nodes || !Array.isArray(parsedYaml.nodes)) {
             throw new Error('Invalid workflow YAML in zip package');
@@ -626,7 +724,7 @@ export class WorkflowManager {
             name,
             description,
             nodes,
-            edges
+            edges,
         };
     }
 
@@ -662,7 +760,7 @@ export class WorkflowManager {
                 nodes: zipResult.nodes,
                 edges: zipResult.edges,
                 createdAt: Date.now(),
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
             };
 
             this.workflows.push(newWorkflow);
@@ -675,19 +773,23 @@ export class WorkflowManager {
     }
 
     async deleteWorkflow(id) {
-        const workflow = this.workflows.find(w => w.id === id);
-        const confirmed = await Dialog.confirm(t('manager.deleteConfirm', { name: workflow?.name || t('manager.thisWorkflow') }), t('common.confirm'), { danger: true });
+        const workflow = this.workflows.find((w) => w.id === id);
+        const confirmed = await Dialog.confirm(
+            t('manager.deleteConfirm', { name: workflow?.name || t('manager.thisWorkflow') }),
+            t('common.confirm'),
+            { danger: true }
+        );
         if (!confirmed) {
             return;
         }
 
-        this.workflows = this.workflows.filter(w => w.id !== id);
+        this.workflows = this.workflows.filter((w) => w.id !== id);
         this.saveWorkflows();
         this.renderWorkflowList();
     }
 
     async duplicateWorkflow(id) {
-        const original = this.workflows.find(w => w.id === id);
+        const original = this.workflows.find((w) => w.id === id);
         if (!original) return;
 
         const newId = `workflow_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -696,22 +798,22 @@ export class WorkflowManager {
             id: newId,
             name: `${original.name} ${t('messages.duplicateNodeSuffix')}`,
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
 
         if (duplicated.nodes) {
             const idMap = new Map();
-            duplicated.nodes = duplicated.nodes.map(n => {
+            duplicated.nodes = duplicated.nodes.map((n) => {
                 const oldId = n.id;
                 const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
                 idMap.set(oldId, newId);
                 return { ...n, id: newId };
             });
-            duplicated.edges = (duplicated.edges || []).map(e => ({
+            duplicated.edges = (duplicated.edges || []).map((e) => ({
                 ...e,
                 id: `edge_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
                 source: idMap.get(e.source) || e.source,
-                target: idMap.get(e.target) || e.target
+                target: idMap.get(e.target) || e.target,
             }));
         }
 
@@ -727,7 +829,7 @@ export class WorkflowManager {
         if (this.elements.batchToolbar) {
             this.elements.batchToolbar.style.display = 'flex';
         }
-        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+        document.querySelectorAll('.workflow-checkbox').forEach((cb) => {
             /** @type {HTMLInputElement} */ (cb).style.display = '';
         });
         if (this.elements.selectAllCheckbox) {
@@ -742,7 +844,7 @@ export class WorkflowManager {
         if (this.elements.batchToolbar) {
             this.elements.batchToolbar.style.display = 'none';
         }
-        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+        document.querySelectorAll('.workflow-checkbox').forEach((cb) => {
             const input = /** @type {HTMLInputElement} */ (cb);
             input.style.display = 'none';
             input.checked = false;
@@ -751,7 +853,7 @@ export class WorkflowManager {
 
     toggleSelectAll() {
         const checked = this.elements.selectAllCheckbox?.checked;
-        document.querySelectorAll('.workflow-checkbox').forEach(cb => {
+        document.querySelectorAll('.workflow-checkbox').forEach((cb) => {
             const input = /** @type {HTMLInputElement} */ (cb);
             input.checked = !!checked;
             if (checked) {
@@ -779,7 +881,7 @@ export class WorkflowManager {
         );
         if (!confirmed) return;
 
-        this.workflows = this.workflows.filter(w => !this.selectedIds.has(w.id));
+        this.workflows = this.workflows.filter((w) => !this.selectedIds.has(w.id));
         this.saveWorkflows();
         this.exitBatchMode();
         this.renderWorkflowList();
@@ -795,22 +897,20 @@ export class WorkflowManager {
             source: { workflowId: workflow.id || String(Date.now()) },
             json: {
                 name: workflow.name || 'my_workflow',
-                nodes: nodes
-                    .filter(n => !n.parentId)
-                    .map(n => convertInternalToClipboardNode(n, nodes)),
-                edges: edges.map(e => ({
+                nodes: nodes.filter((n) => !n.parentId).map((n) => convertInternalToClipboardNode(n, nodes)),
+                edges: edges.map((e) => ({
                     sourceNodeID: String(e.source).replace('node_', ''),
                     targetNodeID: String(e.target).replace('node_', ''),
-                    sourcePortID: e.sourcePort || ''
-                }))
-            }
+                    sourcePortID: e.sourcePort || '',
+                })),
+            },
         };
 
         const yamlObj = convertClipboardToYaml(clipData);
         const workflowYaml = getJsyaml().dump(yamlObj, {
             indent: 4,
             lineWidth: 120,
-            schema: getJsyaml().JSON_SCHEMA
+            schema: getJsyaml().JSON_SCHEMA,
         });
 
         const safeName = (workflow.name || 'workflow').replace(/[^a-zA-Z0-9\u4e00-\u9fff_-]/g, '_');
@@ -825,14 +925,14 @@ export class WorkflowManager {
                 icon: 'plugin_icon/workflow.png',
                 version: '',
                 flowMode: 0,
-                commitId: ''
+                commitId: '',
             },
-            sub: []
+            sub: [],
         };
         const manifestYaml = getJsyaml().dump(manifest, {
             indent: 4,
             lineWidth: 120,
-            schema: getJsyaml().JSON_SCHEMA
+            schema: getJsyaml().JSON_SCHEMA,
         });
 
         const JSZip = getJSZip();
@@ -853,11 +953,24 @@ export class WorkflowManager {
     }
 
     openWorkflowEditor(workflow) {
-        sessionStorage.setItem('editingWorkflow', JSON.stringify(workflow));
+        Storage.session.set('editingWorkflow', workflow);
         goToEditor();
     }
 
     renderWorkflowList() {
+        this._hasRendered = true;
+
+        if (this._renderPending) {
+            cancelAnimationFrame(this._renderPending);
+        }
+
+        this._renderPending = requestAnimationFrame(() => {
+            this._renderPending = null;
+            this._doRenderWorkflowList();
+        });
+    }
+
+    _doRenderWorkflowList() {
         this.elements.workflowList.innerHTML = '';
 
         if (this.workflows.length === 0) {
@@ -871,7 +984,7 @@ export class WorkflowManager {
         let filtered = this.workflows;
         if (searchTerm) {
             const noDescText = t('manager.noDescription').toLowerCase();
-            filtered = this.workflows.filter(w => {
+            filtered = this.workflows.filter((w) => {
                 const name = (w.name || '').toLowerCase();
                 const desc = (w.description || '').toLowerCase();
                 const id = (w.id || '').toLowerCase();
@@ -908,10 +1021,12 @@ export class WorkflowManager {
 
         this.elements.emptyState.style.display = 'none';
 
-        filtered.forEach(workflow => {
+        const fragment = document.createDocumentFragment();
+        filtered.forEach((workflow) => {
             const card = this.createWorkflowCard(workflow);
-            this.elements.workflowList.appendChild(card);
+            fragment.appendChild(card);
         });
+        this.elements.workflowList.appendChild(fragment);
 
         this._attachCardEvents();
     }
@@ -920,16 +1035,21 @@ export class WorkflowManager {
         const cards = this.elements.workflowList.querySelectorAll('.workflow-card');
         let draggedCard = null;
 
-        cards.forEach(card => {
+        cards.forEach((card) => {
             card.addEventListener('click', (e) => {
-                if (e.target.closest('.action-btn') || e.target.closest('.drag-handle') || e.target.closest('.workflow-checkbox')) return;
+                if (
+                    e.target.closest('.action-btn') ||
+                    e.target.closest('.drag-handle') ||
+                    e.target.closest('.workflow-checkbox')
+                )
+                    return;
                 if (this.batchMode) return;
-                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                const wf = this.workflows.find((w) => w.id === card.dataset.workflowId);
                 if (wf) this.openWorkflowEditor(wf);
             });
 
             card.querySelector('.edit-btn')?.addEventListener('click', () => {
-                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                const wf = this.workflows.find((w) => w.id === card.dataset.workflowId);
                 if (wf) this.openEditModal(wf);
             });
 
@@ -939,7 +1059,7 @@ export class WorkflowManager {
             });
 
             card.querySelector('.export-btn')?.addEventListener('click', () => {
-                const wf = this.workflows.find(w => w.id === card.dataset.workflowId);
+                const wf = this.workflows.find((w) => w.id === card.dataset.workflowId);
                 if (wf) this.exportWorkflow(wf);
             });
 
@@ -963,7 +1083,7 @@ export class WorkflowManager {
 
                 dragHandle.addEventListener('dragend', () => {
                     card.classList.remove('dragging');
-                    cards.forEach(c => c.classList.remove('drag-over'));
+                    cards.forEach((c) => c.classList.remove('drag-over'));
                     draggedCard = null;
                 });
             }
@@ -988,8 +1108,8 @@ export class WorkflowManager {
                 const fromId = draggedCard.dataset.workflowId;
                 const toId = card.dataset.workflowId;
 
-                const fromIndex = this.workflows.findIndex(w => w.id === fromId);
-                const toIndex = this.workflows.findIndex(w => w.id === toId);
+                const fromIndex = this.workflows.findIndex((w) => w.id === fromId);
+                const toIndex = this.workflows.findIndex((w) => w.id === toId);
 
                 if (fromIndex !== -1 && toIndex !== -1) {
                     const [moved] = this.workflows.splice(fromIndex, 1);
@@ -1005,9 +1125,9 @@ export class WorkflowManager {
         const card = document.createElement('div');
         card.className = 'workflow-card';
         card.dataset.workflowId = workflow.id;
-        
+
         const nodeCount = workflow.nodes?.length || 0;
-        const edgeCount = workflow.edges?.length || 0;
+        const _edgeCount = workflow.edges?.length || 0;
         const updatedTime = this.formatDate(workflow.updatedAt);
 
         card.innerHTML = `
@@ -1063,9 +1183,9 @@ export class WorkflowManager {
     renderTemplateGrid() {
         this.elements.templateGrid.innerHTML = '';
 
-        const categories = [...new Set(WORKFLOW_TEMPLATES.map(tpl => t(tpl.category)))];
+        const categories = [...new Set(WORKFLOW_TEMPLATES.map((tpl) => t(tpl.category)))];
 
-        categories.forEach(category => {
+        categories.forEach((category) => {
             const section = document.createElement('div');
             section.className = 'template-category';
             section.innerHTML = `<h3 class="template-category-title">${StringUtils.escapeHtml(category)}</h3>`;
@@ -1073,7 +1193,7 @@ export class WorkflowManager {
             const grid = document.createElement('div');
             grid.className = 'template-category-grid';
 
-            WORKFLOW_TEMPLATES.filter(tpl => t(tpl.category) === category).forEach(tpl => {
+            WORKFLOW_TEMPLATES.filter((tpl) => t(tpl.category) === category).forEach((tpl) => {
                 const resolved = resolveTemplateI18n(tpl, t);
                 const card = document.createElement('div');
                 card.className = 'template-card';
@@ -1097,7 +1217,7 @@ export class WorkflowManager {
         if (!card) return;
 
         const templateId = card.dataset.templateId;
-        const template = WORKFLOW_TEMPLATES.find(t => t.id === templateId);
+        const template = WORKFLOW_TEMPLATES.find((t) => t.id === templateId);
         if (!template) return;
 
         this.createFromTemplate(template);
@@ -1112,7 +1232,7 @@ export class WorkflowManager {
             nodes: deepClone(resolved.nodes),
             edges: deepClone(template.edges),
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
 
         this.workflows.push(newWorkflow);

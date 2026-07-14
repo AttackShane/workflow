@@ -22,15 +22,15 @@ export class WorkflowEdge {
      * @returns {object|null} 几何数据 { x1, y1, x2, y2, d, arrowPoints, labelText, labelX, labelY }
      */
     _computeEdgeGeometry(edge) {
-        const source = this.core.nodes.find(n => n.id === edge.source);
-        const target = this.core.nodes.find(n => n.id === edge.target);
+        const source = this.core.nodes.find((n) => n.id === edge.source);
+        const target = this.core.nodes.find((n) => n.id === edge.target);
         if (!source || !target) return null;
 
         const getAbsPos = (node) => {
             let absX = node.x || 0;
             let absY = node.y || 0;
             if (node.parentId) {
-                const parent = this.core.nodes.find(n => n.id === node.parentId);
+                const parent = this.core.nodes.find((n) => n.id === node.parentId);
                 if (parent) {
                     absX = (parent.x || 0) + absX;
                     absY = (parent.y || 0) + 56 + absY;
@@ -82,9 +82,10 @@ export class WorkflowEdge {
                 portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
                 if (isNaN(portIndex) || portIndex >= options.length) portIndex = options.length;
             }
-            y1 = sourcePos.y + height1 * (portIndex + 0.5) / totalPorts;
+            y1 = sourcePos.y + (height1 * (portIndex + 0.5)) / totalPorts;
             if (portIndex < options.length) {
-                labelText = typeof options[portIndex] === 'string' ? options[portIndex] : (options[portIndex]?.name || '');
+                labelText =
+                    typeof options[portIndex] === 'string' ? options[portIndex] : options[portIndex]?.name || '';
             } else {
                 labelText = '其他';
             }
@@ -96,9 +97,16 @@ export class WorkflowEdge {
                 portIndex = parseInt(edge.sourcePort.replace('branch_', ''), 10);
                 if (isNaN(portIndex) || portIndex >= branches.length) portIndex = 0;
             }
-            y1 = sourcePos.y + height1 * (portIndex + 0.5) / totalPorts;
+            y1 = sourcePos.y + (height1 * (portIndex + 0.5)) / totalPorts;
             const branch = branches[portIndex];
-            labelText = (branch && branch.name) ? branch.name : (portIndex === 0 ? 'True' : (portIndex === 1 ? 'False' : `Branch ${portIndex}`));
+            labelText =
+                branch && branch.name
+                    ? branch.name
+                    : portIndex === 0
+                      ? 'True'
+                      : portIndex === 1
+                        ? 'False'
+                        : `Branch ${portIndex}`;
         }
 
         const dx = Math.abs(x2 - x1);
@@ -209,12 +217,12 @@ export class WorkflowEdge {
                 }
             }
         }
-        const affectedEdges = this.core.edges.filter(e => affectedSet.has(e.source) || affectedSet.has(e.target));
+        const affectedEdges = this.core.edges.filter((e) => affectedSet.has(e.source) || affectedSet.has(e.target));
 
-        const currentIds = new Set(this.core.edges.map(e => e.id));
+        const currentIds = new Set(this.core.edges.map((e) => e.id));
         const removeOrphaned = (layer) => {
             const all = layer.querySelectorAll('[data-edge-id]');
-            all.forEach(el => {
+            all.forEach((el) => {
                 if (!currentIds.has(el.getAttribute('data-edge-id'))) {
                     el.remove();
                 }
@@ -231,12 +239,12 @@ export class WorkflowEdge {
     }
 
     update() {
-        const currentIds = new Set(this.core.edges.map(e => e.id));
+        const currentIds = new Set(this.core.edges.map((e) => e.id));
 
-        const ns = 'http://www.w3.org/2000/svg';
+        const _ns = 'http://www.w3.org/2000/svg';
         const removeOrphaned = (layer) => {
             const all = layer.querySelectorAll('[data-edge-id]');
-            all.forEach(el => {
+            all.forEach((el) => {
                 if (!currentIds.has(el.getAttribute('data-edge-id'))) {
                     el.remove();
                 }
@@ -245,7 +253,7 @@ export class WorkflowEdge {
         removeOrphaned(this.svgLayer);
         removeOrphaned(this.svgHitLayer);
 
-        this.core.edges.forEach(edge => {
+        this.core.edges.forEach((edge) => {
             const geom = this._computeEdgeGeometry(edge);
             if (!geom) return;
             this._upsertEdgeElements(edge, geom);
@@ -254,38 +262,38 @@ export class WorkflowEdge {
 
     select(edgeId, multiSelect = false) {
         if (!multiSelect) {
-            document.querySelectorAll('.workflow-edge').forEach(e => e.classList.remove('selected'));
-            document.querySelectorAll('.canvas-node').forEach(n => n.classList.remove('selected'));
+            document.querySelectorAll('.workflow-edge').forEach((e) => e.classList.remove('selected'));
+            document.querySelectorAll('.canvas-node').forEach((n) => n.classList.remove('selected'));
             this.core.selectNode(null);
             this.ui.isMultiSelectMode = false;
         }
-        
+
         const edgePath = document.querySelector(`path[data-edge-id="${edgeId}"]`);
         if (edgePath) {
             edgePath.classList.toggle('selected');
         }
-        
+
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
-        
+
         if (selectedEdges.length > 0) {
             const lastSelected = selectedEdges[selectedEdges.length - 1];
             const lastEdgeId = lastSelected.getAttribute('data-edge-id');
             this.core.selectEdge(lastEdgeId);
-            const edge = this.core.edges.find(e => e.id === lastEdgeId);
+            const edge = this.core.edges.find((e) => e.id === lastEdgeId);
             if (edge) this.renderPropertyPanel(edge);
         } else {
             this.core.selectEdge(null);
             this.ui.showSummaryPanel();
         }
-        
+
         this.update();
     }
 
-    delete(edgeId, saveHistory = true, updatePanel = true) {
+    delete(edgeId, saveHistory = true, _updatePanel = true) {
         this.core.deleteEdge(edgeId);
         this.core.selectEdge(null);
         this.ui.showSummaryPanel();
-        
+
         if (saveHistory) {
             this.core.saveHistory('actions.deleteConnection');
         }
@@ -295,21 +303,21 @@ export class WorkflowEdge {
         const selectedNodes = document.querySelectorAll('.canvas-node.selected');
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
         const selectedCount = selectedNodes.length + selectedEdges.length;
-        
+
         // 多选或无选中 - 显示摘要
         if (selectedCount !== 1 || !edge) {
             this.ui.showSummaryPanel();
             return;
         }
-        
+
         // 单选一条边 - 显示详情
-        const source = this.core.nodes.find(n => n.id === edge.source);
-        const target = this.core.nodes.find(n => n.id === edge.target);
-        
+        const source = this.core.nodes.find((n) => n.id === edge.source);
+        const target = this.core.nodes.find((n) => n.id === edge.target);
+
         this.ui.showDetailPanel();
         const detailContainer = document.getElementById('nodeDetail');
         if (!detailContainer) return;
-        
+
         detailContainer.innerHTML = `
             <div class="property-panel-section">
                 <h4>${t('edge.connectionEdge')}</h4>
@@ -321,18 +329,26 @@ export class WorkflowEdge {
                     <label class="property-label">${t('edge.targetNode')}</label>
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(target?.title || t('edge.unknown'))}" readonly>
                 </div>
-                ${edge.sourcePortID ? `
+                ${
+                    edge.sourcePortID
+                        ? `
                 <div class="property-group">
                     <label class="property-label">${t('edge.sourcePort')}</label>
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.sourcePortID)}" readonly>
                 </div>
-                ` : ''}
-                ${edge.targetPortID ? `
+                `
+                        : ''
+                }
+                ${
+                    edge.targetPortID
+                        ? `
                 <div class="property-group">
                     <label class="property-label">${t('edge.targetPort')}</label>
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.targetPortID)}" readonly>
                 </div>
-                ` : ''}
+                `
+                        : ''
+                }
                 <div style="margin-top: 1.5rem;">
                     <button class="btn btn-danger" onclick="workflowUI.deleteEdge('${StringUtils.escapeHtml(edge.id)}')">${t('edge.deleteConnection')}</button>
                 </div>
@@ -366,28 +382,29 @@ export class WorkflowEdge {
             const { canvasX: x, canvasY: y } = this.ui.canvas.screenToCanvas(screenX, screenY);
             const dx = x - startX;
             const ctrl = Math.max(Math.abs(dx) * 0.4, 50);
-            this.ui.svgPath.setAttribute('d', `M ${startX} ${startY} C ${startX + ctrl} ${startY}, ${x - ctrl} ${y}, ${x} ${y}`);
+            this.ui.svgPath.setAttribute(
+                'd',
+                `M ${startX} ${startY} C ${startX + ctrl} ${startY}, ${x - ctrl} ${y}, ${x} ${y}`
+            );
         };
-        
+
         const onMouseUp = (e) => {
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            
+
             // 检测鼠标是否在某个节点的输入端口上方
             const target = document.elementFromPoint(e.clientX, e.clientY);
             const inputPort = target?.closest('.input-port');
-            
+
             if (inputPort) {
                 const targetNode = /** @type {HTMLElement|null} */ (inputPort.closest('.canvas-node'));
                 if (targetNode) {
                     const targetId = targetNode.dataset.nodeId;
                     const sourceId = this.ui.connectingFrom;
-                    
+
                     if (sourceId && targetId && sourceId !== targetId) {
                         // 检查是否已存在相同的边
-                        const exists = this.core.edges.some(
-                            ed => ed.source === sourceId && ed.target === targetId
-                        );
+                        const exists = this.core.edges.some((ed) => ed.source === sourceId && ed.target === targetId);
                         if (!exists) {
                             this.core.createEdge(sourceId, targetId, this.ui.connectingFromPort);
                             this.core.saveHistory('actions.createConnection');
@@ -396,10 +413,10 @@ export class WorkflowEdge {
                     }
                 }
             }
-            
+
             this.cancelConnection();
         };
-        
+
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
     }

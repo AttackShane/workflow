@@ -1,34 +1,35 @@
-// @ts-nocheck
 /**
  * 工作流节点变量选择器模块
  * 负责变量引用选择器、合并变量选择器等
  */
 import { StringUtils } from '../utils/helpers.js';
-import { t } from '../i18n/i18n.js';
 
 /**
  * 变量选择器相关的 mixin 方法
- * @param {import('./editor-node.js').WorkflowNode} node - WorkflowNode 实例
+ * @param {import("./editor-node.js").WorkflowNode} node - WorkflowNode 实例
  */
-export function mixinNodeSelector(node) {
-    node.openInputParamRefSelector = function(prefix, index) {
-        const selectedNode = this.core.selectedNode;
+export class WorkflowNodeSelector {
+    constructor(node) {
+        this.node = node;
+    }
+    openInputParamRefSelector(prefix, index) {
+        const selectedNode = this.node.core.selectedNode;
         if (!selectedNode) return;
-        const targetNode = this.core.nodes.find(n => n.id === selectedNode);
+        const targetNode = this.node.core.nodes.find((n) => n.id === selectedNode);
         if (!targetNode) return;
 
         const refEl = document.getElementById(`${prefix}Ref_${index}`);
         let currentBlockId = '';
         let currentName = '';
 
-        if (refEl && refEl.value) {
+        if (refEl && /** @type {HTMLInputElement} */ (refEl).value) {
             try {
-                const ref = JSON.parse(decodeURIComponent(refEl.value));
+                const ref = JSON.parse(decodeURIComponent(/** @type {HTMLInputElement} */ (refEl).value));
                 currentBlockId = ref.content?.blockID || '';
                 currentName = ref.content?.name || '';
             } catch (e) {
                 try {
-                    const ref = JSON.parse(refEl.value);
+                    const ref = JSON.parse(/** @type {HTMLInputElement} */ (refEl).value);
                     currentBlockId = ref.content?.blockID || '';
                     currentName = ref.content?.name || '';
                 } catch (e2) {}
@@ -45,20 +46,20 @@ export function mixinNodeSelector(node) {
                 content: {
                     source: 'block-output',
                     blockID: blockId,
-                    name: outputPath
+                    name: outputPath,
                 },
-                rawMeta: { type: 1 }
+                rawMeta: { type: 1 },
             };
 
             if (refHiddenEl) {
-                refHiddenEl.value = encodeURIComponent(JSON.stringify(refObj));
+                /** @type {HTMLInputElement} */ (refHiddenEl).value = encodeURIComponent(JSON.stringify(refObj));
             }
             if (valueEl) {
                 valueEl.style.display = 'none';
-                valueEl.disabled = true;
+                /** @type {HTMLInputElement} */ (valueEl).disabled = true;
             }
             if (refDisplayEl) {
-                const display = this._getRefDisplayText(blockId, outputPath);
+                const display = this.node.paramEditor._getRefDisplayText(blockId, outputPath);
                 refDisplayEl.textContent = display;
                 refDisplayEl.style.display = 'block';
                 refDisplayEl.title = display;
@@ -71,20 +72,20 @@ export function mixinNodeSelector(node) {
                 targetNode[paramsKey][index].rawMeta = { type: 1 };
             }
         });
-    };
+    }
 
-    node.clearInputParamRef = function(prefix, index) {
-        const selectedNode = this.core.selectedNode;
-        const targetNode = selectedNode ? this.core.nodes.find(n => n.id === selectedNode) : null;
+    clearInputParamRef(prefix, index) {
+        const selectedNode = this.node.core.selectedNode;
+        const targetNode = selectedNode ? this.node.core.nodes.find((n) => n.id === selectedNode) : null;
         const valueEl = document.getElementById(`${prefix}Value_${index}`);
         const refDisplayEl = document.getElementById(`${prefix}RefDisplay_${index}`);
         const refHiddenEl = document.getElementById(`${prefix}Ref_${index}`);
 
-        if (refHiddenEl) refHiddenEl.value = '';
+        if (refHiddenEl) /** @type {HTMLInputElement} */ (refHiddenEl).value = '';
         if (valueEl) {
             valueEl.style.display = '';
-            valueEl.disabled = false;
-            valueEl.value = '';
+            /** @type {HTMLInputElement} */ (valueEl).disabled = false;
+            /** @type {HTMLInputElement} */ (valueEl).value = '';
         }
         if (refDisplayEl) {
             refDisplayEl.style.display = 'none';
@@ -99,10 +100,10 @@ export function mixinNodeSelector(node) {
                 targetNode[paramsKey][index].rawMeta = undefined;
             }
         }
-    };
+    }
 
-    node.openVariableSelector = function(nodeId, gi, vi) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    openVariableSelector(nodeId, gi, vi) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !targetNode.parameters?.mergeGroups) return;
         const group = targetNode.parameters.mergeGroups[gi];
         if (!group || !group.variables) return;
@@ -116,21 +117,19 @@ export function mixinNodeSelector(node) {
             variable.value.content.blockID = blockId;
             variable.value.content.name = outputPath;
 
-            const edge = this.core.edges.find(e =>
-                e.target === targetNode.id && e.source === blockId
-            );
+            const edge = this.node.core.edges.find((e) => e.target === targetNode.id && e.source === blockId);
             if (edge) {
                 edge.sourcePort = outputPath;
             }
 
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         });
-    };
+    }
 
-    node.addMergeVariable = function(nodeId, gi) {
+    addMergeVariable(nodeId, gi) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode || !targetNode.parameters?.mergeGroups) return;
             const group = targetNode.parameters.mergeGroups[gi];
             if (!group || !group.variables) return;
@@ -139,37 +138,37 @@ export function mixinNodeSelector(node) {
                 value: {
                     type: 'ref',
                     content: { source: 'block-output', blockID: '', name: 'output' },
-                    rawMeta: { type: 1 }
-                }
+                    rawMeta: { type: 1 },
+                },
             });
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node.removeMergeVariable = function(nodeId, gi, vi) {
+    removeMergeVariable(nodeId, gi, vi) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode || !targetNode.parameters?.mergeGroups) return;
             const group = targetNode.parameters.mergeGroups[gi];
             if (!group || !group.variables) return;
             group.variables.splice(vi, 1);
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node._getUpstreamNodeIds = function(targetNodeId) {
+    _getUpstreamNodeIds(targetNodeId) {
         const visited = new Set();
         const result = new Set();
         const queue = [targetNodeId];
 
-        const targetNode = this.core.nodes.find(n => n.id === targetNodeId);
-        const info = targetNode ? this.core.nodeTypeInfo[targetNode.type] : null;
+        const targetNode = this.node.core.nodes.find((n) => n.id === targetNodeId);
+        const info = targetNode ? this.node.core.nodeTypeInfo[targetNode.type] : null;
         // 容器节点：其输出变量可以引用容器内所有子孙节点的输出
         if (info && info.hasContainer) {
             const collectChildren = (parentId) => {
-                this.core.nodes.forEach(child => {
+                this.node.core.nodes.forEach((child) => {
                     if (child.parentId === parentId && !visited.has(child.id)) {
                         result.add(child.id);
                         visited.add(child.id);
@@ -186,12 +185,12 @@ export function mixinNodeSelector(node) {
             if (visited.has(currentId)) continue;
             visited.add(currentId);
             // 容器内子节点，其父容器也是上游节点（提供中间变量等）
-            const currentNode = this.core.nodes.find(n => n.id === currentId);
+            const currentNode = this.node.core.nodes.find((n) => n.id === currentId);
             if (currentNode && currentNode.parentId && !visited.has(currentNode.parentId)) {
                 result.add(currentNode.parentId);
                 queue.push(currentNode.parentId);
             }
-            this.core.edges.forEach(edge => {
+            this.node.core.edges.forEach((edge) => {
                 if (edge.target === currentId && !visited.has(edge.source)) {
                     result.add(edge.source);
                     queue.push(edge.source);
@@ -199,9 +198,9 @@ export function mixinNodeSelector(node) {
             });
         }
         return result;
-    };
+    }
 
-    node._openGenericVariableSelector = function(excludeNodeId, currentBlockId, currentName, onConfirm) {
+    _openGenericVariableSelector(excludeNodeId, currentBlockId, currentName, onConfirm) {
         const buildOutputTree = (outputs) => {
             const tree = [];
             if (!outputs || typeof outputs !== 'object') return tree;
@@ -210,15 +209,15 @@ export function mixinNodeSelector(node) {
                     name,
                     type: meta.type || 'string',
                     description: meta.description || '',
-                    children: []
+                    children: [],
                 };
                 if (meta.properties && typeof meta.properties === 'object') {
                     if (Array.isArray(meta.properties)) {
-                        treeNode.children = meta.properties.map(prop => ({
+                        treeNode.children = meta.properties.map((prop) => ({
                             name: prop.name || prop,
                             type: prop.type || 'string',
                             description: prop.description || '',
-                            children: []
+                            children: [],
                         }));
                     } else {
                         treeNode.children = buildOutputTree(meta.properties);
@@ -232,10 +231,12 @@ export function mixinNodeSelector(node) {
         const renderTreeNode = (treeNode, path, depth) => {
             const fullPath = path ? `${path}.${treeNode.name}` : treeNode.name;
             const indent = '&nbsp;&nbsp;'.repeat(depth);
-            const isSelected = (fullPath === currentName);
-            const typeLabel = treeNode.type ? ` <span style="color:var(--text-secondary);font-size:0.75rem;">(${treeNode.type})</span>` : '';
+            const isSelected = fullPath === currentName;
+            const typeLabel = treeNode.type
+                ? ` <span style="color:var(--text-secondary);font-size:0.75rem;">(${treeNode.type})</span>`
+                : '';
             if (treeNode.children.length > 0) {
-                let childHtml = treeNode.children.map(c => renderTreeNode(c, fullPath, depth + 1)).join('');
+                const childHtml = treeNode.children.map((c) => renderTreeNode(c, fullPath, depth + 1)).join('');
                 return `<div class="tree-branch">
                     <div class="tree-item tree-folder ${isSelected ? 'tree-selected' : ''}" 
                          data-path="${StringUtils.escapeHtml(fullPath)}" 
@@ -254,8 +255,8 @@ export function mixinNodeSelector(node) {
         };
 
         const upstreamIds = this._getUpstreamNodeIds(excludeNodeId);
-        const excludeNode = this.core.nodes.find(n => n.id === excludeNodeId);
-        const availableNodes = this.core.nodes.filter(n => {
+        const excludeNode = this.node.core.nodes.find((n) => n.id === excludeNodeId);
+        const availableNodes = this.node.core.nodes.filter((n) => {
             if (n.id === excludeNodeId) return false;
             if (!upstreamIds.has(n.id)) return false;
             const outputs = n.parameters?.node_outputs;
@@ -263,13 +264,18 @@ export function mixinNodeSelector(node) {
             const outParams = n.outputParams || n.parameters?.outputParams;
             if (outParams && Array.isArray(outParams) && outParams.length > 0) return true;
             // 容器节点的中间变量（variableParameters）仅容器内子节点可以引用
-            const info = this.core.nodeTypeInfo[n.type];
-            if (info?.hasContainer && n.parameters?.variableParameters && Array.isArray(n.parameters.variableParameters) && n.parameters.variableParameters.length > 0) {
+            const info = this.node.core.nodeTypeInfo[n.type];
+            if (
+                info?.hasContainer &&
+                n.parameters?.variableParameters &&
+                Array.isArray(n.parameters.variableParameters) &&
+                n.parameters.variableParameters.length > 0
+            ) {
                 // 只有当前节点是该容器的直接或间接子节点时，才能看到中间变量
                 let nodeInContainer = excludeNode;
                 while (nodeInContainer && nodeInContainer.parentId) {
                     if (nodeInContainer.parentId === n.id) return true;
-                    nodeInContainer = this.core.nodes.find(nn => nn.id === nodeInContainer.parentId);
+                    nodeInContainer = this.node.core.nodes.find((nn) => nn.id === nodeInContainer.parentId);
                 }
             }
             return false;
@@ -293,16 +299,18 @@ export function mixinNodeSelector(node) {
                     <div style="width: 240px; border-right: 1px solid var(--border); overflow-y: auto; padding: 0.5rem;">
                         <input type="text" id="varNodeSearch" placeholder="搜索节点..." style="width:100%;padding:0.4rem;margin-bottom:0.5rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
                         <div id="varNodeList">
-                            ${availableNodes.map(n => {
-                                const nId = n.id;
-                                const nTitle = n.title || n.id;
-                                const isCur = (nId === currentBlockId);
-                                return `<div class="var-node-item ${isCur ? 'var-node-active' : ''}" 
+                            ${availableNodes
+                                .map((n) => {
+                                    const nId = n.id;
+                                    const nTitle = n.title || n.id;
+                                    const isCur = nId === currentBlockId;
+                                    return `<div class="var-node-item ${isCur ? 'var-node-active' : ''}" 
                                     data-node-id="${StringUtils.escapeHtml(nId)}">
                                     <span class="var-node-title">${StringUtils.escapeHtml(nTitle)}</span>
                                     <span class="var-node-type">${StringUtils.escapeHtml(n.type)}</span>
                                 </div>`;
-                            }).join('')}
+                                })
+                                .join('')}
                             ${availableNodes.length === 0 ? '<p style="color:var(--text-secondary);font-size:0.8rem;padding:0.5rem;">没有可用的上游节点</p>' : ''}
                         </div>
                     </div>
@@ -330,36 +338,40 @@ export function mixinNodeSelector(node) {
         const outputTree = modal.querySelector('#varOutputTree');
 
         const updateOutputTree = (nId) => {
-            const targetNode = this.core.nodes.find(n => n.id === nId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nId);
             if (!targetNode) {
                 outputTree.innerHTML = '<p style="color:var(--text-secondary);">该节点无输出参数</p>';
                 return;
             }
-            let outputs = targetNode.parameters?.node_outputs || {};
+            const outputs = targetNode.parameters?.node_outputs || {};
             let tree = buildOutputTree(outputs);
             if (tree.length === 0) {
                 const outParams = targetNode.outputParams || targetNode.parameters?.outputParams;
                 if (outParams && Array.isArray(outParams) && outParams.length > 0) {
-                    tree = outParams.map(p => ({
+                    tree = outParams.map((p) => ({
                         name: p.name || p,
                         type: p.type || 'string',
                         description: p.description || '',
-                        children: []
+                        children: [],
                     }));
                 }
             }
             // 容器节点的中间变量（variableParameters）仅容器内子节点可以引用
-            const info = this.core.nodeTypeInfo[targetNode.type];
-            if (info?.hasContainer && targetNode.parameters?.variableParameters && Array.isArray(targetNode.parameters.variableParameters)) {
+            const info = this.node.core.nodeTypeInfo[targetNode.type];
+            if (
+                info?.hasContainer &&
+                targetNode.parameters?.variableParameters &&
+                Array.isArray(targetNode.parameters.variableParameters)
+            ) {
                 // 只有当前要进行引用的节点是该容器的直接或间接子节点时，才能看到中间变量
-                let current = this.core.nodes.find(n => n.id === excludeNodeId);
+                let current = this.node.core.nodes.find((n) => n.id === excludeNodeId);
                 let inThisContainer = false;
                 while (current && current.parentId) {
                     if (current.parentId === nId) {
                         inThisContainer = true;
                         break;
                     }
-                    current = this.core.nodes.find(nn => nn.id === current.parentId);
+                    current = this.node.core.nodes.find((nn) => nn.id === current.parentId);
                 }
                 if (inThisContainer) {
                     for (const vp of targetNode.parameters.variableParameters) {
@@ -368,7 +380,7 @@ export function mixinNodeSelector(node) {
                                 name: vp.name,
                                 type: vp.type || 'string',
                                 description: vp.description || '',
-                                children: []
+                                children: [],
                             });
                         }
                     }
@@ -378,28 +390,30 @@ export function mixinNodeSelector(node) {
                 outputTree.innerHTML = '<p style="color:var(--text-secondary);">该节点无输出参数</p>';
                 return;
             }
-            outputTree.innerHTML = tree.map(t => renderTreeNode(t, '', 0)).join('');
+            outputTree.innerHTML = tree.map((t) => renderTreeNode(t, '', 0)).join('');
 
-            outputTree.querySelectorAll('.tree-folder').forEach(folder => {
+            outputTree.querySelectorAll('.tree-folder').forEach((folder) => {
                 folder.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const branch = folder.closest('.tree-branch');
                     const children = branch.querySelector('.tree-children');
                     const toggle = folder.querySelector('.tree-toggle');
                     if (children) {
-                        const isOpen = children.style.display !== 'none';
-                        children.style.display = isOpen ? 'none' : 'block';
+                        const isOpen = /** @type {HTMLElement} */ (children).style.display !== 'none';
+                        /** @type {HTMLElement} */ (children).style.display = isOpen ? 'none' : 'block';
                         toggle.textContent = isOpen ? '▶' : '▼';
                     }
                 });
             });
 
-            outputTree.querySelectorAll('.tree-leaf, .tree-folder').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    const path = item.dataset.path;
+            outputTree.querySelectorAll('.tree-leaf, .tree-folder').forEach((item) => {
+                item.addEventListener('click', (_e) => {
+                    const path = /** @type {HTMLElement} */ (item).dataset.path;
                     if (path) {
                         selectedPath = path;
-                        outputTree.querySelectorAll('.tree-selected').forEach(el => el.classList.remove('tree-selected'));
+                        outputTree
+                            .querySelectorAll('.tree-selected')
+                            .forEach((el) => el.classList.remove('tree-selected'));
                         item.classList.add('tree-selected');
                     }
                 });
@@ -408,21 +422,21 @@ export function mixinNodeSelector(node) {
 
         const selectNode = (nId) => {
             selectedNodeId = nId;
-            nodeItems.forEach(item => {
-                item.classList.toggle('var-node-active', item.dataset.nodeId === nId);
+            nodeItems.forEach((item) => {
+                item.classList.toggle('var-node-active', /** @type {HTMLElement} */ (item).dataset.nodeId === nId);
             });
             updateOutputTree(nId);
         };
 
-        nodeItems.forEach(item => {
-            item.addEventListener('click', () => selectNode(item.dataset.nodeId));
+        nodeItems.forEach((item) => {
+            item.addEventListener('click', () => selectNode(/** @type {HTMLElement} */ (item).dataset.nodeId));
         });
 
         searchInput.addEventListener('input', () => {
-            const q = searchInput.value.toLowerCase();
-            nodeItems.forEach(item => {
+            const q = /** @type {HTMLInputElement} */ (searchInput).value.toLowerCase();
+            nodeItems.forEach((item) => {
                 const text = item.textContent.toLowerCase();
-                item.style.display = text.includes(q) ? '' : 'none';
+                /** @type {HTMLElement} */ (item).style.display = text.includes(q) ? '' : 'none';
             });
         });
 
@@ -432,11 +446,11 @@ export function mixinNodeSelector(node) {
 
         modal.querySelector('#varConfirmBtn').addEventListener('click', () => {
             if (!selectedNodeId) {
-                this.ui.showMessage('请选择一个节点', 'error');
+                this.node.ui.showMessage('请选择一个节点', 'error');
                 return;
             }
             if (!selectedPath) {
-                this.ui.showMessage('请选择一个输出参数', 'error');
+                this.node.ui.showMessage('请选择一个输出参数', 'error');
                 return;
             }
             onConfirm(selectedNodeId, selectedPath);
@@ -446,11 +460,11 @@ export function mixinNodeSelector(node) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) modal.remove();
         });
-    };
+    }
 
-    node.addLoopVariable = function(nodeId) {
+    addLoopVariable(nodeId) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode) return;
             if (!targetNode.parameters) targetNode.parameters = {};
             if (!Array.isArray(targetNode.parameters.variables)) {
@@ -462,35 +476,34 @@ export function mixinNodeSelector(node) {
                     value: {
                         type: 'ref',
                         content: { source: 'block-output', blockID: '', name: 'output' },
-                        rawMeta: { type: 1 }
-                    }
+                        rawMeta: { type: 1 },
+                    },
                 },
                 right: {
                     type: 'string',
                     value: {
                         type: 'ref',
                         content: { source: 'block-output', blockID: '', name: 'output' },
-                        rawMeta: { type: 1 }
-                    }
-                }
+                        rawMeta: { type: 1 },
+                    },
+                },
             });
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node.removeLoopVariable = function(nodeId, vi) {
+    removeLoopVariable(nodeId, vi) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
             targetNode.parameters.variables.splice(vi, 1);
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
-
-    node.openLoopVariableSelector = function(nodeId, vi, side) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    }
+    openLoopVariableSelector(nodeId, vi, side) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
         const variable = targetNode.parameters.variables[vi];
         if (!variable) return;
@@ -506,20 +519,18 @@ export function mixinNodeSelector(node) {
             ref.value.content.blockID = blockId;
             ref.value.content.name = outputPath;
 
-            const edge = this.core.edges.find(e =>
-                e.target === targetNode.id && e.source === blockId
-            );
+            const edge = this.node.core.edges.find((e) => e.target === targetNode.id && e.source === blockId);
             if (edge) {
                 edge.sourcePort = outputPath;
             }
 
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         });
-    };
+    }
 
-    node.clearLoopVarRef = function(nodeId, vi, side) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    clearLoopVarRef(nodeId, vi, side) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
         const variable = targetNode.parameters.variables[vi];
         if (!variable) return;
@@ -527,14 +538,14 @@ export function mixinNodeSelector(node) {
         const clearSide = side || 'right';
         variable[clearSide] = {
             type: 'string',
-            value: { type: 'literal', content: '' }
+            value: { type: 'literal', content: '' },
         };
-        this.renderPropertyPanel(targetNode);
-        this._scheduleAutoSave(nodeId);
-    };
+        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
+    }
 
-    node.openConditionRefSelector = function(nodeId, branchIndex, condIndex, side) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    openConditionRefSelector(nodeId, branchIndex, condIndex, side) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !targetNode.parameters?.branches) return;
         const branches = targetNode.parameters.branches;
         if (!Array.isArray(branches) || !branches[branchIndex]) return;
@@ -556,19 +567,19 @@ export function mixinNodeSelector(node) {
                         content: {
                             source: 'block-output',
                             blockID: blockId,
-                            name: outputPath
+                            name: outputPath,
                         },
-                        rawMeta: { type: 1 }
-                    }
-                }
+                        rawMeta: { type: 1 },
+                    },
+                },
             };
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         });
-    };
+    }
 
-    node.clearConditionRef = function(nodeId, branchIndex, condIndex, side) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    clearConditionRef(nodeId, branchIndex, condIndex, side) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !targetNode.parameters?.branches) return;
         const branches = targetNode.parameters.branches;
         if (!Array.isArray(branches) || !branches[branchIndex]) return;
@@ -580,10 +591,10 @@ export function mixinNodeSelector(node) {
         cond[side] = {
             input: {
                 type: 'string',
-                value: { type: 'literal', content: '' }
-            }
+                value: { type: 'literal', content: '' },
+            },
         };
-        this.renderPropertyPanel(targetNode);
-        this._scheduleAutoSave(nodeId);
-    };
+        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
+    }
 }

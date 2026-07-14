@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 工作流自动布局模块
  * 基于拓扑排序的自动布局算法，按连接关系从左到右排列，紧凑不重叠
@@ -8,7 +7,7 @@
 /**
  * 自动优化布局
  * @param {import('./editor-core').WorkflowCore} core - 工作流核心实例
-* @param {import('./editor-canvas').WorkflowCanvas} canvas - 画布实例
+ * @param {import('./editor-canvas').WorkflowCanvas} canvas - 画布实例
  */
 export function autoOptimizeLayout(core, canvas) {
     if (!core || !core.nodes || core.nodes.length === 0) {
@@ -32,16 +31,16 @@ export function autoOptimizeLayout(core, canvas) {
     const getNodeSize = (node) => {
         const info = core.nodeTypeInfo[node.type] || {};
         const isContainer = info.hasContainer === true;
-        const w = node.width || (isContainer ? (info.containerMinWidth || 300) : 200);
-        const h = node.height || (isContainer ? (info.containerMinHeight || 200) : 100);
+        const w = node.width || (isContainer ? info.containerMinWidth || 300 : 200);
+        const h = node.height || (isContainer ? info.containerMinHeight || 200 : 100);
         return { w, h };
     };
 
     const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, _centerY = false) => {
         if (groupNodes.length === 0) return;
         const groupSizes = new Map();
-        const groupIds = new Set(groupNodes.map(n => n.id));
-        groupNodes.forEach(n => groupSizes.set(n.id, getNodeSize(n)));
+        const groupIds = new Set(groupNodes.map((n) => n.id));
+        groupNodes.forEach((n) => groupSizes.set(n.id, getNodeSize(n)));
 
         const nodeIsContainer = (node) => {
             const info = core.nodeTypeInfo[node.type] || {};
@@ -65,13 +64,13 @@ export function autoOptimizeLayout(core, canvas) {
         const adj = new Map();
         const inDeg = new Map();
         const preds = new Map();
-        groupNodes.forEach(n => {
+        groupNodes.forEach((n) => {
             adj.set(n.id, []);
             inDeg.set(n.id, 0);
             preds.set(n.id, []);
         });
 
-        core.edges.forEach(edge => {
+        core.edges.forEach((edge) => {
             const s = edge.source;
             const t = edge.target;
             if (groupIds.has(s) && groupIds.has(t)) {
@@ -82,14 +81,14 @@ export function autoOptimizeLayout(core, canvas) {
         });
 
         const nodeLevel = new Map();
-        const sources = groupNodes.filter(n => inDeg.get(n.id) === 0);
-        const queue = sources.map(n => n.id);
-        sources.forEach(n => nodeLevel.set(n.id, 0));
+        const sources = groupNodes.filter((n) => inDeg.get(n.id) === 0);
+        const queue = sources.map((n) => n.id);
+        sources.forEach((n) => nodeLevel.set(n.id, 0));
 
         while (queue.length > 0) {
             const id = queue.shift();
-            adj.get(id).forEach(nextId => {
-                const predMax = Math.max(...preds.get(nextId).map(pid => nodeLevel.get(pid) ?? -1));
+            adj.get(id).forEach((nextId) => {
+                const predMax = Math.max(...preds.get(nextId).map((pid) => nodeLevel.get(pid) ?? -1));
                 const newLevel = predMax + 1;
                 if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
                     nodeLevel.set(nextId, newLevel);
@@ -98,7 +97,7 @@ export function autoOptimizeLayout(core, canvas) {
             });
         }
 
-        groupNodes.forEach(n => {
+        groupNodes.forEach((n) => {
             if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
         });
 
@@ -106,7 +105,7 @@ export function autoOptimizeLayout(core, canvas) {
         const levelMaxW = [];
         nodeLevel.forEach((level, id) => {
             if (!levels[level]) levels[level] = [];
-            const node = groupNodes.find(n => n.id === id);
+            const node = groupNodes.find((n) => n.id === id);
             if (node) {
                 levels[level].push(node);
                 const sz = groupSizes.get(id) || { w: defaultW, h: defaultH };
@@ -118,7 +117,7 @@ export function autoOptimizeLayout(core, canvas) {
 
         if (levels.length > 0 && levels[0]) {
             let yOff = startY;
-            levels[0].forEach(node => {
+            levels[0].forEach((node) => {
                 const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
                 const connY = connYFromNodeY(node, yOff);
                 nodeCenterY.set(node.id, connY);
@@ -128,13 +127,13 @@ export function autoOptimizeLayout(core, canvas) {
 
         for (let col = 1; col < levels.length; col++) {
             if (!levels[col]) continue;
-            levels[col].forEach(node => {
+            levels[col].forEach((node) => {
                 const predIds = preds.get(node.id);
 
                 if (predIds && predIds.length > 0) {
                     let sumCenterY = 0;
                     let count = 0;
-                    predIds.forEach(pid => {
+                    predIds.forEach((pid) => {
                         if (nodeCenterY.has(pid)) {
                             sumCenterY += nodeCenterY.get(pid);
                             count++;
@@ -156,7 +155,7 @@ export function autoOptimizeLayout(core, canvas) {
             levels[col].sort((a, b) => (nodeCenterY.get(a.id) || 0) - (nodeCenterY.get(b.id) || 0));
 
             let prevBottom = -Infinity;
-            levels[col].forEach(node => {
+            levels[col].forEach((node) => {
                 let connY = nodeCenterY.get(node.id) || 0;
                 const nodeY = nodeYFromConnY(node, connY);
                 const top = nodeY;
@@ -186,7 +185,7 @@ export function autoOptimizeLayout(core, canvas) {
         });
     };
 
-    core.nodes.forEach(container => {
+    core.nodes.forEach((container) => {
         const info = core.nodeTypeInfo[container.type] || {};
         if (!info.hasContainer) return;
         const children = core.getChildNodes(container.id);
@@ -200,7 +199,7 @@ export function autoOptimizeLayout(core, canvas) {
         let maxBottom = 0;
         let minX = 0;
         let minY = 0;
-        children.forEach(child => {
+        children.forEach((child) => {
             const sz = getNodeSize(child);
             minX = Math.min(minX, child.x);
             minY = Math.min(minY, child.y);
@@ -213,13 +212,13 @@ export function autoOptimizeLayout(core, canvas) {
         container.height = HEADER_H + DESC_H + bodyH + BORDER;
     });
 
-    const nodes = core.nodes.filter(n => !n.parentId);
+    const nodes = core.nodes.filter((n) => !n.parentId);
     layoutNodeGroup(nodes, 0, 0, hGap, vGap, false);
 
     const bounds = canvas.calculateNodesBounds();
     const offsetX = -Math.min(0, bounds.minX);
     const offsetY = -Math.min(0, bounds.minY);
-    nodes.forEach(node => {
+    nodes.forEach((node) => {
         node.x += offsetX;
         node.y += offsetY;
     });

@@ -2,7 +2,6 @@ class KeyboardShortcuts {
     constructor() {
         this._elements = {};
         this._keydownHandler = null;
-        this._beforeUnloadHandler = null;
     }
 
     _safeClick(el) {
@@ -17,7 +16,12 @@ class KeyboardShortcuts {
         const el = document.activeElement;
         if (!el) return false;
         const tag = el.tagName;
-        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || /** @type {HTMLElement} */ (el).isContentEditable;
+        return (
+            tag === 'INPUT' ||
+            tag === 'TEXTAREA' ||
+            tag === 'SELECT' ||
+            /** @type {HTMLElement} */ (el).isContentEditable
+        );
     }
 
     initKeyboardShortcuts = () => {
@@ -27,7 +31,7 @@ class KeyboardShortcuts {
             convertTextBtn: this._safeGet('convertTextBtn'),
             inputText: this._safeGet('inputText'),
             copyOutputBtn: this._safeGet('copyOutputBtn'),
-            resetBtn: this._safeGet('resetBtn')
+            resetBtn: this._safeGet('resetBtn'),
         };
 
         this._keydownHandler = (e) => {
@@ -62,19 +66,12 @@ class KeyboardShortcuts {
         };
 
         document.addEventListener('keydown', this._keydownHandler);
-
-        this._beforeUnloadHandler = () => this.destroy();
-        window.addEventListener('beforeunload', this._beforeUnloadHandler);
     };
 
     destroy() {
         if (this._keydownHandler) {
             document.removeEventListener('keydown', this._keydownHandler);
             this._keydownHandler = null;
-        }
-        if (this._beforeUnloadHandler) {
-            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
-            this._beforeUnloadHandler = null;
         }
     }
 }

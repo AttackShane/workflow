@@ -157,7 +157,7 @@ workflow/
 │   │   ├── editor-autosave.js         # 自动保存
 │   │   ├── editor-share.js            # 分享功能
 │   │   ├── editor-canvas.js           # 画布坐标与变换
-│   │   ├── editor-node.js             # 节点入口（mixin组装）
+│   │   ├── editor-node.js             # 节点入口（组合模式）
 │   │   ├── editor-node-types.js       # 节点类型定义（50+种）
 │   │   ├── editor-node-render.js      # 节点渲染（DOM创建、拖拽、批量测量）
 │   │   ├── editor-node-drag.js        # 节点拖拽交互
@@ -212,73 +212,73 @@ workflow/
 
 ### 转换器 (converter)
 
-| 模块                              | 行数 | 说明                                                         |
-| --------------------------------- | :--: | ------------------------------------------------------------ |
-| `converter.js`                    | 228  | YAML → Coze 格式转换器（核心转换逻辑）                       |
-| `converter-renderer.js`           | 156  | 转换器渲染器（虚拟滚动、语法高亮、异步渲染）                 |
-| `converter-reverse.js`            | 253  | Coze → YAML 反向转换器                                       |
-| `converter-ui.js`                 | 451  | 转换器 UI 控制器（输出渲染、历史、文件操作）                  |
-| `converter-virtual-scroll.js`     | 139  | 虚拟滚动优化（大文本量性能）                                 |
-| `converter-highlighter.js`        | 67   | 语法高亮（YAML/JSON 主线程处理）                             |
-| `converter-highlighter-worker.js` | -    | 语法高亮（Web Worker 异步处理）                              |
-| `converter-keyboard.js`           | 57   | 键盘快捷键管理（转换器页面）                                 |
-| `converter-history.js`            | 173  | 转换历史记录管理器（localStorage 存储）                      |
-| `converter-stats.js`              | 639  | 统计视图与历史面板（节点数量/类型分布、编辑/删除/确认弹窗）   |
-| `converter-stats-renderer.js`     | 143  | 统计渲染器（统计数据的 DOM 渲染）                            |
+| 模块                              | 说明                                                         |
+| --------------------------------- | ------------------------------------------------------------ |
+| `converter.js`                    | YAML → Coze 格式转换器（核心转换逻辑）                       |
+| `converter-renderer.js`           | 转换器渲染器（虚拟滚动、语法高亮、异步渲染）                 |
+| `converter-reverse.js`            | Coze → YAML 反向转换器                                       |
+| `converter-ui.js`                 | 转换器 UI 控制器（输出渲染、历史、文件操作）                  |
+| `converter-virtual-scroll.js`     | 虚拟滚动优化（大文本量性能）                                 |
+| `converter-highlighter.js`        | 语法高亮（YAML/JSON 主线程处理）                             |
+| `converter-highlighter-worker.js` | 语法高亮（Web Worker 异步处理）                              |
+| `converter-keyboard.js`           | 键盘快捷键管理（转换器页面）                                 |
+| `converter-history.js`            | 转换历史记录管理器（localStorage 存储）                      |
+| `converter-stats.js`              | 统计视图与历史面板（节点数量/类型分布、编辑/删除/确认弹窗）   |
+| `converter-stats-renderer.js`     | 统计渲染器（统计数据的 DOM 渲染）                            |
 
 ### 编辑器 (editor)
 
-| 模块                            | 行数 | 说明                                                         |
-| ------------------------------- | :--: | ------------------------------------------------------------ |
-| `editor-core.js`                | 471  | 工作流核心（节点/边CRUD、历史记录、验证、批量操作）          |
-| `editor-storage.js`             | 97   | 工作流本地存储（localStorage 读写）                          |
-| `editor-ui.js`                  | 604  | 编辑器 UI 总控（批量测量、画布、节点、边、键盘快捷键）       |
-| `editor-canvas.js`              | 881  | 画布管理（无限画布、缩放、平移、视口剔除、坐标转换）         |
-| `editor-node.js`                | 19   | 节点入口（mixin 组装 render/panel/selector）                 |
-| `editor-node-types.js`          | 399  | 节点类型定义与映射（50种节点、动态分支配置）                 |
-| `editor-node-render.js`         | 724  | 节点渲染（DOM创建、拖拽、选择、删除、批量测量）              |
-| `editor-node-drag.js`           | -    | 节点拖拽交互（移动、吸附）                                   |
-| `editor-container-render.js`    | 216  | 容器节点渲染（循环/批处理容器）                              |
-| `editor-node-panel.js`          | 635  | 节点属性面板（参数编辑、条件表达式结构化编辑器）              |
-| `editor-param-editor.js`        | 319  | 参数编辑器（输入输出参数、合并组变量）                       |
-| `editor-node-selector.js`       | 346  | 变量选择器（输入参数引用、变量弹窗、合并变量管理）            |
-| `editor-edge.js`                | 425  | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接）          |
-| `editor-clipboard.js`           | 631  | 剪贴板复制（Coze 格式复制、多节点+连线关系保留）             |
-| `editor-clipboard-paste.js`     | 512  | 剪贴板粘贴（Coze/简单/多节点三种格式、分支名提取）            |
-| `editor-history.js`             | 69   | 历史步骤面板（可视化撤销/重做导航）                          |
-| `editor-keyboard.js`            | 94+  | 编辑器键盘快捷键（Ctrl+C/V/Z/Y/A/S/Delete/Esc/F/L，自定义配置） |
-| `editor-search.js`              | 152  | 搜索功能（节点搜索、跳转）                                   |
-| `editor-messages.js`            | 79   | 消息提示（success/error/warning）                            |
-| `editor-selection.js`           | 213  | 多选与框选（Shift多选、框选兜底）                            |
-| `editor-align.js`               | 234  | 节点对齐（多节点自动对齐布局）                               |
-| `editor-layout.js`              | -    | 布局管理（对齐、分布）                                       |
-| `editor-autosave.js`            | 81   | 自动保存（定时保存到 localStorage）                          |
-| `editor-share.js`               | 74   | 分享功能（生成分享链接）                                     |
+| 模块                            | 说明                                                         |
+| ------------------------------- | ------------------------------------------------------------ |
+| `editor-core.js`                | 工作流核心（节点/边CRUD、历史记录、验证、批量操作）          |
+| `editor-storage.js`             | 工作流本地存储（localStorage 读写）                          |
+| `editor-ui.js`                  | 编辑器 UI 总控（批量测量、画布、节点、边、键盘快捷键）       |
+| `editor-canvas.js`              | 画布管理（无限画布、缩放、平移、视口剔除、坐标转换）         |
+| `editor-node.js`                | 节点入口（组合模式，render/panel/selector/paramEditor）      |
+| `editor-node-types.js`          | 节点类型定义与映射（50种节点、动态分支配置）                 |
+| `editor-node-render.js`         | 节点渲染（DOM创建、拖拽、选择、删除、批量测量）              |
+| `editor-node-drag.js`           | 节点拖拽交互（移动、吸附）                                   |
+| `editor-container-render.js`    | 容器节点渲染（循环/批处理容器）                              |
+| `editor-node-panel.js`          | 节点属性面板（参数编辑、条件表达式结构化编辑器）              |
+| `editor-param-editor.js`        | 参数编辑器（输入输出参数、合并组变量）                       |
+| `editor-node-selector.js`       | 变量选择器（输入参数引用、变量弹窗、合并变量管理）            |
+| `editor-edge.js`                | 边 UI 组件（贝塞尔曲线渲染、选中高亮、虚边拖拽连接）          |
+| `editor-clipboard.js`           | 剪贴板复制（Coze 格式复制、多节点+连线关系保留）             |
+| `editor-clipboard-paste.js`     | 剪贴板粘贴（Coze/简单/多节点三种格式、分支名提取）            |
+| `editor-history.js`             | 历史步骤面板（可视化撤销/重做导航）                          |
+| `editor-keyboard.js`            | 编辑器键盘快捷键（Ctrl+C/V/Z/Y/A/S/Delete/Esc/F/L，自定义配置） |
+| `editor-search.js`              | 搜索功能（节点搜索、跳转）                                   |
+| `editor-messages.js`            | 消息提示（success/error/warning）                            |
+| `editor-selection.js`           | 多选与框选（Shift多选、框选兜底）                            |
+| `editor-align.js`               | 节点对齐（多节点自动对齐布局）                               |
+| `editor-layout.js`              | 布局管理（对齐、分布）                                       |
+| `editor-autosave.js`            | 自动保存（定时保存到 localStorage）                          |
+| `editor-share.js`               | 分享功能（生成分享链接）                                     |
 
 ### 管理器 (manager)
 
-| 模块                   | 行数 | 说明                                       |
-| ---------------------- | :--: | ------------------------------------------ |
-| `manager.js`           | 613  | 工作流管理页面（列表、创建、编辑、导入导出） |
-| `manager-templates.js` | 118  | 管理页 HTML 模板（节点详情、编辑器弹窗等）   |
+| 模块                   | 说明                                       |
+| ---------------------- | ------------------------------------------ |
+| `manager.js`           | 工作流管理页面（列表、创建、编辑、导入导出） |
+| `manager-templates.js` | 管理页 HTML 模板（节点详情、编辑器弹窗等）   |
 
 ### 共享 (shared)
 
-| 模块                     | 行数 | 说明                                                 |
-| ------------------------ | :--: | ---------------------------------------------------- |
-| `shared-dialog.js`       | 387  | 模态对话框组件（alert/confirm/success/error）        |
-| `shared-navigator.js`    | 141  | 页面导航管理（三页面间带淡入淡出动效的跳转）         |
-| `shared-graph.js`        | 407  | 图形可视化视图（SVG 渲染工作流拓扑）                 |
-| `shared-theme.js`        | 134  | 主题控制器（深色/浅色自动切换）                      |
-| `shared-i18n.js`         | 197  | 国际化控制器（中英文切换）                           |
-| `shared-serializer.js`   | 386  | 工作流序列化/反序列化（导入导出）                    |
-| `shared-node-detail.js`  | 275  | 节点详情模态框（JSON/YAML 复制、编辑器跳转）        |
+| 模块                     | 说明                                                 |
+| ------------------------ | ---------------------------------------------------- |
+| `shared-dialog.js`       | 模态对话框组件（alert/confirm/success/error）        |
+| `shared-navigator.js`    | 页面导航管理（三页面间带淡入淡出动效的跳转）         |
+| `shared-graph.js`        | 图形可视化视图（SVG 渲染工作流拓扑）                 |
+| `shared-theme.js`        | 主题控制器（深色/浅色自动切换）                      |
+| `shared-i18n.js`         | 国际化控制器（中英文切换）                           |
+| `shared-serializer.js`   | 工作流序列化/反序列化（导入导出）                    |
+| `shared-node-detail.js`  | 节点详情模态框（JSON/YAML 复制、编辑器跳转）        |
 
 ### 入口
 
-| 模块      | 行数 | 说明                                    |
-| --------- | :--: | --------------------------------------- |
-| `app.js`  | 28   | 应用入口（初始化 theme/i18n/页面路由）  |
+| 模块      | 说明                                    |
+| --------- | --------------------------------------- |
+| `app.js`  | 应用入口（初始化 theme/i18n/页面路由）  |
 
 ## 📖 使用方法
 

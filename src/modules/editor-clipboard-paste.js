@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 剪贴板粘贴模块
  * 负责从 Coze 格式、简单格式、简单节点格式粘贴工作流
@@ -6,7 +5,7 @@
 import { t } from '../i18n/i18n.js';
 import { deepClone, extractSlateText } from '../utils/helpers.js';
 
-function getDefaultSize(type) {
+function getDefaultSize(_type) {
     return { width: 200, height: 100 };
 }
 
@@ -14,10 +13,16 @@ function getDefaultSize(type) {
  * 粘贴相关的 mixin 方法
  * @param {import('./editor-clipboard.js').WorkflowClipboard} clipboard - WorkflowClipboard 实例
  */
-export function mixinClipboardPaste(clipboard) {
-    clipboard.pasteFromCozeFormat = function(data) {
+export class WorkflowClipboardPaste {
+    /**
+     * @param {import('./editor-clipboard.js').WorkflowClipboard} clipboard - WorkflowClipboard 实例
+     */
+    constructor(clipboard) {
+        this.clipboard = clipboard;
+    }
+    pasteFromCozeFormat(data) {
         if (!data.json?.nodes?.length) {
-            this.ui.showMessage(t('actions.pasteInvalidData'), 'error');
+            this.clipboard.ui.showMessage(t('actions.pasteInvalidData'), 'error');
             return;
         }
 
@@ -26,12 +31,12 @@ export function mixinClipboardPaste(clipboard) {
             'loop-function-inline-output': 'container_start',
             'loop-function-inline-input': 'container_end',
             'batch-function-inline-output': 'container_start',
-            'batch-function-inline-input': 'container_end'
+            'batch-function-inline-input': 'container_end',
         };
 
         const convertCozePort = (port, nodeId) => {
             if (!port) return port;
-            const node = this.core.nodes.find(n => n.id === nodeId);
+            const node = this.clipboard.core.nodes.find((n) => n.id === nodeId);
             if (!node || node.type !== 'condition') return port;
             const branches = node.parameters?.branches;
             if (!Array.isArray(branches) || branches.length === 0) return port;
@@ -60,11 +65,12 @@ export function mixinClipboardPaste(clipboard) {
         };
         collectAllNodeIds(data.json.nodes);
 
-        let minX = 0, minY = 0;
+        let minX = 0,
+            minY = 0;
         if (Array.isArray(data.json.nodes) && data.json.nodes.length > 0) {
             minX = Infinity;
             minY = Infinity;
-            data.json.nodes.forEach(cozeNode => {
+            data.json.nodes.forEach((cozeNode) => {
                 const nodeX = (cozeNode.meta?.position?.x ?? cozeNode.x ?? 0) || 0;
                 const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
                 minX = Math.min(minX, nodeX);
@@ -72,9 +78,9 @@ export function mixinClipboardPaste(clipboard) {
             });
         }
 
-        const { canvasX: pasteX, canvasY: pasteY } = this.ui.canvas.screenToCanvas(
-            this.ui.canvas.lastMouseX || 100,
-            this.ui.canvas.lastMouseY || 100
+        const { canvasX: pasteX, canvasY: pasteY } = this.clipboard.ui.canvas.screenToCanvas(
+            this.clipboard.ui.canvas.lastMouseX || 100,
+            this.clipboard.ui.canvas.lastMouseY || 100
         );
 
         const createNodeFromCoze = (cozeNode, parentId = null, offsetX = 0, offsetY = 0) => {
@@ -85,7 +91,7 @@ export function mixinClipboardPaste(clipboard) {
 
             let type = 'plugin';
             try {
-                type = this.core.getTypeFromNumber(cozeNode.type);
+                type = this.clipboard.core.getTypeFromNumber(cozeNode.type);
             } catch (err) {
                 type = 'plugin';
             }
@@ -94,22 +100,22 @@ export function mixinClipboardPaste(clipboard) {
             const nodeY = (cozeNode.meta?.position?.y ?? cozeNode.y ?? 0) || 0;
 
             const isChild = parentId !== null;
-            const x = isChild ? nodeX : (pasteX + (nodeX - minX) + offsetX);
-            const y = isChild ? nodeY : (pasteY + (nodeY - minY) + offsetY);
+            const x = isChild ? nodeX : pasteX + (nodeX - minX) + offsetX;
+            const y = isChild ? nodeY : pasteY + (nodeY - minY) + offsetY;
 
             const parameters = {};
             if (cozeNode.data?.outputs) {
-                cozeNode.data.outputs.forEach(output => {
+                cozeNode.data.outputs.forEach((output) => {
                     if (output.defaultValue !== undefined) {
                         parameters[output.name] = output.defaultValue;
                     }
                 });
                 const nodeOutputs = {};
-                cozeNode.data.outputs.forEach(output => {
+                cozeNode.data.outputs.forEach((output) => {
                     nodeOutputs[output.name] = {
                         type: output.type || 'string',
                         description: output.description || '',
-                        required: output.required || false
+                        required: output.required || false,
                     };
                     if (output.schema) {
                         if (Array.isArray(output.schema)) {
@@ -145,7 +151,7 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         } else if (key === 'llmParam' && Array.isArray(value)) {
                             parameters._llmParamRaw = deepClone(value);
-                            value.forEach(p => {
+                            value.forEach((p) => {
                                 const v = p.input?.value?.content;
                                 if (p.name && v !== undefined) {
                                     const keyName = p.name === 'modleName' ? 'modelName' : p.name;
@@ -205,62 +211,62 @@ export function mixinClipboardPaste(clipboard) {
                 icon: icon,
                 parameters: parameters,
                 parentId: parentId,
-                inputParams: (cozeNode.data?.inputs?.inputParameters || []).map(p => {
+                inputParams: (cozeNode.data?.inputs?.inputParameters || []).map((p) => {
                     if (p.left && p.right) {
                         return {
                             name: p.left?.value?.content?.name || p.left?.value?.content || '',
                             type: p.left?.type || p.right?.type || 'string',
-                            value: p.right?.value?.type === 'ref'
-                                ? { type: 'ref', content: p.right.value.content }
-                                : (p.right?.value?.content ?? ''),
+                            value:
+                                p.right?.value?.type === 'ref'
+                                    ? { type: 'ref', content: p.right.value.content }
+                                    : (p.right?.value?.content ?? ''),
                             valueType: p.right?.value?.type || 'literal',
                             left: p.left,
-                            right: p.right
+                            right: p.right,
                         };
                     }
                     return {
                         name: p.name || '',
                         type: p.type || p.input?.type || 'string',
-                        value: p.input?.value?.type === 'ref'
-                            ? { type: 'ref', content: p.input.value.content }
-                            : (p.input?.value?.content ?? p.defaultValue ?? ''),
+                        value:
+                            p.input?.value?.type === 'ref'
+                                ? { type: 'ref', content: p.input.value.content }
+                                : (p.input?.value?.content ?? p.defaultValue ?? ''),
                         valueType: p.input?.value?.type || 'literal',
                         rawMeta: p.input?.value?.rawMeta || null,
                         schema: p.input?.schema || null,
                         required: p.required === true,
-                        description: p.description || ''
+                        description: p.description || '',
                     };
                 }),
-                outputParams: (cozeNode.data?.outputs || []).map(o => {
+                outputParams: (cozeNode.data?.outputs || []).map((o) => {
                     const isRef = o.input?.value?.type === 'ref';
                     return {
                         name: o.name || '',
                         type: o.type || 'string',
-                        value: isRef
-                            ? { type: 'ref', content: o.input.value.content }
-                            : (o.defaultValue || ''),
+                        value: isRef ? { type: 'ref', content: o.input.value.content } : o.defaultValue || '',
                         valueType: isRef ? 'ref' : 'literal',
-                        rawMeta: isRef ? (o.input.value.rawMeta || null) : null,
+                        rawMeta: isRef ? o.input.value.rawMeta || null : null,
                         required: o.required === true,
-                        description: o.description || ''
+                        description: o.description || '',
                     };
                 }),
-                ...getDefaultSize(type)
+                ...getDefaultSize(type),
             };
 
             return newNode;
         };
 
         try {
-            this.core.batchChanges(() => {
+            this.clipboard.core.batchChanges(() => {
                 const containerNodes = [];
 
-                data.json.nodes.forEach(cozeNode => {
+                data.json.nodes.forEach((cozeNode) => {
                     if (!cozeNode || !cozeNode.id) return;
                     const newNode = createNodeFromCoze(cozeNode);
                     if (!newNode) return;
 
-                    this.core.addNode(newNode);
+                    this.clipboard.core.addNode(newNode);
                     nodeCount++;
 
                     if (cozeNode.blocks && Array.isArray(cozeNode.blocks) && cozeNode.blocks.length > 0) {
@@ -270,23 +276,27 @@ export function mixinClipboardPaste(clipboard) {
                         // 不要设置 _skipLayout，让 updateContainerSize 自动对齐子节点到左上角并居中
                         // Coze 给子节点坐标可能有负值，需要自动调整才能正确包裹
 
-                        cozeNode.blocks.forEach(blockNode => {
+                        cozeNode.blocks.forEach((blockNode) => {
                             if (!blockNode || !blockNode.id) return;
                             const childNode = createNodeFromCoze(blockNode, newNode.id);
                             if (!childNode) return;
                             // 子节点在容器体内的位置需要相对容器体左上角
-                            childNode.x = (blockNode.meta?.position?.x || 0);
-                            childNode.y = (blockNode.meta?.position?.y || 0);
-                            this.core.addNode(childNode);
+                            childNode.x = blockNode.meta?.position?.x || 0;
+                            childNode.y = blockNode.meta?.position?.y || 0;
+                            this.clipboard.core.addNode(childNode);
                             nodeCount++;
                         });
                     }
                 });
 
-                Object.values(this.core.nodes).forEach(node => {
+                Object.values(this.clipboard.core.nodes).forEach((node) => {
                     if (node.inputParams && Array.isArray(node.inputParams)) {
-                        node.inputParams.forEach(param => {
-                            if (param.valueType === 'ref' && typeof param.value === 'object' && param.value.content?.blockID) {
+                        node.inputParams.forEach((param) => {
+                            if (
+                                param.valueType === 'ref' &&
+                                typeof param.value === 'object' &&
+                                param.value.content?.blockID
+                            ) {
                                 const newBlockId = idMap[String(param.value.content.blockID)];
                                 if (newBlockId) {
                                     param.value.content.blockID = newBlockId;
@@ -294,7 +304,11 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         });
                     }
-                    if (node.parameters && node.parameters._contentRaw && typeof node.parameters._contentRaw === 'object') {
+                    if (
+                        node.parameters &&
+                        node.parameters._contentRaw &&
+                        typeof node.parameters._contentRaw === 'object'
+                    ) {
                         const raw = node.parameters._contentRaw;
                         if (raw.value?.type === 'ref' && raw.value.content?.blockID) {
                             const newBlockId = idMap[String(raw.value.content.blockID)];
@@ -303,7 +317,11 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         }
                     }
-                    if (node.parameters && node.parameters.dynamic_option && typeof node.parameters.dynamic_option === 'object') {
+                    if (
+                        node.parameters &&
+                        node.parameters.dynamic_option &&
+                        typeof node.parameters.dynamic_option === 'object'
+                    ) {
                         const opt = node.parameters.dynamic_option;
                         if (opt.value?.type === 'ref' && opt.value.content?.blockID) {
                             const newBlockId = idMap[String(opt.value.content.blockID)];
@@ -313,9 +331,9 @@ export function mixinClipboardPaste(clipboard) {
                         }
                     }
                     if (node.parameters && node.parameters.mergeGroups && Array.isArray(node.parameters.mergeGroups)) {
-                        node.parameters.mergeGroups.forEach(group => {
+                        node.parameters.mergeGroups.forEach((group) => {
                             if (group.variables && Array.isArray(group.variables)) {
-                                group.variables.forEach(v => {
+                                group.variables.forEach((v) => {
                                     if (v.value?.type === 'ref' && v.value.content?.blockID) {
                                         const newBlockId = idMap[String(v.value.content.blockID)];
                                         if (newBlockId) {
@@ -326,11 +344,18 @@ export function mixinClipboardPaste(clipboard) {
                             }
                         });
                     }
-                    if (node.parameters && node.parameters.node_outputs && typeof node.parameters.node_outputs === 'object') {
-                        Object.values(node.parameters.node_outputs).forEach(output => {
-                            if (output.input && typeof output.input === 'object'
-                                && output.input.value?.type === 'ref'
-                                && output.input.value.content?.blockID) {
+                    if (
+                        node.parameters &&
+                        node.parameters.node_outputs &&
+                        typeof node.parameters.node_outputs === 'object'
+                    ) {
+                        Object.values(node.parameters.node_outputs).forEach((output) => {
+                            if (
+                                output.input &&
+                                typeof output.input === 'object' &&
+                                output.input.value?.type === 'ref' &&
+                                output.input.value.content?.blockID
+                            ) {
                                 const newBlockId = idMap[String(output.input.value.content.blockID)];
                                 if (newBlockId) {
                                     output.input.value.content.blockID = newBlockId;
@@ -339,8 +364,13 @@ export function mixinClipboardPaste(clipboard) {
                         });
                     }
                     if (node.outputParams && Array.isArray(node.outputParams)) {
-                        node.outputParams.forEach(p => {
-                            if (p.value && typeof p.value === 'object' && p.value.type === 'ref' && p.value.content?.blockID) {
+                        node.outputParams.forEach((p) => {
+                            if (
+                                p.value &&
+                                typeof p.value === 'object' &&
+                                p.value.type === 'ref' &&
+                                p.value.content?.blockID
+                            ) {
                                 const newBlockId = idMap[String(p.value.content.blockID)];
                                 if (newBlockId) {
                                     p.value.content.blockID = newBlockId;
@@ -349,8 +379,13 @@ export function mixinClipboardPaste(clipboard) {
                         });
                     }
                     if (node.inputParams && Array.isArray(node.inputParams)) {
-                        node.inputParams.forEach(p => {
-                            if (p.value && typeof p.value === 'object' && p.value.type === 'ref' && p.value.content?.blockID) {
+                        node.inputParams.forEach((p) => {
+                            if (
+                                p.value &&
+                                typeof p.value === 'object' &&
+                                p.value.type === 'ref' &&
+                                p.value.content?.blockID
+                            ) {
                                 const newBlockId = idMap[String(p.value.content.blockID)];
                                 if (newBlockId) {
                                     p.value.content.blockID = newBlockId;
@@ -362,7 +397,7 @@ export function mixinClipboardPaste(clipboard) {
                         const updateBlockIds = (obj) => {
                             if (!obj || typeof obj !== 'object') return;
                             if (Array.isArray(obj)) {
-                                obj.forEach(item => updateBlockIds(item));
+                                obj.forEach((item) => updateBlockIds(item));
                                 return;
                             }
                             for (const key of Object.keys(obj)) {
@@ -378,7 +413,11 @@ export function mixinClipboardPaste(clipboard) {
                         node.parameters.branches.forEach((branch, i) => {
                             if (!branch.name) {
                                 let name = '';
-                                if (branch.condition && Array.isArray(branch.condition.conditions) && branch.condition.conditions.length > 0) {
+                                if (
+                                    branch.condition &&
+                                    Array.isArray(branch.condition.conditions) &&
+                                    branch.condition.conditions.length > 0
+                                ) {
                                     const firstCond = branch.condition.conditions[0];
                                     const rightVal = firstCond.right?.input?.value?.content;
                                     const leftVal = firstCond.left?.input?.value?.content;
@@ -393,7 +432,7 @@ export function mixinClipboardPaste(clipboard) {
                         });
                     }
                     if (node.type === 'loop_set_variable' && Array.isArray(node.parameters.variables)) {
-                        node.parameters.variables.forEach(v => {
+                        node.parameters.variables.forEach((v) => {
                             if (v.left?.value?.content?.blockID && typeof v.left.value.content.blockID === 'string') {
                                 const newBlockId = idMap[String(v.left.value.content.blockID)];
                                 if (newBlockId) {
@@ -411,7 +450,7 @@ export function mixinClipboardPaste(clipboard) {
                 });
 
                 if (data.json.edges) {
-                    data.json.edges.forEach(edge => {
+                    data.json.edges.forEach((edge) => {
                         const sourceId = idMap[String(edge.sourceNodeID)];
                         const targetId = idMap[String(edge.targetNodeID)];
 
@@ -421,9 +460,9 @@ export function mixinClipboardPaste(clipboard) {
                                 source: sourceId,
                                 target: targetId,
                                 ...(edge.sourcePortID && { sourcePort: convertCozePort(edge.sourcePortID, sourceId) }),
-                                ...(edge.targetPortID && { targetPort: convertCozePort(edge.targetPortID, targetId) })
+                                ...(edge.targetPortID && { targetPort: convertCozePort(edge.targetPortID, targetId) }),
                             };
-                            const result = this.core.addEdge(newEdge);
+                            const result = this.clipboard.core.addEdge(newEdge);
                             if (result) {
                                 edgeCount++;
                             } else {
@@ -435,7 +474,7 @@ export function mixinClipboardPaste(clipboard) {
 
                 containerNodes.forEach(({ cozeNode }) => {
                     if (cozeNode.edges && Array.isArray(cozeNode.edges)) {
-                        cozeNode.edges.forEach(edge => {
+                        cozeNode.edges.forEach((edge) => {
                             const sourceId = idMap[String(edge.sourceNodeID)];
                             const targetId = idMap[String(edge.targetNodeID)];
 
@@ -447,9 +486,9 @@ export function mixinClipboardPaste(clipboard) {
                                     source: sourceId,
                                     target: targetId,
                                     ...(rawSourcePort && { sourcePort: convertCozePort(rawSourcePort, sourceId) }),
-                                    ...(rawTargetPort && { targetPort: convertCozePort(rawTargetPort, targetId) })
+                                    ...(rawTargetPort && { targetPort: convertCozePort(rawTargetPort, targetId) }),
                                 };
-                                const result = this.core.addEdge(newEdge);
+                                const result = this.clipboard.core.addEdge(newEdge);
                                 if (result) {
                                     edgeCount++;
                                 } else {
@@ -463,21 +502,24 @@ export function mixinClipboardPaste(clipboard) {
 
             let message;
             if (edgeCount > 0 && skippedEdges > 0) {
-                message = t('actions.pasteSuccessWithEdges', { nodeCount, edgeCount }) + ' ' + t('actions.pasteSkipped', { skipped: skippedEdges });
+                message =
+                    t('actions.pasteSuccessWithEdges', { nodeCount, edgeCount }) +
+                    ' ' +
+                    t('actions.pasteSkipped', { skipped: skippedEdges });
             } else if (edgeCount > 0) {
                 message = t('actions.pasteSuccessWithEdges', { nodeCount, edgeCount });
             } else {
                 message = t('actions.pasteSuccess', { nodeCount });
             }
-            this.ui.showMessage(message, 'success');
+            this.clipboard.ui.showMessage(message, 'success');
 
-            this.core.saveHistory('actions.pasteSuccess', { nodeCount });
+            this.clipboard.core.saveHistory('actions.pasteSuccess', { nodeCount });
         } catch (err) {
-            this.ui.showMessage(t('actions.pasteFailed', { message: err.message }), 'error');
+            this.clipboard.ui.showMessage(t('actions.pasteFailed', { message: err.message }), 'error');
         }
-    };
+    }
 
-    clipboard.pasteFromSimpleFormat = function(data) {
+    pasteFromSimpleFormat(data) {
         const { node, edges } = data;
 
         const newNodeId = `node_${Date.now()}`;
@@ -486,9 +528,9 @@ export function mixinClipboardPaste(clipboard) {
         let x = node.x + offset;
         let y = node.y + offset;
 
-        const { translateX, scale } = this.ui.canvas.getCurrentTransform();
+        const { translateX, scale } = this.clipboard.ui.canvas.getCurrentTransform();
         if (translateX !== 0 || scale !== 1) {
-            const { canvasX, canvasY } = this.ui.canvas.screenToCanvas(node.x, node.y);
+            const { canvasX, canvasY } = this.clipboard.ui.canvas.screenToCanvas(node.x, node.y);
             x = canvasX + offset;
             y = canvasY + offset;
         }
@@ -497,20 +539,20 @@ export function mixinClipboardPaste(clipboard) {
             ...node,
             id: newNodeId,
             x: x,
-            y: y
+            y: y,
         };
 
         let el;
-        this.core.batchChanges(() => {
-            this.core.addNode(newNode);
-            el = this.ui.node.createElement(newNode);
-            this.ui.canvas.canvasContent.appendChild(el);
-            this.ui.canvas.setEmptyState(false);
+        this.clipboard.core.batchChanges(() => {
+            this.clipboard.core.addNode(newNode);
+            el = this.clipboard.ui.node.createElement(newNode);
+            this.clipboard.ui.canvas.canvasContent.appendChild(el);
+            this.clipboard.ui.canvas.setEmptyState(false);
 
-            edges.forEach(edge => {
+            edges.forEach((edge) => {
                 const newEdge = {
                     ...edge,
-                    id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+                    id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 };
 
                 if (edge.source === node.id) {
@@ -520,26 +562,26 @@ export function mixinClipboardPaste(clipboard) {
                     newEdge.target = newNodeId;
                 }
 
-                const sourceExists = this.core.nodes.find(n => n.id === newEdge.source);
-                const targetExists = this.core.nodes.find(n => n.id === newEdge.target);
+                const sourceExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.source);
+                const targetExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.target);
 
                 if (sourceExists && targetExists) {
-                    this.core.addEdge(newEdge);
+                    this.clipboard.core.addEdge(newEdge);
                 }
             });
         });
 
-        this.ui.node.select(el);
-    };
+        this.clipboard.ui.node.select(el);
+    }
 
-    clipboard.pasteFromSimpleNodes = function(data) {
+    pasteFromSimpleNodes(data) {
         if (!data.nodes?.length) return;
 
         const offset = 50;
 
-        this.core.batchChanges(() => {
+        this.clipboard.core.batchChanges(() => {
             const elements = [];
-            data.nodes.forEach(node => {
+            data.nodes.forEach((node) => {
                 const newNodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
                 const x = (node.position?.x || node.x || 0) + offset;
@@ -552,31 +594,31 @@ export function mixinClipboardPaste(clipboard) {
                     y: y,
                     title: node.title || t('nodes.node'),
                     description: node.description || '',
-                    parameters: node.parameters || {}
+                    parameters: node.parameters || {},
                 };
 
-                this.core.addNode(newNode);
-                const el = this.ui.node.createElement(newNode, { skipMeasure: true });
+                this.clipboard.core.addNode(newNode);
+                const el = this.clipboard.ui.node.createElement(newNode, { skipMeasure: true });
                 elements.push({ el, nodeData: newNode });
-                this.ui.canvas.canvasContent.appendChild(el);
-                this.ui.canvas.setEmptyState(false);
+                this.clipboard.ui.canvas.canvasContent.appendChild(el);
+                this.clipboard.ui.canvas.setEmptyState(false);
             });
-            this.ui.node.batchMeasureElements(elements);
+            this.clipboard.ui.node.batchMeasureElements(elements);
 
-            data.edges?.forEach(edge => {
+            data.edges?.forEach((edge) => {
                 const newEdge = {
                     id: `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                     source: `node_${edge.source || edge.sourceNodeID}`,
-                    target: `node_${edge.target || edge.targetNodeID}`
+                    target: `node_${edge.target || edge.targetNodeID}`,
                 };
 
-                const sourceExists = this.core.nodes.find(n => n.id === newEdge.source);
-                const targetExists = this.core.nodes.find(n => n.id === newEdge.target);
+                const sourceExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.source);
+                const targetExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.target);
 
                 if (sourceExists && targetExists) {
-                    this.core.addEdge(newEdge);
+                    this.clipboard.core.addEdge(newEdge);
                 }
             });
         });
-    };
+    }
 }

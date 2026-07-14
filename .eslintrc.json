@@ -25,11 +25,17 @@
                 }],
                 "no-console": "off",
                 "no-undef": "error",
+                "no-var": "error",
+                "prefer-const": "warn",
                 "no-extra-semi": "warn",
                 "no-constant-condition": ["error", { "checkLoops": false }],
                 "no-empty": ["warn", { "allowEmptyCatch": true }],
                 "no-prototype-builtins": "off",
-                "no-case-declarations": "off"
+                "no-case-declarations": "off",
+                "no-restricted-globals": ["error",
+                    { "name": "unescape", "message": "unescape is deprecated. Use decodeURIComponent instead." },
+                    { "name": "escape", "message": "escape is deprecated. Use encodeURIComponent instead." }
+                ]
             }
         },
         {

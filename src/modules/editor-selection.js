@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { DOM, deepClone } from '../utils/helpers.js';
 import { t } from '../i18n/i18n.js';
 
@@ -19,18 +18,18 @@ export class WorkflowSelection {
      * 全选节点和边
      */
     selectAll() {
-        document.querySelectorAll('.canvas-node').forEach(n => {
+        document.querySelectorAll('.canvas-node').forEach((n) => {
             const nodeId = n.getAttribute('data-node-id');
-            const node = this.core.nodes.find(nd => nd.id === nodeId);
+            const node = this.core.nodes.find((nd) => nd.id === nodeId);
             if (node && (node.parentId || node.locked)) return;
             DOM.addClass(n, 'selected');
         });
-        document.querySelectorAll('.workflow-edge').forEach(e => {
+        document.querySelectorAll('.workflow-edge').forEach((e) => {
             const edgeId = e.getAttribute('data-edge-id');
-            const edge = this.core.edges.find(ed => ed.id === edgeId);
+            const edge = this.core.edges.find((ed) => ed.id === edgeId);
             if (!edge) return;
-            const sourceNode = this.core.nodes.find(n => n.id === edge.source);
-            const targetNode = this.core.nodes.find(n => n.id === edge.target);
+            const sourceNode = this.core.nodes.find((n) => n.id === edge.source);
+            const targetNode = this.core.nodes.find((n) => n.id === edge.target);
             if ((sourceNode && sourceNode.parentId) || (targetNode && targetNode.parentId)) return;
             DOM.addClass(e, 'selected');
         });
@@ -42,14 +41,14 @@ export class WorkflowSelection {
 
         if (this.core.nodes.length > 0) {
             const firstNode = this.core.nodes[0];
-            const node = this.core.nodes.find(n => n.id === firstNode.id);
-            if (node) this.ui.node.renderPropertyPanel(node);
+            const node = this.core.nodes.find((n) => n.id === firstNode.id);
+            if (node) this.ui.node.panel.renderPropertyPanel(node);
         }
 
         if (this.core.nodes.length > 1) {
             this.ui.isMultiSelectMode = true;
         }
-        
+
         this.ui.align.updateAlignToolbar();
         this.ui.canvas.renderMinimap();
     }
@@ -58,8 +57,8 @@ export class WorkflowSelection {
      * 取消全选
      */
     deselectAll() {
-        document.querySelectorAll('.canvas-node.selected').forEach(n => DOM.removeClass(n, 'selected'));
-        document.querySelectorAll('.workflow-edge.selected').forEach(e => DOM.removeClass(e, 'selected'));
+        document.querySelectorAll('.canvas-node.selected').forEach((n) => DOM.removeClass(n, 'selected'));
+        document.querySelectorAll('.workflow-edge.selected').forEach((e) => DOM.removeClass(e, 'selected'));
         this.ui.isMultiSelectMode = false;
         this.core.selectedNode = null;
         this.core.selectedEdge = null;
@@ -77,11 +76,11 @@ export class WorkflowSelection {
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
 
         if (selectedNodes.length > 0) {
-            const lastSelected = selectedNodes[selectedNodes.length - 1];
+            const lastSelected = /** @type {HTMLElement} */ (selectedNodes[selectedNodes.length - 1]);
             this.core.selectNode(lastSelected.dataset.nodeId);
 
-            const node = this.core.nodes.find(n => n.id === lastSelected.dataset.nodeId);
-            if (node) this.ui.node.renderPropertyPanel(node);
+            const node = this.core.nodes.find((n) => n.id === lastSelected.dataset.nodeId);
+            if (node) this.ui.node.panel.renderPropertyPanel(node);
 
             if (selectedNodes.length > 1 || selectedEdges.length > 0) {
                 this.ui.isMultiSelectMode = true;
@@ -91,7 +90,7 @@ export class WorkflowSelection {
             const lastEdgeId = lastSelected.getAttribute('data-edge-id');
             this.core.selectEdge(lastEdgeId);
 
-            const edge = this.core.edges.find(e => e.id === lastEdgeId);
+            const edge = this.core.edges.find((e) => e.id === lastEdgeId);
             if (edge) this.ui.edge.renderPropertyPanel(edge);
         }
 
@@ -113,9 +112,9 @@ export class WorkflowSelection {
 
         const selectedNodeIds = new Set();
 
-        document.querySelectorAll('.canvas-node').forEach(nodeEl => {
+        document.querySelectorAll('.canvas-node').forEach((nodeEl) => {
             const nodeId = nodeEl.getAttribute('data-node-id');
-            const node = this.core.nodes.find(nd => nd.id === nodeId);
+            const node = this.core.nodes.find((nd) => nd.id === nodeId);
             if (!node) return;
 
             if (containerId) {
@@ -146,10 +145,10 @@ export class WorkflowSelection {
             }
         });
 
-        document.querySelectorAll('.workflow-edge').forEach(edgeEl => {
+        document.querySelectorAll('.workflow-edge').forEach((edgeEl) => {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             if (edgeId) {
-                const edge = this.core.edges.find(e => e.id === edgeId);
+                const edge = this.core.edges.find((e) => e.id === edgeId);
                 if (edge && selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
                     DOM.addClass(edgeEl, 'selected');
                 }
@@ -171,16 +170,16 @@ export class WorkflowSelection {
             return;
         }
 
-        selectedEdges.forEach(edgeEl => {
+        selectedEdges.forEach((edgeEl) => {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             this.ui.edge.delete(edgeId, false, false);
         });
 
-        selectedNodes.forEach(nodeEl => {
-            const nodeId = nodeEl.dataset.nodeId;
-            const nodeData = this.core.nodes.find(n => n.id === nodeId);
+        selectedNodes.forEach((nodeEl) => {
+            const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
+            const nodeData = this.core.nodes.find((n) => n.id === nodeId);
             if (nodeData && nodeData.locked) return;
-            this.ui.node.delete(nodeId, false, false);
+            this.ui.node.render.delete(nodeId, false, false);
         });
 
         this.core.selectedNode = null;
@@ -196,9 +195,9 @@ export class WorkflowSelection {
         const selectedEls = document.querySelectorAll('.canvas-node.selected');
         if (selectedEls.length === 0) return;
 
-        selectedEls.forEach(el => {
-            const nodeId = el.dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
+        selectedEls.forEach((el) => {
+            const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
+            const node = this.core.nodes.find((n) => n.id === nodeId);
             if (!node) return;
 
             const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -207,11 +206,11 @@ export class WorkflowSelection {
                 id: newId,
                 title: `${node.title}${t('messages.duplicateNodeSuffix')}`,
                 x: node.x + 30,
-                y: node.y + 30
+                y: node.y + 30,
             };
 
             this.core.addNode(newNode);
-            const newEl = this.ui.node.createElement(newNode);
+            const newEl = this.ui.node.render.createElement(newNode);
             this.ui.canvas.canvasContent.appendChild(newEl);
             newEl.classList.add('selected');
         });

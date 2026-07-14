@@ -1,19 +1,24 @@
-// @ts-nocheck
 /**
  * 工作流自动保存模块
  * 负责定时自动保存和手动保存
  */
 import { t } from '../i18n/i18n.js';
 
-/**
- * 自动保存相关的 mixin 方法
- * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
- */
-export function mixinAutoSave(ui) {
-    ui._lastAutoSaveTime = 0;
-    ui._autoSaveIndicatorTimer = null;
+export class WorkflowAutoSave {
+    /**
+     * @param {import('./editor-ui.js').WorkflowUI} ui - 主 UI 实例
+     */
+    constructor(ui) {
+        this.ui = ui;
+        this._lastAutoSaveTime = 0;
+        this._autoSaveIndicatorTimer = null;
+        this.autoSaveTimer = null;
+    }
 
-    ui._updateAutoSaveIndicator = function() {
+    /**
+     * 更新自动保存指示器文本
+     */
+    _updateAutoSaveIndicator() {
         const el = document.getElementById('autosaveIndicator');
         if (!el) return;
         if (!this._lastAutoSaveTime) {
@@ -33,16 +38,15 @@ export function mixinAutoSave(ui) {
         }
         el.textContent = text;
         el.style.display = '';
-    };
+    }
 
     /**
      * 启动自动保存
      */
-    ui.startAutoSave = function() {
+    startAutoSave() {
         this.autoSaveTimer = setInterval(() => {
-            if (this.core.nodes.length > 0) {
-                this.core.saveToLocalStorage();
-                this.markSaved();
+            if (this.ui.core.nodes.length > 0) {
+                this.ui.core.saveToLocalStorage();
                 this._lastAutoSaveTime = Date.now();
                 this._updateAutoSaveIndicator();
             }
@@ -51,26 +55,12 @@ export function mixinAutoSave(ui) {
         this._autoSaveIndicatorTimer = setInterval(() => {
             this._updateAutoSaveIndicator();
         }, 10000);
-
-        this.beforeUnloadHandler = () => {
-            if (this.core.nodes.length > 0) {
-                this.core.saveToLocalStorage();
-            }
-        };
-        this.beforeUnloadCheckHandler = (e) => {
-            if (this.hasUnsavedChanges()) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        };
-        window.addEventListener('beforeunload', this.beforeUnloadHandler);
-        window.addEventListener('beforeunload', this.beforeUnloadCheckHandler);
-    };
+    }
 
     /**
      * 停止自动保存
      */
-    ui.stopAutoSave = function() {
+    stopAutoSave() {
         if (this.autoSaveTimer) {
             clearInterval(this.autoSaveTimer);
             this.autoSaveTimer = null;
@@ -79,42 +69,34 @@ export function mixinAutoSave(ui) {
             clearInterval(this._autoSaveIndicatorTimer);
             this._autoSaveIndicatorTimer = null;
         }
-        if (this.beforeUnloadHandler) {
-            window.removeEventListener('beforeunload', this.beforeUnloadHandler);
-            this.beforeUnloadHandler = null;
-        }
-        if (this.beforeUnloadCheckHandler) {
-            window.removeEventListener('beforeunload', this.beforeUnloadCheckHandler);
-            this.beforeUnloadCheckHandler = null;
-        }
-    };
+    }
 
     /**
      * 销毁
      */
-    ui.destroy = function() {
+    destroy() {
         this.stopAutoSave();
-    };
+    }
 
     /**
      * 手动保存工作流
      */
-    ui.saveWorkflow = function() {
-        const success = this.core.saveToLocalStorage();
+    saveWorkflow() {
+        const success = this.ui.core.saveToLocalStorage();
         if (success) {
             this._lastAutoSaveTime = Date.now();
             this._updateAutoSaveIndicator();
-            this.showMessage(t('messages.workflowSaved'), 'success');
+            this.ui.showMessage(t('messages.workflowSaved'), 'success');
         } else {
-            this.showMessage(t('messages.saveFailed'), 'error');
+            this.ui.showMessage(t('messages.saveFailed'), 'error');
         }
-    };
+    }
 
     /**
      * 清除保存的工作流
      */
-    ui.clearSavedWorkflow = function() {
-        this.core.clearSavedWorkflow();
-        this.showMessage(t('messages.savedWorkflowCleared'), 'success');
-    };
+    clearSavedWorkflow() {
+        this.ui.core.clearSavedWorkflow();
+        this.ui.showMessage(t('messages.savedWorkflowCleared'), 'success');
+    }
 }

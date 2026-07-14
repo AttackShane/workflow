@@ -10,18 +10,28 @@ jest.mock('../src/utils/helpers.js', () => ({
         setAttr: jest.fn(),
         addClass: jest.fn(),
         removeClass: jest.fn(),
-        create: jest.fn(() => ({ style: {}, appendChild: jest.fn() }))
+        create: jest.fn(() => ({ style: {}, appendChild: jest.fn(), remove: jest.fn(), parentNode: null })),
+        createSVG: jest.fn(() => ({
+            style: {},
+            appendChild: jest.fn(),
+            setAttribute: jest.fn(),
+            remove: jest.fn(),
+            parentNode: null,
+        })),
     },
     NodeUtils: {
         getBounds: jest.fn((nodes) => {
-            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-            nodes.forEach(node => {
+            let minX = Infinity,
+                minY = Infinity,
+                maxX = -Infinity,
+                maxY = -Infinity;
+            nodes.forEach((node) => {
                 const x = node.x || 0;
                 const y = node.y || 0;
                 const w = node.width || 200;
                 const h = node.height || 100;
                 if (node.parentId) {
-                    const parent = nodes.find(n => n.id === node.parentId);
+                    const parent = nodes.find((n) => n.id === node.parentId);
                     if (parent) {
                         const absX = (parent.x || 0) + x;
                         const absY = (parent.y || 0) + 56 + y;
@@ -41,8 +51,9 @@ jest.mock('../src/utils/helpers.js', () => ({
         }),
         translateToCanvasOrigin: jest.fn((nodes, padding = 100) => {
             if (!nodes.length) return;
-            let minX = Infinity, minY = Infinity;
-            nodes.forEach(node => {
+            let minX = Infinity,
+                minY = Infinity;
+            nodes.forEach((node) => {
                 if (!node.parentId) {
                     minX = Math.min(minX, node.x || 0);
                     minY = Math.min(minY, node.y || 0);
@@ -51,24 +62,24 @@ jest.mock('../src/utils/helpers.js', () => ({
             if (isFinite(minX) && isFinite(minY)) {
                 const offsetX = padding - minX;
                 const offsetY = padding - minY;
-                nodes.forEach(node => {
+                nodes.forEach((node) => {
                     if (!node.parentId) {
                         if (node.x !== undefined) node.x += offsetX;
                         if (node.y !== undefined) node.y += offsetY;
                     }
                 });
             }
-        })
-    }
+        }),
+    },
 }));
 
 jest.mock('../src/i18n/i18n.js', () => ({
-    t: (key) => key
+    t: (key) => key,
 }));
 
 jest.mock('../src/config/constants.js', () => ({
     APP_CONFIG: {
-        ZOOM: { MIN_SCALE: 0.25, MAX_SCALE: 3, ZOOM_FACTOR: 0.1 }
+        ZOOM: { MIN_SCALE: 0.25, MAX_SCALE: 3, ZOOM_FACTOR: 0.1 },
     },
     SELECTORS: {
         EDITOR: {
@@ -76,16 +87,16 @@ jest.mock('../src/config/constants.js', () => ({
             CANVAS_CONTENT: 'canvasContent',
             SVG_LAYER: 'svgLayer',
             SVG_HIT_LAYER: 'svgHitLayer',
-            EMPTY_STATE: 'emptyState'
-        }
-    }
+            EMPTY_STATE: 'emptyState',
+        },
+    },
 }));
 
 function createMockCore(nodes = []) {
     return {
         nodes,
         edges: [],
-        isContainerNode: () => false
+        isContainerNode: () => false,
     };
 }
 
@@ -98,47 +109,56 @@ function createMockUI(core) {
         showDetailPanel: () => {},
         selection: {
             deselectAll: jest.fn(),
-            selectNodesInRect: jest.fn()
+            selectNodesInRect: jest.fn(),
         },
         updateEdges: jest.fn(),
         node: {
             createElement: () => ({ style: {}, dataset: {} }),
             select: () => {},
-            batchMeasureElements: () => {}
-        }
+            batchMeasureElements: () => {},
+        },
     };
 }
 
+const fakeGetComputedStyleResult = {
+    getPropertyValue: jest.fn(() => '#1a1a2e'),
+    backgroundColor: '#1a1a2e',
+    borderColor: '#444',
+    color: '#e0e0e0',
+};
+
 function setupGlobalDocument() {
-    global.document = {
-        getElementById: jest.fn(() => null),
-        querySelector: jest.fn(() => null),
-        querySelectorAll: jest.fn(() => []),
-        createElement: jest.fn(() => ({
-            style: {},
-            dataset: {},
-            classList: { add: jest.fn(), remove: jest.fn(), contains: () => false },
-            getAttribute: jest.fn(() => null),
-            setAttribute: jest.fn(),
-            removeAttribute: jest.fn(),
-            appendChild: jest.fn(),
-            removeChild: jest.fn(),
-            closest: jest.fn(() => null),
-            getBoundingClientRect: jest.fn(() => ({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 }))
+    jest.spyOn(document.body, 'appendChild').mockImplementation((el) => el);
+    jest.spyOn(document.body, 'removeChild').mockImplementation((el) => el);
+    jest.spyOn(document, 'getElementById').mockReturnValue(null);
+    jest.spyOn(document, 'querySelector').mockReturnValue(null);
+    jest.spyOn(document, 'querySelectorAll').mockReturnValue([]);
+    jest.spyOn(document, 'createElementNS').mockImplementation((ns, tag) => ({
+        setAttribute: jest.fn(),
+        appendChild: jest.fn(),
+        style: {},
+    }));
+    jest.spyOn(document, 'createElement').mockImplementation(() => ({
+        style: {},
+        setAttribute: jest.fn(),
+        appendChild: jest.fn(),
+        getContext: jest.fn(() => ({
+            scale: jest.fn(),
+            drawImage: jest.fn(),
         })),
-        body: {
-            style: {},
-            appendChild: jest.fn(),
-            removeChild: jest.fn()
-        },
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn()
-    };
+        toBlob: jest.fn((cb) => cb(new Blob(['test']))),
+    }));
     global.window = {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
-        location: { pathname: '/editor' }
+        location: { pathname: '/editor' },
+        getComputedStyle: () => fakeGetComputedStyleResult,
     };
+    Object.defineProperty(global, 'getComputedStyle', {
+        value: () => fakeGetComputedStyleResult,
+        writable: true,
+        configurable: true,
+    });
 }
 
 describe('WorkflowCanvas', () => {
@@ -226,7 +246,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.setupEventListeners();
 
-            const resizeCall = DOM.on.mock.calls.find(c => c[1] === 'resize');
+            const resizeCall = DOM.on.mock.calls.find((c) => c[1] === 'resize');
             const resizeCallback = resizeCall[2];
             resizeCallback();
 
@@ -252,7 +272,7 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvasContent = {
-                style: { transform: 'translate(100px, 200px) scale(1.5)' }
+                style: { transform: 'translate(100px, 200px) scale(1.5)' },
             };
 
             const result = canvas.getCurrentTransform();
@@ -322,10 +342,7 @@ describe('WorkflowCanvas', () => {
             canvas.svgLayer = { style: {} };
             canvas.svgHitLayer = { style: {} };
 
-            canvas.setContentSvgSize(
-                { width: 500, height: 400 },
-                { minX: 0, minY: 0, maxX: 1000, maxY: 800 }
-            );
+            canvas.setContentSvgSize({ width: 500, height: 400 }, { minX: 0, minY: 0, maxX: 1000, maxY: 800 });
 
             expect(DOM.setAttr).toHaveBeenCalled();
         });
@@ -345,7 +362,11 @@ describe('WorkflowCanvas', () => {
             canvas.resetView();
 
             expect(canvas.canvasScale).toBe(1);
-            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvasContent, 'transform', 'translate(0px, 0px) scale(1)');
+            expect(DOM.setStyle).toHaveBeenCalledWith(
+                canvas.canvasContent,
+                'transform',
+                'translate(0px, 0px) scale(1)'
+            );
         });
     });
 
@@ -364,10 +385,10 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvas = {
-                getBoundingClientRect: () => ({ width: 800, height: 600 })
+                getBoundingClientRect: () => ({ width: 800, height: 600 }),
             };
             canvas.canvasContent = {
-                style: { transform: 'translate(0px, 0px) scale(1)' }
+                style: { transform: 'translate(0px, 0px) scale(1)' },
             };
             canvas.canvasScale = 1;
 
@@ -386,10 +407,10 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvas = {
-                getBoundingClientRect: () => ({ width: 800, height: 600 })
+                getBoundingClientRect: () => ({ width: 800, height: 600 }),
             };
             canvas.canvasContent = {
-                style: { transform: 'translate(0px, 0px) scale(1)' }
+                style: { transform: 'translate(0px, 0px) scale(1)' },
             };
 
             canvas.scheduleRenderUpdate();
@@ -423,7 +444,7 @@ describe('WorkflowCanvas', () => {
         it('should update visible nodes set', () => {
             const nodes = [
                 { id: '1', x: 100, y: 100, width: 200, height: 100 },
-                { id: '2', x: 2000, y: 2000, width: 200, height: 100 }
+                { id: '2', x: 2000, y: 2000, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             const ui = createMockUI(core);
@@ -497,9 +518,7 @@ describe('WorkflowCanvas', () => {
 
         it('should handle child node with valid parent', () => {
             canvas.core = {
-                nodes: [
-                    { id: 'parent1', x: 50, y: 50, width: 400, height: 300 }
-                ]
+                nodes: [{ id: 'parent1', x: 50, y: 50, width: 400, height: 300 }],
             };
             canvas.core.nodes.find = Array.prototype.find;
             canvas.viewport = { left: 0, top: 0, right: 1000, bottom: 800 };
@@ -510,9 +529,7 @@ describe('WorkflowCanvas', () => {
 
         it('should handle child node outside viewport via parent offset', () => {
             canvas.core = {
-                nodes: [
-                    { id: 'parent1', x: 50, y: 50, width: 400, height: 300 }
-                ]
+                nodes: [{ id: 'parent1', x: 50, y: 50, width: 400, height: 300 }],
             };
             canvas.core.nodes.find = Array.prototype.find;
             canvas.viewport = { left: 500, top: 500, right: 1000, bottom: 800 };
@@ -543,9 +560,7 @@ describe('WorkflowCanvas', () => {
         });
 
         it('should calculate bounds for single node', () => {
-            canvas.core.nodes = [
-                { x: 100, y: 200, width: 300, height: 150 }
-            ];
+            canvas.core.nodes = [{ x: 100, y: 200, width: 300, height: 150 }];
 
             const bounds = canvas.calculateNodesBounds();
 
@@ -559,7 +574,7 @@ describe('WorkflowCanvas', () => {
             canvas.core.nodes = [
                 { x: 100, y: 200, width: 300, height: 150 },
                 { x: 500, y: 100, width: 200, height: 400 },
-                { x: 50, y: 50, width: 100, height: 100 }
+                { x: 50, y: 50, width: 100, height: 100 },
             ];
 
             const bounds = canvas.calculateNodesBounds();
@@ -574,7 +589,7 @@ describe('WorkflowCanvas', () => {
             canvas.core.nodes = [
                 { x: 100, y: 200, width: 300, height: 150 },
                 { x: 10, y: 10, width: 50, height: 50, parentId: 'parent_1' },
-                { x: 500, y: 100, width: 200, height: 400 }
+                { x: 500, y: 100, width: 200, height: 400 },
             ];
 
             const bounds = canvas.calculateNodesBounds();
@@ -608,7 +623,7 @@ describe('WorkflowCanvas', () => {
         it('should return performance stats object', () => {
             const core = createMockCore([
                 { x: 0, y: 0, width: 100, height: 100 },
-                { x: 200, y: 200, width: 100, height: 100 }
+                { x: 200, y: 200, width: 100, height: 100 },
             ]);
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
@@ -631,10 +646,11 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.emptyState = { style: { display: '' } };
+            DOM.setStyle.mockClear();
 
             canvas.setEmptyState(true);
 
-            expect(canvas.emptyState.style.display).toBe('flex');
+            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.emptyState, 'display', 'flex');
         });
 
         it('should hide empty state', () => {
@@ -642,10 +658,11 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.emptyState = { style: { display: 'flex' } };
+            DOM.setStyle.mockClear();
 
             canvas.setEmptyState(false);
 
-            expect(canvas.emptyState.style.display).toBe('none');
+            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.emptyState, 'display', 'none');
         });
     });
 
@@ -714,7 +731,7 @@ describe('WorkflowCanvas', () => {
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
             canvas.canvas = {
-                getBoundingClientRect: () => ({ left: 10, top: 20 })
+                getBoundingClientRect: () => ({ left: 10, top: 20 }),
             };
 
             canvas.onMouseMove({ clientX: 210, clientY: 220 });
@@ -782,11 +799,13 @@ describe('WorkflowCanvas', () => {
             canvas.canvas = { style: {} };
             canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
 
-            expect(() => canvas.onCanvasMouseDown({
-                clientX: 100,
-                clientY: 100,
-                target: { tagName: 'DIV', closest: () => null }
-            })).not.toThrow();
+            expect(() =>
+                canvas.onCanvasMouseDown({
+                    clientX: 100,
+                    clientY: 100,
+                    target: { tagName: 'DIV', closest: () => null },
+                })
+            ).not.toThrow();
         });
 
         it('should return early when dataTransfer is present', () => {
@@ -802,7 +821,7 @@ describe('WorkflowCanvas', () => {
                 ctrlKey: false,
                 metaKey: false,
                 dataTransfer: { types: ['text/plain'] },
-                target: { tagName: 'DIV', closest: () => null }
+                target: { tagName: 'DIV', closest: () => null },
             });
 
             expect(result).toBeUndefined();
@@ -822,7 +841,7 @@ describe('WorkflowCanvas', () => {
                 clientY: 100,
                 ctrlKey: false,
                 metaKey: false,
-                target: { tagName: 'DIV', closest: () => null }
+                target: { tagName: 'DIV', closest: () => null },
             });
 
             expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
@@ -839,7 +858,7 @@ describe('WorkflowCanvas', () => {
                 clientX: 100,
                 clientY: 100,
                 shiftKey: true,
-                target: { tagName: 'DIV', closest: () => null }
+                target: { tagName: 'DIV', closest: () => null },
             });
 
             expect(canvas.isMarqueeSelectionActive).toBe(true);
@@ -866,7 +885,14 @@ describe('WorkflowCanvas', () => {
             canvas.svgLayer = { style: {} };
             canvas.svgHitLayer = { style: {} };
 
-            const e = { ctrlKey: true, metaKey: false, deltaY: 100, clientX: 400, clientY: 300, preventDefault: jest.fn() };
+            const e = {
+                ctrlKey: true,
+                metaKey: false,
+                deltaY: 100,
+                clientX: 400,
+                clientY: 300,
+                preventDefault: jest.fn(),
+            };
             canvas.onCanvasWheel(e);
 
             expect(e.preventDefault).toHaveBeenCalled();
@@ -891,9 +917,7 @@ describe('WorkflowCanvas', () => {
         });
 
         it('should center view around nodes', () => {
-            const nodes = [
-                { x: 100, y: 100, width: 200, height: 100 }
-            ];
+            const nodes = [{ x: 100, y: 100, width: 200, height: 100 }];
             const core = createMockCore(nodes);
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
@@ -979,7 +1003,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100);
 
-            const onMouseMove = DOM.on.mock.calls.find(c => c[1] === 'mousemove')[2];
+            const onMouseMove = DOM.on.mock.calls.find((c) => c[1] === 'mousemove')[2];
             onMouseMove({ clientX: 200, clientY: 150 });
 
             expect(DOM.setStyle).toHaveBeenCalledWith(marqueeEl, 'left', '100px');
@@ -999,7 +1023,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100);
 
-            const onMouseMove = DOM.on.mock.calls.find(c => c[1] === 'mousemove')[2];
+            const onMouseMove = DOM.on.mock.calls.find((c) => c[1] === 'mousemove')[2];
             onMouseMove({ clientX: 101, clientY: 101 });
 
             expect(canvas.hasDraggedCanvas).toBe(false);
@@ -1016,7 +1040,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100);
 
-            const onMouseUp = DOM.on.mock.calls.find(c => c[1] === 'mouseup')[2];
+            const onMouseUp = DOM.on.mock.calls.find((c) => c[1] === 'mouseup')[2];
             onMouseUp({ clientX: 200, clientY: 200 });
 
             expect(canvas.ui.selection.selectNodesInRect).toHaveBeenCalledWith(100, 100, 100, 100, false, null);
@@ -1037,7 +1061,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100);
 
-            const onMouseUp = DOM.on.mock.calls.find(c => c[1] === 'mouseup')[2];
+            const onMouseUp = DOM.on.mock.calls.find((c) => c[1] === 'mouseup')[2];
             onMouseUp({ clientX: 105, clientY: 105 });
 
             expect(canvas.ui.selection.selectNodesInRect).not.toHaveBeenCalled();
@@ -1055,10 +1079,17 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100, false, 'container_1');
 
-            const onMouseUp = DOM.on.mock.calls.find(c => c[1] === 'mouseup')[2];
+            const onMouseUp = DOM.on.mock.calls.find((c) => c[1] === 'mouseup')[2];
             onMouseUp({ clientX: 200, clientY: 200 });
 
-            expect(canvas.ui.selection.selectNodesInRect).toHaveBeenCalledWith(100, 100, 100, 100, false, 'container_1');
+            expect(canvas.ui.selection.selectNodesInRect).toHaveBeenCalledWith(
+                100,
+                100,
+                100,
+                100,
+                false,
+                'container_1'
+            );
         });
 
         it('should set isMarqueeSelectionActive to false after timeout', () => {
@@ -1071,7 +1102,7 @@ describe('WorkflowCanvas', () => {
 
             canvas.handleMarqueeSelection(100, 100);
 
-            const onMouseUp = DOM.on.mock.calls.find(c => c[1] === 'mouseup')[2];
+            const onMouseUp = DOM.on.mock.calls.find((c) => c[1] === 'mouseup')[2];
             onMouseUp({ clientX: 200, clientY: 200 });
 
             expect(canvas.isMarqueeSelectionActive).toBe(true);
@@ -1099,7 +1130,7 @@ describe('WorkflowCanvas', () => {
         it('should set hasDraggedCanvas on significant mousemove', () => {
             canvas.handleCanvasDrag(100, 100);
 
-            const onMouseMove = DOM.on.mock.calls.find(c => c[1] === 'mousemove')[2];
+            const onMouseMove = DOM.on.mock.calls.find((c) => c[1] === 'mousemove')[2];
             onMouseMove({ clientX: 110, clientY: 110 });
 
             expect(canvas.hasDraggedCanvas).toBe(true);
@@ -1108,7 +1139,7 @@ describe('WorkflowCanvas', () => {
         it('should not set hasDraggedCanvas on small mousemove', () => {
             canvas.handleCanvasDrag(100, 100);
 
-            const onMouseMove = DOM.on.mock.calls.find(c => c[1] === 'mousemove')[2];
+            const onMouseMove = DOM.on.mock.calls.find((c) => c[1] === 'mousemove')[2];
             onMouseMove({ clientX: 101, clientY: 101 });
 
             expect(canvas.hasDraggedCanvas).toBe(false);
@@ -1117,16 +1148,20 @@ describe('WorkflowCanvas', () => {
         it('should apply transform on mousemove', () => {
             canvas.handleCanvasDrag(100, 100);
 
-            const onMouseMove = DOM.on.mock.calls.find(c => c[1] === 'mousemove')[2];
+            const onMouseMove = DOM.on.mock.calls.find((c) => c[1] === 'mousemove')[2];
             onMouseMove({ clientX: 150, clientY: 200 });
 
-            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvasContent, 'transform', 'translate(50px, 100px) scale(1)');
+            expect(DOM.setStyle).toHaveBeenCalledWith(
+                canvas.canvasContent,
+                'transform',
+                'translate(50px, 100px) scale(1)'
+            );
         });
 
         it('should reset cursor and clean up on mouseup', () => {
             canvas.handleCanvasDrag(100, 100);
 
-            const onMouseUp = DOM.on.mock.calls.find(c => c[1] === 'mouseup')[2];
+            const onMouseUp = DOM.on.mock.calls.find((c) => c[1] === 'mouseup')[2];
             onMouseUp();
 
             expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'default');
@@ -1316,8 +1351,8 @@ describe('WorkflowCanvas', () => {
                         if (selector === '.container-body') return containerBody;
                         return null;
                     }),
-                    getAttribute: jest.fn(() => null)
-                }
+                    getAttribute: jest.fn(() => null),
+                },
             });
 
             expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
@@ -1344,8 +1379,8 @@ describe('WorkflowCanvas', () => {
                         if (selector === '.container-body') return containerBody;
                         return null;
                     }),
-                    getAttribute: jest.fn(() => null)
-                }
+                    getAttribute: jest.fn(() => null),
+                },
             });
 
             expect(canvas.isMarqueeSelectionActive).toBe(true);
@@ -1361,11 +1396,11 @@ describe('WorkflowCanvas', () => {
             canvas.svgHitLayer = {};
 
             const containerBody = {
-                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 })
+                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 }),
             };
             const containerNodeEl = {
                 dataset: { nodeId: 'container_1' },
-                querySelector: jest.fn(() => containerBody)
+                querySelector: jest.fn(() => containerBody),
             };
 
             global.document.querySelectorAll.mockReturnValueOnce([containerNodeEl]);
@@ -1378,8 +1413,8 @@ describe('WorkflowCanvas', () => {
                 shiftKey: false,
                 target: {
                     tagName: 'DIV',
-                    closest: jest.fn(() => null)
-                }
+                    closest: jest.fn(() => null),
+                },
             });
 
             expect(DOM.setStyle).toHaveBeenCalledWith(canvas.canvas, 'cursor', 'grabbing');
@@ -1393,11 +1428,11 @@ describe('WorkflowCanvas', () => {
             canvas.canvasContent = { style: { transform: 'translate(0px, 0px) scale(1)' } };
 
             const containerBody = {
-                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 })
+                getBoundingClientRect: () => ({ left: 50, top: 50, right: 250, bottom: 150 }),
             };
             const containerNodeEl = {
                 dataset: { nodeId: 'container_1' },
-                querySelector: jest.fn(() => containerBody)
+                querySelector: jest.fn(() => containerBody),
             };
 
             global.document.querySelectorAll.mockReturnValueOnce([containerNodeEl]);
@@ -1410,8 +1445,8 @@ describe('WorkflowCanvas', () => {
                 shiftKey: true,
                 target: {
                     tagName: 'DIV',
-                    closest: jest.fn(() => null)
-                }
+                    closest: jest.fn(() => null),
+                },
             });
 
             expect(canvas.isMarqueeSelectionActive).toBe(true);
@@ -1442,7 +1477,7 @@ describe('WorkflowCanvas', () => {
             const canvas = new WorkflowCanvas(ui);
             canvas.core.nodes = [
                 { id: 'parent1', x: 50, y: 50, width: 400, height: 300 },
-                { id: 'child1', x: 10, y: 10, width: 100, height: 50, parentId: 'parent1' }
+                { id: 'child1', x: 10, y: 10, width: 100, height: 50, parentId: 'parent1' },
             ];
 
             const bounds = canvas.calculateNodesBounds();
@@ -1457,9 +1492,7 @@ describe('WorkflowCanvas', () => {
             const core = createMockCore();
             const ui = createMockUI(core);
             const canvas = new WorkflowCanvas(ui);
-            canvas.core.nodes = [
-                { id: 'child1', x: 10, y: 10, width: 100, height: 50, parentId: 'nonexistent' }
-            ];
+            canvas.core.nodes = [{ id: 'child1', x: 10, y: 10, width: 100, height: 50, parentId: 'nonexistent' }];
 
             const bounds = canvas.calculateNodesBounds();
 
@@ -1504,7 +1537,7 @@ describe('WorkflowCanvas', () => {
         it('should layout nodes with edges and save history', () => {
             const nodes = [
                 { id: 'node1', x: 0, y: 0, width: 200, height: 100 },
-                { id: 'node2', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'node2', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [{ source: 'node1', target: 'node2' }];
@@ -1530,7 +1563,7 @@ describe('WorkflowCanvas', () => {
         it('should layout nodes without edges', () => {
             const nodes = [
                 { id: 'node1', x: 0, y: 0, width: 200, height: 100 },
-                { id: 'node2', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'node2', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [];
@@ -1556,16 +1589,16 @@ describe('WorkflowCanvas', () => {
         it('should handle container nodes with children', () => {
             const childNodes = [
                 { id: 'child1', x: 0, y: 0, width: 100, height: 50 },
-                { id: 'child2', x: 0, y: 0, width: 100, height: 50 }
+                { id: 'child2', x: 0, y: 0, width: 100, height: 50 },
             ];
             const nodes = [
                 { id: 'container1', x: 0, y: 0, width: 300, height: 200, type: 'container' },
-                { id: 'node1', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'node1', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [];
             core.nodeTypeInfo = {
-                container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 }
+                container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 },
             };
             core.saveHistory = jest.fn();
             core.getChildNodes = jest.fn((containerId) => {
@@ -1589,13 +1622,11 @@ describe('WorkflowCanvas', () => {
         });
 
         it('should handle container with no children', () => {
-            const nodes = [
-                { id: 'container1', x: 0, y: 0, width: 300, height: 200, type: 'container' }
-            ];
+            const nodes = [{ id: 'container1', x: 0, y: 0, width: 300, height: 200, type: 'container' }];
             const core = createMockCore(nodes);
             core.edges = [];
             core.nodeTypeInfo = {
-                container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 }
+                container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 },
             };
             core.saveHistory = jest.fn();
             core.getChildNodes = jest.fn(() => []);
@@ -1619,12 +1650,12 @@ describe('WorkflowCanvas', () => {
                 { id: 'a1', x: 0, y: 0, width: 200, height: 100 },
                 { id: 'a2', x: 0, y: 0, width: 200, height: 100 },
                 { id: 'b1', x: 0, y: 0, width: 200, height: 100 },
-                { id: 'b2', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'b2', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [
                 { source: 'a1', target: 'a2' },
-                { source: 'b1', target: 'b2' }
+                { source: 'b1', target: 'b2' },
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
@@ -1648,7 +1679,7 @@ describe('WorkflowCanvas', () => {
         it('should handle nodes with custom width and height', () => {
             const nodes = [
                 { id: 'node1', x: 0, y: 0, width: 300, height: 200 },
-                { id: 'node2', x: 0, y: 0, width: 400, height: 150 }
+                { id: 'node2', x: 0, y: 0, width: 400, height: 150 },
             ];
             const core = createMockCore(nodes);
             core.edges = [{ source: 'node1', target: 'node2' }];
@@ -1675,12 +1706,12 @@ describe('WorkflowCanvas', () => {
             const nodes = [
                 { id: 'src1', x: 0, y: 0, width: 200, height: 100 },
                 { id: 'src2', x: 0, y: 0, width: 200, height: 100 },
-                { id: 'target', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'target', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [
                 { source: 'src1', target: 'target' },
-                { source: 'src2', target: 'target' }
+                { source: 'src2', target: 'target' },
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
@@ -1706,13 +1737,13 @@ describe('WorkflowCanvas', () => {
                 { id: 'src', x: 0, y: 0, width: 200, height: 100 },
                 { id: 'tgt1', x: 0, y: 0, width: 200, height: 100 },
                 { id: 'tgt2', x: 0, y: 0, width: 200, height: 100 },
-                { id: 'tgt3', x: 0, y: 0, width: 200, height: 100 }
+                { id: 'tgt3', x: 0, y: 0, width: 200, height: 100 },
             ];
             const core = createMockCore(nodes);
             core.edges = [
                 { source: 'src', target: 'tgt1' },
                 { source: 'src', target: 'tgt2' },
-                { source: 'src', target: 'tgt3' }
+                { source: 'src', target: 'tgt3' },
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
@@ -1934,7 +1965,11 @@ describe('WorkflowCanvas', () => {
 
             canvas.applyTransform(100, 200, 1.5);
 
-            expect(DOM.setStyle).toHaveBeenCalledWith(canvas.alignmentGuides, 'transform', 'translate(100px, 200px) scale(1.5)');
+            expect(DOM.setStyle).toHaveBeenCalledWith(
+                canvas.alignmentGuides,
+                'transform',
+                'translate(100px, 200px) scale(1.5)'
+            );
         });
     });
 
@@ -2017,7 +2052,7 @@ describe('WorkflowCanvas', () => {
             const mockA = {
                 href: '',
                 download: '',
-                click: jest.fn()
+                click: jest.fn(),
             };
             global.document.createElement.mockReturnValueOnce(mockA);
             global.URL.createObjectURL = jest.fn(() => 'blob:test');
@@ -2079,22 +2114,33 @@ describe('WorkflowCanvas', () => {
                 style: { transform: 'translate(0px, 0px) scale(1)' },
                 querySelectorAll: jest.fn(() => [
                     {
-                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        getBoundingClientRect: () => ({
+                            left: 100,
+                            top: 100,
+                            width: 200,
+                            height: 100,
+                            right: 300,
+                            bottom: 200,
+                        }),
                         classList: { contains: () => false },
                         querySelector: jest.fn(() => null),
-                        querySelectorAll: jest.fn(() => [])
-                    }
-                ])
+                        querySelectorAll: jest.fn(() => []),
+                    },
+                ]),
             };
             canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
 
             global.getComputedStyle = () => ({
-                getPropertyValue: () => '#1a1a2e'
-            });
-            global.window.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e',
                 backgroundColor: 'rgb(42, 42, 62)',
                 borderColor: 'rgb(68, 68, 68)',
-                color: 'rgb(224, 224, 224)'
+                color: 'rgb(224, 224, 224)',
+            });
+            global.window.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e',
+                backgroundColor: 'rgb(42, 42, 62)',
+                borderColor: 'rgb(68, 68, 68)',
+                color: 'rgb(224, 224, 224)',
             });
 
             canvas._downloadBlob = jest.fn();
@@ -2112,48 +2158,80 @@ describe('WorkflowCanvas', () => {
                 querySelectorAll: jest.fn(() => [
                     {
                         getBBox: () => ({ x: 50, y: 50, width: 100, height: 2 }),
-                        outerHTML: '<path d="M0 0 L100 0" />'
-                    }
-                ])
+                        outerHTML: '<path d="M0 0 L100 0" />',
+                    },
+                ]),
             };
             canvas.canvasContent = {
                 style: { transform: 'translate(0px, 0px) scale(1)' },
                 querySelectorAll: jest.fn(() => [
                     {
-                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        getBoundingClientRect: () => ({
+                            left: 100,
+                            top: 100,
+                            width: 200,
+                            height: 100,
+                            right: 300,
+                            bottom: 200,
+                        }),
                         classList: { contains: (cls) => cls === 'container' },
                         querySelector: jest.fn(() => ({ textContent: 'Container' })),
-                        querySelectorAll: jest.fn(() => [])
+                        querySelectorAll: jest.fn(() => []),
                     },
                     {
-                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        getBoundingClientRect: () => ({
+                            left: 100,
+                            top: 100,
+                            width: 200,
+                            height: 100,
+                            right: 300,
+                            bottom: 200,
+                        }),
                         classList: { contains: (cls) => cls === 'loop' },
                         querySelector: jest.fn(() => null),
-                        querySelectorAll: jest.fn(() => [])
+                        querySelectorAll: jest.fn(() => []),
                     },
                     {
-                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        getBoundingClientRect: () => ({
+                            left: 100,
+                            top: 100,
+                            width: 200,
+                            height: 100,
+                            right: 300,
+                            bottom: 200,
+                        }),
                         classList: { contains: (cls) => cls === 'batch' },
                         querySelector: jest.fn(() => null),
-                        querySelectorAll: jest.fn(() => [])
+                        querySelectorAll: jest.fn(() => []),
                     },
                     {
-                        getBoundingClientRect: () => ({ left: 100, top: 100, width: 200, height: 100, right: 300, bottom: 200 }),
+                        getBoundingClientRect: () => ({
+                            left: 100,
+                            top: 100,
+                            width: 200,
+                            height: 100,
+                            right: 300,
+                            bottom: 200,
+                        }),
                         classList: { contains: () => false },
                         querySelector: jest.fn(() => null),
-                        querySelectorAll: jest.fn(() => [])
-                    }
-                ])
+                        querySelectorAll: jest.fn(() => []),
+                    },
+                ]),
             };
             canvas.canvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
 
             global.getComputedStyle = () => ({
-                getPropertyValue: () => '#1a1a2e'
-            });
-            global.window.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e',
                 backgroundColor: 'rgb(42, 42, 62)',
                 borderColor: 'rgb(68, 68, 68)',
-                color: 'rgb(224, 224, 224)'
+                color: 'rgb(224, 224, 224)',
+            });
+            global.window.getComputedStyle = () => ({
+                getPropertyValue: () => '#1a1a2e',
+                backgroundColor: 'rgb(42, 42, 62)',
+                borderColor: 'rgb(68, 68, 68)',
+                color: 'rgb(224, 224, 224)',
             });
 
             canvas._downloadBlob = jest.fn();

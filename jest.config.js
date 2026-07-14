@@ -1,9 +1,40 @@
 export default {
-  testEnvironment: 'node',
-  setupFiles: ['./jest.setup.js'],
-  transform: {
-    '^.+\\.js$': 'babel-jest'
-  },
-  moduleFileExtensions: ['js', 'mjs'],
-  testMatch: ['**/tests/**/*.test.js']
+    testEnvironment: 'jsdom',
+    setupFiles: ['./jest.setup.js'],
+    transform: {
+        '^.+\\.js$': 'babel-jest',
+    },
+    moduleFileExtensions: ['js', 'mjs'],
+    testMatch: ['**/tests/**/*.test.js'],
+    coverageThreshold: {
+        // 纯逻辑/工具类 — 80%
+        'src/modules/converter.js': { lines: 80 },
+        'src/modules/converter-reverse.js': { lines: 80 },
+        'src/modules/converter-highlighter.js': { lines: 80 },
+        'src/modules/editor-core.js': { lines: 80 },
+        'src/modules/editor-storage.js': { lines: 80 },
+        'src/modules/editor-edge.js': { lines: 80 },
+        'src/modules/editor-layout.js': { lines: 80 },
+        'src/modules/editor-node-types.js': { lines: 80 },
+        'src/modules/editor-clipboard-paste.js': { lines: 80 },
+        'src/modules/manager-templates.js': { lines: 80 },
+        'src/i18n/i18n.js': { lines: 80 },
+        'src/utils/types.js': { lines: 80 },
+        'src/utils/logger.js': { lines: 80 },
+        'src/utils/refCache.js': { lines: 80 },
+        'src/components/inputMapper.js': { lines: 80 },
+        'src/components/outputMapper.js': { lines: 80 },
+        'src/components/containerHandler.js': { lines: 80 },
+        'src/components/nodeHandlers.js': { lines: 80 },
+
+        // 混合逻辑 — 70%
+        'src/modules/editor-clipboard.js': { lines: 70 },
+        'src/modules/editor-keyboard.js': { lines: 55 },
+        'src/modules/shared-navigator.js': { lines: 70 },
+        'src/modules/shared-theme.js': { lines: 70 },
+        'src/modules/editor-align.js': { lines: 70 },
+        'src/utils/helpers.js': { lines: 50 },
+        'src/utils/utils.js': { lines: 70 },
+        'src/modules/shared-serializer.js': { lines: 50 },
+    },
 };

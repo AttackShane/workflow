@@ -1,4 +1,5 @@
 import { t } from '../i18n/i18n.js';
+import { StringUtils } from '../utils/helpers.js';
 
 export class Dialog {
     static #overlay = null;
@@ -49,21 +50,15 @@ export class Dialog {
 
         this.#overlay.addEventListener('click', (e) => {
             if (e.target === this.#overlay) {
-                this.#close(false);
+                this.#close(null);
             }
         });
 
         this.#keydownHandler = (e) => {
             if (e.key === 'Escape') {
-                this.#close(false);
+                this.#close(null);
             }
         };
-    }
-
-    static #escapeHtml(str) {
-        if (typeof str !== 'string') return String(str ?? '');
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return str.replace(/[&<>"']/g, c => map[c]);
     }
 
     static #ensureSingle() {
@@ -76,7 +71,7 @@ export class Dialog {
             if (this.#currentResolve) {
                 const oldResolve = this.#currentResolve;
                 this.#currentResolve = null;
-                oldResolve(false);
+                oldResolve(null);
             }
             this.#isClosing = false;
             if (this.#container) {
@@ -86,6 +81,13 @@ export class Dialog {
     }
 
     static #show() {
+        this.#overlay.style.transition = 'none';
+        this.#container.style.transition = 'none';
+        this.#overlay.style.opacity = '0';
+        this.#container.style.transform = 'scale(0.9) translateY(-20px)';
+        void this.#container.offsetHeight;
+        this.#overlay.style.transition = 'opacity ' + this.#TRANSITION_MS + 'ms ease';
+        this.#container.style.transition = 'transform ' + this.#TRANSITION_MS + 'ms ease';
         this.#overlay.style.opacity = '1';
         this.#overlay.style.pointerEvents = 'auto';
         this.#container.style.transform = 'scale(1) translateY(0)';
@@ -101,7 +103,7 @@ export class Dialog {
     /**
      * @param {*} [result=false]
      */
-    static #close(result = false) {
+    static #close(result = null) {
         if (this.#isClosing) return;
         this.#isClosing = true;
 
@@ -119,6 +121,10 @@ export class Dialog {
         this.#closeTimer = setTimeout(() => {
             if (this.#container) {
                 this.#container.innerHTML = '';
+                this.#container.style.maxWidth = '';
+                this.#container.style.width = '';
+                this.#container.style.boxShadow = '';
+                this.#container.style.overflow = '';
             }
             if (this.#currentResolve) {
                 this.#currentResolve(result);
@@ -223,17 +229,15 @@ export class Dialog {
             this.#ensureSingle();
             this.#currentResolve = resolve;
 
-            const safeMessage = this.#escapeHtml(message);
-            const safeTitle = this.#escapeHtml(title);
+            const safeMessage = StringUtils.escapeHtml(message);
+            const safeTitle = StringUtils.escapeHtml(title);
 
             this.#buildContent({
                 icon: 'ℹ️',
                 iconBg: '#FEF3C7',
                 title: safeTitle,
                 message: safeMessage,
-                buttons: [
-                    this.#createButton(t('common.ok'), 'primary', () => this.#close(true))
-                ]
+                buttons: [this.#createButton(t('common.ok'), 'primary', () => this.#close(true))],
             });
 
             this.#show();
@@ -246,8 +250,8 @@ export class Dialog {
             this.#ensureSingle();
             this.#currentResolve = resolve;
 
-            const safeMessage = this.#escapeHtml(message);
-            const safeTitle = this.#escapeHtml(title);
+            const safeMessage = StringUtils.escapeHtml(message);
+            const safeTitle = StringUtils.escapeHtml(title);
             const { okText = t('common.ok'), cancelText = t('common.cancel'), danger = false } = options;
 
             this.#buildContent({
@@ -257,8 +261,8 @@ export class Dialog {
                 message: safeMessage,
                 buttons: [
                     this.#createButton(cancelText, 'secondary', () => this.#close(false)),
-                    this.#createButton(okText, danger ? 'danger' : 'primary', () => this.#close(true))
-                ]
+                    this.#createButton(okText, danger ? 'danger' : 'primary', () => this.#close(true)),
+                ],
             });
 
             this.#show();
@@ -271,17 +275,15 @@ export class Dialog {
             this.#ensureSingle();
             this.#currentResolve = resolve;
 
-            const safeMessage = this.#escapeHtml(message);
-            const safeTitle = this.#escapeHtml(title);
+            const safeMessage = StringUtils.escapeHtml(message);
+            const safeTitle = StringUtils.escapeHtml(title);
 
             this.#buildContent({
                 icon: '✅',
                 iconBg: '#D1FAE5',
                 title: safeTitle,
                 message: safeMessage,
-                buttons: [
-                    this.#createButton(t('common.ok'), 'success', () => this.#close(true))
-                ]
+                buttons: [this.#createButton(t('common.ok'), 'success', () => this.#close(true))],
             });
 
             this.#show();
@@ -294,17 +296,15 @@ export class Dialog {
             this.#ensureSingle();
             this.#currentResolve = resolve;
 
-            const safeMessage = this.#escapeHtml(message);
-            const safeTitle = this.#escapeHtml(title);
+            const safeMessage = StringUtils.escapeHtml(message);
+            const safeTitle = StringUtils.escapeHtml(title);
 
             this.#buildContent({
                 icon: '❌',
                 iconBg: '#FEE2E2',
                 title: safeTitle,
                 message: safeMessage,
-                buttons: [
-                    this.#createButton(t('common.ok'), 'danger', () => this.#close(true))
-                ]
+                buttons: [this.#createButton(t('common.ok'), 'danger', () => this.#close(true))],
             });
 
             this.#show();
@@ -317,7 +317,7 @@ export class Dialog {
             this.#ensureSingle();
             this.#currentResolve = resolve;
 
-            const safeTitle = this.#escapeHtml(title);
+            const safeTitle = StringUtils.escapeHtml(title);
             const {
                 nameLabel = t('manager.workflowName'),
                 namePlaceholder = t('manager.namePlaceholder'),
@@ -326,7 +326,7 @@ export class Dialog {
                 descPlaceholder = t('manager.descriptionPlaceholder'),
                 descValue = '',
                 okText = t('manager.save'),
-                cancelText = t('manager.cancel')
+                cancelText = t('manager.cancel'),
             } = options;
 
             this.#container.style.maxWidth = '500px';
@@ -341,27 +341,39 @@ export class Dialog {
                 </div>
                 <div style="padding: 1.5rem;">
                     <div style="margin-bottom: 1rem;">
-                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${this.#escapeHtml(nameLabel)}</label>
-                        <input id="dialog-prompt-name" type="text" value="${this.#escapeHtml(nameValue)}" placeholder="${this.#escapeHtml(namePlaceholder)}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: border-color 0.2s ease;">
+                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${StringUtils.escapeHtml(nameLabel)}</label>
+                        <input id="dialog-prompt-name" type="text" value="${StringUtils.escapeHtml(nameValue)}" placeholder="${StringUtils.escapeHtml(namePlaceholder)}" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; transition: border-color 0.2s ease;">
                     </div>
                     <div style="margin-bottom: 0;">
-                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${this.#escapeHtml(descLabel)}</label>
-                        <textarea id="dialog-prompt-desc" placeholder="${this.#escapeHtml(descPlaceholder)}" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; resize: vertical; transition: border-color 0.2s ease; font-family: inherit; min-height: 100px;">${this.#escapeHtml(descValue)}</textarea>
+                        <label style="display: block; font-size: 0.9rem; color: #333; margin-bottom: 0.5rem;">${StringUtils.escapeHtml(descLabel)}</label>
+                        <textarea id="dialog-prompt-desc" placeholder="${StringUtils.escapeHtml(descPlaceholder)}" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; outline: none; box-sizing: border-box; resize: vertical; transition: border-color 0.2s ease; font-family: inherit; min-height: 100px;">${StringUtils.escapeHtml(descValue)}</textarea>
                     </div>
                 </div>
                 <div style="padding: 1rem 1.5rem; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 0.75rem;">
-                    <button id="dialog-prompt-cancel" style="padding: 0.5rem 1rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: #fff; color: #666; transition: background 0.2s;">${this.#escapeHtml(cancelText)}</button>
-                    <button id="dialog-prompt-ok" style="padding: 0.5rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; transition: opacity 0.2s;">${this.#escapeHtml(okText)}</button>
+                    <button id="dialog-prompt-cancel" style="padding: 0.5rem 1rem; border: 1px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: #fff; color: #666; transition: background 0.2s;">${StringUtils.escapeHtml(cancelText)}</button>
+                    <button id="dialog-prompt-ok" style="padding: 0.5rem 1.5rem; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; transition: opacity 0.2s;">${StringUtils.escapeHtml(okText)}</button>
                 </div>
             `;
 
             const nameInput = /** @type {HTMLInputElement} */ (this.#container.querySelector('#dialog-prompt-name'));
             const descInput = /** @type {HTMLInputElement} */ (this.#container.querySelector('#dialog-prompt-desc'));
 
-            nameInput.addEventListener('focus', () => { nameInput.style.borderColor = '#667eea'; nameInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'; });
-            nameInput.addEventListener('blur', () => { nameInput.style.borderColor = '#ddd'; nameInput.style.boxShadow = 'none'; });
-            descInput.addEventListener('focus', () => { descInput.style.borderColor = '#667eea'; descInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)'; });
-            descInput.addEventListener('blur', () => { descInput.style.borderColor = '#ddd'; descInput.style.boxShadow = 'none'; });
+            nameInput.addEventListener('focus', () => {
+                nameInput.style.borderColor = '#667eea';
+                nameInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+            });
+            nameInput.addEventListener('blur', () => {
+                nameInput.style.borderColor = '#ddd';
+                nameInput.style.boxShadow = 'none';
+            });
+            descInput.addEventListener('focus', () => {
+                descInput.style.borderColor = '#667eea';
+                descInput.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+            });
+            descInput.addEventListener('blur', () => {
+                descInput.style.borderColor = '#ddd';
+                descInput.style.boxShadow = 'none';
+            });
 
             const handleConfirm = () => {
                 const name = nameInput.value.trim();

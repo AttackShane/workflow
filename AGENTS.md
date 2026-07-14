@@ -46,7 +46,7 @@ src/
 │   ├── editor-core.js      # 核心数据结构：节点、边、历史
 │   ├── editor-ui.js        # UI orchestration
 │   ├── editor-canvas.js    # 画布：缩放、拖拽、视口剔除
-│   ├── editor-node.js      # 节点：聚合多个 mixin
+│   ├── editor-node.js      # 节点：组合模式
 │   │   ├── editor-node-render.js      # 节点渲染
 │   │   ├── editor-container-render.js # 容器子节点渲染
 │   │   ├── editor-node-panel.js       # 属性面板渲染
@@ -94,7 +94,7 @@ src/
 │   └── refCache.js           # 引用缓存
 ├── config/
 │   └── constants.js          # 常量配置
-├── tests/                    # Jest 单元测试（25 套件，1153 用例）
+├── tests/                    # Jest 单元测试（25 套件，1127 用例）
 └── example/                  # 示例工作流文件
 ```
 
@@ -102,25 +102,26 @@ src/
 
 ## 架构设计要点
 
-### 1. Mixin 扩展模式
+### 1. 组合模式
 
-项目大量使用 **mixin** 模式将功能拆分到不同模块：
+项目使用 **组合模式** 将功能拆分到独立模块，通过类实例化组合：
 
 ```js
 export class WorkflowNode {
     constructor(ui) {
         this.ui = ui;
         this.core = ui.core;
-        mixinNodeRender(this);
-        mixinContainerRender(this);
-        mixinNodePanel(this);
-        mixinNodeSelector(this);
-        mixinParamEditor(this);
+
+        this.render = new WorkflowNodeRender(this);
+        this.container = new WorkflowContainerRender(this);
+        this.panel = new WorkflowNodePanel(this);
+        this.selector = new WorkflowNodeSelector(this);
+        this.paramEditor = new WorkflowParamEditor(this);
     }
 }
 ```
 
-优势：每个模块职责单一，易于维护。
+优势：每个模块职责单一，子模块通过 `this.node` 访问父级实例，易于维护和测试。
 
 ### 2. this 绑定规范（CRITICAL）
 
@@ -324,7 +325,7 @@ TYPE_MAP = {
 npm run dev      # 启动开发服务器 (localhost:8080)
 npm run build    # 构建到 dist/（三个独立 HTML 文件）
 npm run convert  # 批量转换 YAML → JSON
-npm test         # 运行 Jest 单元测试（25 套件，1153 用例）
+npm test         # 运行 Jest 单元测试（25 套件，1127 用例）
 npm run lint     # ESLint 检查
 npm run lint:fix # ESLint 自动修复
 ```
@@ -333,7 +334,7 @@ npm run lint:fix # ESLint 自动修复
 
 ## 编码约定
 
-1. **类 + Mixin 模式**：每个功能模块通过 mixin 函数注入实例方法
+1. **类 + 组合模式**：每个功能模块通过独立的类实现，在父类中通过 `new` 实例化组合
 2. **this 绑定**：优先使用箭头函数实例属性，避免手动 bind
 3. **动态导入**：`app.js` 根据页面类型动态加载对应模块，减少首屏加载
 4. **视口剔除**：大规模工作流只渲染可视区域内节点，提升性能
@@ -355,6 +356,7 @@ npm run lint:fix # ESLint 自动修复
 4. **loop_set_variable**：`node.parameters.variables` 数组 → 导出为 `inputs.inputParameters`，粘贴/加载时需重映射 `blockID`
 5. **快捷键**：大小写不敏感，Ctrl/Cmd 自动互换，支持自定义配置
 6. **事件泄漏**：新增事件监听器时必须确保在 destroy/cleanup 中移除
-7. **遵循现有模式**：ES6 类 + mixin + 箭头函数，保持代码风格一致
-8. **测试**：修改核心逻辑后运行 `npm test` 确保 1153 个用例全部通过
-9. **文档更新**：重大变更后更新 CHANGELOG.md、README.md、PROJECT_DOC.md 和本文件
+7. **遵循现有模式**：ES6 类 + 组合模式 + 箭头函数，保持代码风格一致
+8. **测试**：修改核心逻辑后运行 `npm test` 确保 1127 个用例全部通过
+9. **覆盖率**：`jest.config.js` 中设定了文件级覆盖率门槛（纯逻辑 80%、混合逻辑 70%/50%），UI 文件豁免
+10. **文档更新**：重大变更后更新 CHANGELOG.md、README.md、PROJECT_DOC.md 和本文件

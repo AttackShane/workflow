@@ -1,4 +1,45 @@
 import { WorkflowKeyboard } from '../src/modules/editor-keyboard.js';
+import { DOM, Storage } from '../src/utils/helpers.js';
+
+jest.mock('../src/utils/helpers.js', () => {
+    const actual = jest.requireActual('../src/utils/helpers.js');
+    return {
+        ...actual,
+        DOM: {
+            on: jest.fn(),
+            off: jest.fn(),
+            get: jest.fn(),
+            create: jest.fn(() => ({ style: {} })),
+            addClass: jest.fn(),
+            removeClass: jest.fn(),
+            setStyle: jest.fn(),
+        },
+        Storage: {
+            ...actual.Storage,
+            session: {
+                ...actual.Storage.session,
+                get: jest.fn(),
+                set: jest.fn(),
+                remove: jest.fn(),
+            },
+            get: jest.fn(),
+            set: jest.fn(),
+            remove: jest.fn(),
+        },
+    };
+});
+
+// Mock sessionStorage before helpers module evaluates it
+const mockSessionStorage = {
+    getItem: jest.fn(() => null),
+    setItem: jest.fn(),
+    removeItem: jest.fn(),
+};
+Object.defineProperty(global, 'sessionStorage', {
+    value: mockSessionStorage,
+    writable: true,
+    configurable: true,
+});
 
 function createMockUI() {
     const handlers = {};
@@ -6,22 +47,22 @@ function createMockUI() {
         selection: {
             deleteSelected: jest.fn(),
             duplicateSelected: jest.fn(),
-            selectAll: jest.fn()
+            selectAll: jest.fn(),
         },
         clipboard: {
             copy: jest.fn(),
-            paste: jest.fn()
+            paste: jest.fn(),
         },
         history: {
             undo: jest.fn(),
-            redo: jest.fn()
+            redo: jest.fn(),
         },
         confirmExit: jest.fn(),
         quickSave: jest.fn(),
         canvas: {
-            autoOptimizeLayout: jest.fn()
+            autoOptimizeLayout: jest.fn(),
         },
-        _handlers: handlers
+        _handlers: handlers,
     };
 }
 
@@ -34,57 +75,47 @@ function createMockEvent(options = {}) {
         altKey: options.altKey || false,
         preventDefault: jest.fn(),
         stopPropagation: jest.fn(),
-        ...options
+        ...options,
     };
 }
 
 function setupMockDom(activeElementTag = 'BODY') {
     global.localStorage = {
         _data: {},
-        getItem(key) { return this._data[key] || null; },
-        setItem(key, value) { this._data[key] = value; },
-        removeItem(key) { delete this._data[key]; }
+        getItem(key) {
+            return this._data[key] || null;
+        },
+        setItem(key, value) {
+            this._data[key] = value;
+        },
+        removeItem(key) {
+            delete this._data[key];
+        },
     };
-    global.document = {
-        activeElement: { tagName: activeElementTag, isContentEditable: false },
-        querySelector: jest.fn(() => null),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        body: { style: {} }
-    };
+    Object.defineProperty(document, 'activeElement', {
+        value: { tagName: activeElementTag, isContentEditable: false },
+        writable: true,
+        configurable: true,
+    });
     global.window = {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
-        location: { pathname: '/editor' }
+        location: { pathname: '/editor' },
     };
-    global.sessionStorage = {
-        getItem: jest.fn(() => null),
-        setItem: jest.fn(),
-        removeItem: jest.fn()
-    };
+    mockSessionStorage.getItem.mockReturnValue(null);
+    mockSessionStorage.setItem.mockClear();
+    mockSessionStorage.removeItem.mockClear();
 }
 
 function setupMockDOM() {
     const mockNavConverterBtn = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
     const mockNavManagerBtn = { addEventListener: jest.fn(), removeEventListener: jest.fn() };
-    global.document.getElementById = jest.fn((id) => {
+    DOM.get.mockImplementation((id) => {
         if (id === 'navConverterBtn') return mockNavConverterBtn;
         if (id === 'navManagerBtn') return mockNavManagerBtn;
         return null;
     });
-    global.DOM = {
-        on: jest.fn(),
-        off: jest.fn(),
-        get: jest.fn((id) => {
-            if (id === 'navConverterBtn') return mockNavConverterBtn;
-            if (id === 'navManagerBtn') return mockNavManagerBtn;
-            return null;
-        }),
-        create: jest.fn(() => ({ style: {} })),
-        addClass: jest.fn(),
-        removeClass: jest.fn(),
-        setStyle: jest.fn()
-    };
+    return { mockNavConverterBtn, mockNavManagerBtn };
 }
 
 describe('WorkflowKeyboard', () => {
@@ -93,8 +124,10 @@ describe('WorkflowKeyboard', () => {
 
     beforeEach(() => {
         setupMockDom();
-        setupMockDOM();
         mockUI = createMockUI();
+        DOM.on.mockClear();
+        DOM.off.mockClear();
+        DOM.get.mockClear();
         keyboard = new WorkflowKeyboard(mockUI);
     });
 
@@ -104,7 +137,11 @@ describe('WorkflowKeyboard', () => {
 
     describe('handleKeydown', () => {
         it('should ignore keystrokes when input is focused', () => {
-            setupMockDom('INPUT');
+            Object.defineProperty(document, 'activeElement', {
+                value: { tagName: 'INPUT', isContentEditable: false },
+                writable: true,
+                configurable: true,
+            });
             const event = createMockEvent({ key: 'Delete' });
 
             keyboard.handleKeydown(event);
@@ -113,7 +150,11 @@ describe('WorkflowKeyboard', () => {
         });
 
         it('should ignore keystrokes when textarea is focused', () => {
-            setupMockDom('TEXTAREA');
+            Object.defineProperty(document, 'activeElement', {
+                value: { tagName: 'TEXTAREA', isContentEditable: false },
+                writable: true,
+                configurable: true,
+            });
             const event = createMockEvent({ key: 'Delete' });
 
             keyboard.handleKeydown(event);
@@ -122,7 +163,11 @@ describe('WorkflowKeyboard', () => {
         });
 
         it('should ignore keystrokes when SELECT is focused', () => {
-            setupMockDom('SELECT');
+            Object.defineProperty(document, 'activeElement', {
+                value: { tagName: 'SELECT', isContentEditable: false },
+                writable: true,
+                configurable: true,
+            });
             const event = createMockEvent({ key: 'Delete' });
 
             keyboard.handleKeydown(event);
@@ -131,7 +176,11 @@ describe('WorkflowKeyboard', () => {
         });
 
         it('should ignore keystrokes when contentEditable is true', () => {
-            global.document.activeElement = { tagName: 'DIV', isContentEditable: true };
+            Object.defineProperty(document, 'activeElement', {
+                value: { tagName: 'DIV', isContentEditable: true },
+                writable: true,
+                configurable: true,
+            });
             const event = createMockEvent({ key: 'Delete' });
 
             keyboard.handleKeydown(event);
@@ -347,104 +396,88 @@ describe('WorkflowKeyboard', () => {
 
     describe('setupEventListeners', () => {
         it('should bind keydown handler', () => {
-            setupMockDOM();
             keyboard.setupEventListeners();
-
-            expect(global.document.addEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(expect.anything(), 'keydown', expect.any(Function));
         });
 
         it('should bind navConverterBtn click', () => {
-            setupMockDOM();
+            const { mockNavConverterBtn } = setupMockDOM();
             keyboard.setupEventListeners();
 
-            const navBtn = global.document.getElementById('navConverterBtn');
-            expect(navBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(mockNavConverterBtn, 'click', expect.any(Function));
         });
 
         it('should bind navManagerBtn click', () => {
-            setupMockDOM();
+            const { mockNavManagerBtn } = setupMockDOM();
             keyboard.setupEventListeners();
 
-            const navBtn = global.document.getElementById('navManagerBtn');
-            expect(navBtn.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
-        });
-
-        it('should bind beforeunload', () => {
-            setupMockDOM();
-            keyboard.setupEventListeners();
-
-            expect(global.window.addEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+            expect(DOM.on).toHaveBeenCalledWith(mockNavManagerBtn, 'click', expect.any(Function));
         });
 
         it('should trigger navConverterBtn handler to clear sessionStorage', () => {
-            setupMockDOM();
+            const { mockNavConverterBtn } = setupMockDOM();
+            Storage.session.remove.mockClear();
             keyboard.setupEventListeners();
 
-            const navBtn = global.document.getElementById('navConverterBtn');
-            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            const handlerCalls = DOM.on.mock.calls.filter((call) => call[1] === 'click');
+            const navConverterCall = handlerCalls[0];
+            const handler = navConverterCall[2];
             handler();
 
-            expect(global.sessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
+            expect(Storage.session.remove).toHaveBeenCalledWith('editingWorkflowId');
         });
 
         it('should trigger navManagerBtn handler when no savedWorkflow', () => {
-            setupMockDOM();
-            global.sessionStorage.getItem.mockReturnValue(null);
+            const { mockNavManagerBtn } = setupMockDOM();
+            Storage.session.get.mockReturnValue(null);
+            Storage.session.remove.mockClear();
             keyboard.setupEventListeners();
 
-            const navBtn = global.document.getElementById('navManagerBtn');
-            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            const handlerCalls = DOM.on.mock.calls.filter((call) => call[1] === 'click');
+            const navManagerCall = handlerCalls[1];
+            const handler = navManagerCall[2];
             handler();
 
-            expect(global.sessionStorage.removeItem).toHaveBeenCalledWith('editingWorkflowId');
+            expect(Storage.session.remove).toHaveBeenCalledWith('editingWorkflowId');
         });
 
         it('should not remove editingWorkflowId when savedWorkflow exists', () => {
-            setupMockDOM();
-            global.sessionStorage.getItem.mockReturnValue('workflow-data');
+            const { mockNavManagerBtn } = setupMockDOM();
+            Storage.session.get.mockReturnValue('workflow-data');
+            Storage.session.remove.mockClear();
             keyboard.setupEventListeners();
 
-            const navBtn = global.document.getElementById('navManagerBtn');
-            const handler = navBtn.addEventListener.mock.calls.find(call => call[0] === 'click')[1];
+            const handlerCalls = DOM.on.mock.calls.filter((call) => call[1] === 'click');
+            const navManagerCall = handlerCalls[1];
+            const handler = navManagerCall[2];
             handler();
 
-            expect(global.sessionStorage.removeItem).not.toHaveBeenCalledWith('editingWorkflowId');
+            expect(Storage.session.remove).not.toHaveBeenCalledWith('editingWorkflowId');
         });
     });
 
     describe('destroy', () => {
         it('should remove keydown handler', () => {
-            setupMockDOM();
             keyboard.setupEventListeners();
             keyboard.destroy();
 
-            expect(global.document.removeEventListener).toHaveBeenCalledWith('keydown', expect.any(Function));
+            expect(DOM.off).toHaveBeenCalledWith(expect.anything(), 'keydown', expect.any(Function));
         });
 
         it('should remove navConverterBtn handler', () => {
-            setupMockDOM();
+            const { mockNavConverterBtn } = setupMockDOM();
             keyboard.setupEventListeners();
             keyboard.destroy();
 
-            const navBtn = global.document.getElementById('navConverterBtn');
-            expect(navBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+            expect(DOM.off).toHaveBeenCalledWith(mockNavConverterBtn, 'click', expect.any(Function));
         });
 
         it('should remove navManagerBtn handler', () => {
-            setupMockDOM();
+            const { mockNavManagerBtn } = setupMockDOM();
             keyboard.setupEventListeners();
             keyboard.destroy();
 
-            const navBtn = global.document.getElementById('navManagerBtn');
-            expect(navBtn.removeEventListener).toHaveBeenCalledWith('click', expect.any(Function));
-        });
-
-        it('should remove beforeunload handler', () => {
-            setupMockDOM();
-            keyboard.setupEventListeners();
-            keyboard.destroy();
-
-            expect(global.window.removeEventListener).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+            expect(DOM.off).toHaveBeenCalledWith(mockNavManagerBtn, 'click', expect.any(Function));
         });
 
         it('should handle destroy when handlers are null', () => {

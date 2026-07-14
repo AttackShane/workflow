@@ -13,7 +13,7 @@ const DEFAULT_SHORTCUTS = {
     save: 'Ctrl+S',
     search: 'Ctrl+F',
     lock: 'Ctrl+L',
-    escape: 'Escape'
+    escape: 'Escape',
 };
 
 /**
@@ -29,7 +29,6 @@ export class WorkflowKeyboard {
         this._keydownHandler = null;
         this._navConverterHandler = null;
         this._navManagerHandler = null;
-        this._beforeUnloadHandler = null;
         this.shortcuts = this._loadShortcuts();
     }
 
@@ -58,7 +57,7 @@ export class WorkflowKeyboard {
     parseShortcut(shortcutStr) {
         const parts = shortcutStr.split('+');
         const result = { ctrl: false, shift: false, alt: false, meta: false, key: '' };
-        parts.forEach(p => {
+        parts.forEach((p) => {
             const trimmed = p.trim();
             if (trimmed === 'Ctrl' || trimmed === 'Control') result.ctrl = true;
             else if (trimmed === 'Shift') result.shift = true;
@@ -93,24 +92,21 @@ export class WorkflowKeyboard {
         DOM.on(/** @type {*} */ (document), 'keydown', this._keydownHandler);
 
         this._navConverterHandler = () => {
-            sessionStorage.removeItem('editingWorkflowId');
-            sessionStorage.removeItem('savedWorkflow');
-            sessionStorage.removeItem('savedWorkflowName');
-            sessionStorage.removeItem('savedWorkflowDesc');
+            Storage.session.remove('editingWorkflowId');
+            Storage.session.remove('savedWorkflow');
+            Storage.session.remove('savedWorkflowName');
+            Storage.session.remove('savedWorkflowDesc');
             goToConverter();
         };
         DOM.on(DOM.get('navConverterBtn'), 'click', this._navConverterHandler);
 
         this._navManagerHandler = () => {
-            if (!sessionStorage.getItem('savedWorkflow')) {
-                sessionStorage.removeItem('editingWorkflowId');
+            if (!Storage.session.get('savedWorkflow')) {
+                Storage.session.remove('editingWorkflowId');
             }
             goToManager();
         };
         DOM.on(DOM.get('navManagerBtn'), 'click', this._navManagerHandler);
-
-        this._beforeUnloadHandler = () => this.destroy();
-        window.addEventListener('beforeunload', this._beforeUnloadHandler);
     }
 
     /**
@@ -129,10 +125,6 @@ export class WorkflowKeyboard {
             DOM.off(DOM.get('navManagerBtn'), 'click', this._navManagerHandler);
             this._navManagerHandler = null;
         }
-        if (this._beforeUnloadHandler) {
-            window.removeEventListener('beforeunload', this._beforeUnloadHandler);
-            this._beforeUnloadHandler = null;
-        }
     }
 
     /**
@@ -141,7 +133,8 @@ export class WorkflowKeyboard {
      */
     handleKeydown(e) {
         const activeEl = document.activeElement;
-        const isInput = activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
+        const isInput =
+            activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT';
         const isContentEditable = /** @type {HTMLElement} */ (activeEl).isContentEditable;
 
         if (isInput || isContentEditable) {
@@ -226,7 +219,7 @@ export class WorkflowKeyboard {
             save: t('messages.shortcutLabels.save'),
             search: t('messages.shortcutLabels.search'),
             lock: t('messages.shortcutLabels.lock'),
-            escape: t('messages.shortcutLabels.escape')
+            escape: t('messages.shortcutLabels.escape'),
         };
 
         let html = '<div class="shortcut-list">';
@@ -244,10 +237,12 @@ export class WorkflowKeyboard {
         body.innerHTML = html;
         overlay.style.display = '';
 
-        body.querySelectorAll('.shortcut-edit-btn').forEach(btn => {
+        body.querySelectorAll('.shortcut-edit-btn').forEach((btn) => {
             btn.addEventListener('click', (_e) => {
-                const key = (/** @type {HTMLElement} */ (btn)).dataset.shortcutKey;
-                const valueSpan = /** @type {HTMLElement | null} */ (body.querySelector(`.shortcut-item[data-shortcut-key="${key}"] .shortcut-value`));
+                const key = /** @type {HTMLElement} */ (btn).dataset.shortcutKey;
+                const valueSpan = /** @type {HTMLElement | null} */ (
+                    body.querySelector(`.shortcut-item[data-shortcut-key="${key}"] .shortcut-value`)
+                );
                 if (!valueSpan || !key) return;
                 valueSpan.textContent = t('messages.shortcutCapturePrompt');
                 valueSpan.style.color = 'var(--accent)';

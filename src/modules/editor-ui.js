@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { WorkflowCanvas } from './editor-canvas.js';
 import { WorkflowNode } from './editor-node.js';
 import { WorkflowEdge } from './editor-edge.js';
@@ -11,17 +10,17 @@ import { Logger } from '../utils/logger.js';
 import { Dialog } from './shared-dialog.js';
 import { goToManager } from './shared-navigator.js';
 import { SELECTORS } from '../config/constants.js';
-import { DOM, deepClone } from '../utils/helpers.js';
+import { DOM, deepClone, Storage } from '../utils/helpers.js';
 import { t, i18n } from '../i18n/i18n.js';
-import { mixinMessages } from './editor-messages.js';
-import { mixinSearch, invalidateTypeNameMapCache } from './editor-search.js';
-import { mixinAutoSave } from './editor-autosave.js';
-import { mixinShare } from './editor-share.js';
+import { WorkflowMessages } from './editor-messages.js';
+import { WorkflowSearch, invalidateTypeNameMapCache } from './editor-search.js';
+import { WorkflowAutoSave } from './editor-autosave.js';
+import { WorkflowShare } from './editor-share.js';
 
 export class WorkflowUI {
     constructor(core) {
         this.core = core;
-        
+
         // 状态管理
         this.dragStartX = 0;
         this.dragStartY = 0;
@@ -31,26 +30,39 @@ export class WorkflowUI {
         this.svgPath = null;
         this._changeVersion = 0;
         this._lastSavedVersion = 0;
+        this._confirmingExit = false;
         this.currentDescription = '';
-        
-        mixinMessages(this);
-        mixinSearch(this);
-        mixinAutoSave(this);
-        mixinShare(this);
+
+        this.messages = new WorkflowMessages(this);
+        this.search = new WorkflowSearch(this);
+        this.autoSave = new WorkflowAutoSave(this);
+        this.share = new WorkflowShare(this);
     }
-    
+
     /**
      * 初始化 UI
      */
     init() {
         const isModal = DOM.get('workflowEditorModal') !== null;
         const prefix = isModal ? 'editor' : '';
-        
-        // 获取 DOM 元素
+
         this.propertyContent = DOM.get(prefix + SELECTORS.EDITOR.PROPERTY_CONTENT);
         this.importedNodeInfo = DOM.get(prefix + SELECTORS.EDITOR.IMPORTED_NODE_INFO);
-        
-        // 初始化子模块
+
+        this._initSubModules(prefix);
+        this._initEventBindings();
+        this._renderInitialNodes();
+
+        this._lastSavedVersion = this._captureSnapshot();
+        this.autoSave.startAutoSave();
+        i18n.addListener(() => this.handleLanguageChange());
+    }
+
+    /**
+     * 初始化子模块（画布、节点、边、历史、剪贴板、对齐、键盘、选择）
+     * @param {string} prefix - DOM ID 前缀
+     */
+    _initSubModules(prefix) {
         this.canvas = new WorkflowCanvas(this, prefix);
         this.node = new WorkflowNode(this);
         this.edge = new WorkflowEdge(this);
@@ -59,16 +71,25 @@ export class WorkflowUI {
         this.align = new WorkflowAlign(this);
         this.keyboard = new WorkflowKeyboard(this);
         this.selection = new WorkflowSelection(this);
-        
-        // 启动子模块
+
         this.canvas.init();
         this.history.init();
         this.history.updatePanel();
-        
-        // 设置数据变更自动刷新
+    }
+
+    /**
+     * 绑定事件监听（数据变更、搜索、语言切换、键盘、导出、下拉菜单、导入、消息容器）
+     */
+    _initEventBindings() {
         this.core.onChange = (action) => {
             this._changeVersion++;
-            if (action === 'undo' || action === 'redo' || action === 'clearAll' || action === 'batch' || action === 'jumpToHistory') {
+            if (
+                action === 'undo' ||
+                action === 'redo' ||
+                action === 'clearAll' ||
+                action === 'batch' ||
+                action === 'jumpToHistory'
+            ) {
                 this.refreshCanvas();
                 this.history.updatePanel();
                 this.renderNodePalette();
@@ -84,25 +105,17 @@ export class WorkflowUI {
                     this.canvas.setEmptyState(true);
                 }
             }
-    };
-        
+        };
+
         this.setupWorkflowInfoClick();
-        
-        // 渲染动态节点面板
         this.renderNodePalette();
 
-        // 语言切换时重新渲染节点面板
         document.addEventListener('languagechange', () => {
             this.renderNodePalette();
         });
-        
-        // 设置搜索处理器
-        this.setupSearchHandler();
-        
-        // 设置对齐工具栏
+
+        this.search.setupSearchHandler();
         this.align.setupAlignToolbar();
-        
-        // 设置事件监听器
         this.keyboard.setupEventListeners();
         this.keyboard.setupShortcutSettingsEvents();
 
@@ -112,46 +125,37 @@ export class WorkflowUI {
         }
 
         this._setupDropdowns();
-        
-        // 检查导入数据（优先级更高）
         this.checkImportedData();
-        
-        // 创建消息容器
-        this.createMessageContainer();
-        
-        // 如果有已加载的节点，渲染它们
-        if (this.core.nodes.length > 0) {
-            const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
-            const elements = [];
-            const fragment = document.createDocumentFragment();
-            topLevelNodes.forEach(node => {
-                const nodeCopy = deepClone(node);
-                const el = this.node.createElement(nodeCopy, { skipMeasure: true });
-                elements.push({ el, nodeData: nodeCopy });
-                fragment.appendChild(el);
-            });
-            this.canvas.canvasContent.appendChild(fragment);
-            this.node.batchMeasureElements(elements);
-            this.core.nodes.forEach(node => {
-                if (node.parentId) {
-                    this.node.renderContainerChildren(node.parentId);
-                }
-            });
-            this.canvas.setEmptyState(false);
-            this.updateEdges();
-            this.canvas.updateSvgSize();
-            this.updateSummary();
-            this.canvas.centerView();
-        }
+        this.messages.createContainer();
+    }
 
-        // 记录初始快照，用于判断是否需要提示保存
-        this._lastSavedVersion = this._captureSnapshot();
-        
-        // 启动自动保存
-        this.startAutoSave();
-        
-        // 监听语言切换，更新动态内容
-        i18n.addListener(() => this.handleLanguageChange());
+    /**
+     * 渲染初始节点（从 core.nodes 恢复已加载的工作流）
+     */
+    _renderInitialNodes() {
+        if (this.core.nodes.length === 0) return;
+
+        const topLevelNodes = this.core.nodes.filter((n) => !n.parentId);
+        const elements = [];
+        const fragment = document.createDocumentFragment();
+        topLevelNodes.forEach((node) => {
+            const nodeCopy = deepClone(node);
+            const el = this.node.render.createElement(nodeCopy, { skipMeasure: true });
+            elements.push({ el, nodeData: nodeCopy });
+            fragment.appendChild(el);
+        });
+        this.canvas.canvasContent?.appendChild(fragment);
+        this.node.render.batchMeasureElements(elements);
+        this.core.nodes.forEach((node) => {
+            if (node.parentId) {
+                this.node.container.renderContainerChildren(node.parentId);
+            }
+        });
+        this.canvas.setEmptyState(false);
+        this.updateEdges();
+        this.canvas.updateSvgSize();
+        this.updateSummary();
+        this.canvas.centerView();
     }
 
     /**
@@ -176,7 +180,7 @@ export class WorkflowUI {
     markSaved() {
         this._lastSavedVersion = this._captureSnapshot();
     }
-    
+
     /**
      * 处理语言切换
      */
@@ -201,7 +205,7 @@ export class WorkflowUI {
 
         const result = await Dialog.prompt(t('editor.editWorkflowInfo'), {
             nameValue: currentName,
-            descValue: currentDesc
+            descValue: currentDesc,
         });
 
         if (result) {
@@ -213,18 +217,16 @@ export class WorkflowUI {
             this._changeVersion++;
             this.updateSummary();
 
-            const editingId = sessionStorage.getItem('editingWorkflowId');
+            const editingId = Storage.session.get('editingWorkflowId');
             if (editingId) {
-                try {
-                    const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
-                    const idx = workflows.findIndex(w => w.id === editingId);
-                    if (idx !== -1) {
-                        workflows[idx].name = result.name;
-                        workflows[idx].description = result.description;
-                        workflows[idx].updatedAt = Date.now();
-                        localStorage.setItem('workflows', JSON.stringify(workflows));
-                    }
-                } catch (e) {}
+                const workflows = Storage.get('workflows', []);
+                const idx = workflows.findIndex((w) => w.id === editingId);
+                if (idx !== -1) {
+                    workflows[idx].name = result.name;
+                    workflows[idx].description = result.description;
+                    workflows[idx].updatedAt = Date.now();
+                    Storage.set('workflows', workflows);
+                }
             }
         }
     }
@@ -240,7 +242,7 @@ export class WorkflowUI {
         const types = this.core.nodeTypeInfo;
         const allTypes = Object.entries(types);
 
-        const selectedNode = this.core.nodes.find(n => n.id === this.core.selectedNode);
+        const selectedNode = this.core.nodes.find((n) => n.id === this.core.selectedNode);
         const isLoopSelected = selectedNode && selectedNode.type === 'loop';
         const loopInternalTypes = new Set(['break', 'loop_set_variable', 'loop_continue']);
 
@@ -274,7 +276,7 @@ export class WorkflowUI {
         render();
 
         if (searchInput) {
-            DOM.on(searchInput, 'input', () => render(searchInput.value));
+            DOM.on(searchInput, 'input', () => render(/** @type {HTMLInputElement} */ (searchInput).value));
         }
     }
 
@@ -301,7 +303,7 @@ export class WorkflowUI {
         // 检查 URL 参数中的导入数据
         const params = new URLSearchParams(window.location.search);
         const data = params.get('data');
-        
+
         if (data) {
             try {
                 const workflowData = JSON.parse(decodeURIComponent(data));
@@ -333,16 +335,16 @@ export class WorkflowUI {
         const edgeLabelEl = DOM.get('summaryEdgeLabel');
         const startRowEl = DOM.get('summaryStartRow');
         const endRowEl = DOM.get('summaryEndRow');
-        
+
         const selectedNodes = document.querySelectorAll('.canvas-node.selected');
         const selectedEdges = document.querySelectorAll('.workflow-edge.selected');
         const isMultiSelect = selectedNodes.length + selectedEdges.length > 1;
-        
+
         if (isMultiSelect) {
             if (nodeLabelEl) nodeLabelEl.textContent = t('messages.selectedNodes');
             if (edgeLabelEl) edgeLabelEl.textContent = t('messages.selectedEdges');
-            if (nodeCountEl) nodeCountEl.textContent = selectedNodes.length;
-            if (edgeCountEl) edgeCountEl.textContent = selectedEdges.length;
+            if (nodeCountEl) nodeCountEl.textContent = String(selectedNodes.length);
+            if (edgeCountEl) edgeCountEl.textContent = String(selectedEdges.length);
             if (startRowEl) startRowEl.style.display = 'none';
             if (endRowEl) endRowEl.style.display = 'none';
         } else {
@@ -352,8 +354,8 @@ export class WorkflowUI {
             if (edgeCountEl) edgeCountEl.textContent = this.core.edges.length;
             if (startRowEl) startRowEl.style.display = 'flex';
             if (endRowEl) endRowEl.style.display = 'flex';
-            if (startCountEl) startCountEl.textContent = this.core.nodes.filter(n => n.type === 'start').length;
-            if (endCountEl) endCountEl.textContent = this.core.nodes.filter(n => n.type === 'end').length;
+            if (startCountEl) startCountEl.textContent = this.core.nodes.filter((n) => n.type === 'start').length;
+            if (endCountEl) endCountEl.textContent = this.core.nodes.filter((n) => n.type === 'end').length;
         }
     }
 
@@ -361,9 +363,9 @@ export class WorkflowUI {
         const summary = DOM.get('workflowSummary');
         const detail = DOM.get('nodeDetail');
         const hint = DOM.get('propertyHint');
-        if (summary) summary.style.display = 'block';
-        if (detail) detail.style.display = 'none';
-        if (hint) hint.style.display = 'block';
+        DOM.show(summary);
+        DOM.hide(detail);
+        DOM.show(hint);
         this.updateSummary();
     }
 
@@ -371,11 +373,11 @@ export class WorkflowUI {
         const summary = DOM.get('workflowSummary');
         const detail = DOM.get('nodeDetail');
         const hint = DOM.get('propertyHint');
-        if (summary) summary.style.display = 'none';
-        if (detail) detail.style.display = 'block';
-        if (hint) hint.style.display = 'none';
+        DOM.hide(summary);
+        DOM.show(detail);
+        DOM.hide(hint);
     }
-    
+
     /**
      * 重置视图到初始位置和缩放
      */
@@ -387,20 +389,20 @@ export class WorkflowUI {
     /**
      * 在画布上添加节点（供外部调用）
      * @param {string} type - 节点类型
-     * @param {number} x - X 坐标
-     * @param {number} y - Y 坐标
+     * @param {number} screenX - 屏幕 X 坐标
+     * @param {number} screenY - 屏幕 Y 坐标
      */
     addNodeToCanvas(type, screenX, screenY) {
-        this.node.addToCanvas(type, screenX, screenY);
+        this.node.render.addToCanvas(type, screenX, screenY);
     }
-    
+
     /**
      * 更新历史记录面板（供外部调用）
      */
     updateHistoryPanel() {
         this.history.updatePanel();
     }
-    
+
     /**
      * 刷新画布显示
      */
@@ -409,26 +411,26 @@ export class WorkflowUI {
 
         const elements = [];
         const fragment = document.createDocumentFragment();
-        this.core.nodes.forEach(node => {
+        this.core.nodes.forEach((node) => {
             if (node.parentId) return;
             const nodeCopy = deepClone(node);
-            const el = this.node.createElement(nodeCopy, { skipMeasure: true });
+            const el = this.node.render.createElement(nodeCopy, { skipMeasure: true });
             elements.push({ el, nodeData: nodeCopy });
             fragment.appendChild(el);
         });
         this.canvas.canvasContent.appendChild(fragment);
-        this.node.batchMeasureElements(elements);
-        
+        this.node.render.batchMeasureElements(elements);
+
         this.canvas.updateSvgSize();
-        
+
         // 更新摘要
         this.updateSummary();
-        
+
         // 等容器子节点渲染完后再更新边，确保连线坐标正确
         requestAnimationFrame(() => {
             this.updateEdges();
         });
-        
+
         // 检查是否需要显示空状态
         if (this.core.nodes.length === 0) {
             this.canvas.setEmptyState(true);
@@ -436,7 +438,7 @@ export class WorkflowUI {
             this.canvas.setEmptyState(false);
         }
     }
-    
+
     /**
      * 开始创建连接（委托给 edge 模块）
      * @param {string} nodeId - 源节点 ID
@@ -447,7 +449,7 @@ export class WorkflowUI {
             this.edge.startConnection(nodeId, e, portId);
         }
     }
-    
+
     /**
      * 取消连接创建（委托给 edge 模块）
      */
@@ -456,46 +458,46 @@ export class WorkflowUI {
             this.edge.cancelConnection();
         }
     }
-    
+
     /**
      * 删除节点（供外部调用）
      * @param {string} nodeId - 节点 ID
      */
     deleteNode(nodeId) {
-        this.node.delete(nodeId);
+        this.node.render.delete(nodeId);
     }
 
     toggleSelectedNodesLock() {
         const selectedEls = document.querySelectorAll('.canvas-node.selected');
         if (selectedEls.length === 0) return;
 
-        const allLocked = Array.from(selectedEls).every(el => {
-            const node = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+        const allLocked = Array.from(selectedEls).every((el) => {
+            const node = this.core.nodes.find((n) => n.id === /** @type {HTMLElement} */ (el).dataset.nodeId);
             return node && node.locked;
         });
 
         const newLockState = !allLocked;
 
-        selectedEls.forEach(el => {
-            const node = this.core.nodes.find(n => n.id === el.dataset.nodeId);
+        selectedEls.forEach((el) => {
+            const node = this.core.nodes.find((n) => n.id === /** @type {HTMLElement} */ (el).dataset.nodeId);
             if (node) {
                 node.locked = newLockState;
-                this.node._reRenderNode(node.id);
+                this.node.render._reRenderNode(node.id);
             }
         });
 
         this.core.saveHistory('messages.toggleLock');
         this.showMessage(newLockState ? t('messages.nodeLocked') : t('messages.nodeUnlocked'), 'success');
     }
-    
+
     /**
      * 保存节点详情面板编辑（供外部调用）
      * @param {string} nodeId - 节点 ID
      */
     saveNodeDetail(nodeId) {
-        this.node.saveNodeDetail(nodeId);
+        this.node.panel.saveNodeDetail(nodeId);
     }
-    
+
     /**
      * 删除边（供外部调用）
      * @param {string} edgeId - 边 ID
@@ -503,7 +505,7 @@ export class WorkflowUI {
     deleteEdge(edgeId) {
         this.edge.delete(edgeId);
     }
-    
+
     /**
      * 验证工作流（供外部调用）
      */
@@ -515,12 +517,14 @@ export class WorkflowUI {
             this.showMessage(t('editor.validateError') + '：<br>' + result.message.replace(/\n/g, '<br>'), 'error');
         }
     }
-    
+
     /**
      * 清空画布（供外部调用）
      */
     async clearCanvas() {
-        const confirmed = await Dialog.confirm(t('messages.clearCanvasConfirm'), t('messages.clearCanvasTitle'), { danger: true });
+        const confirmed = await Dialog.confirm(t('messages.clearCanvasConfirm'), t('messages.clearCanvasTitle'), {
+            danger: true,
+        });
         if (!confirmed) {
             return;
         }
@@ -554,21 +558,21 @@ export class WorkflowUI {
             edges: deepClone(this.core.edges),
             selectedNode: this.core.selectedNode,
             selectedEdge: this.core.selectedEdge,
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
-        
-        const editingId = sessionStorage.getItem('editingWorkflowId');
-        
+
+        const editingId = Storage.session.get('editingWorkflowId');
+
         if (!editingId) {
             const result = await Dialog.prompt(t('editor.saveWorkflow'));
             if (!result) return;
-            
+
             workflow.id = `wf_${Date.now()}`;
             workflow.name = result.name;
             workflow.description = result.description;
             workflow.createdAt = Date.now();
-            sessionStorage.setItem('savedWorkflowName', result.name);
-            sessionStorage.setItem('savedWorkflowDesc', result.description);
+            Storage.session.set('savedWorkflowName', result.name);
+            Storage.session.set('savedWorkflowDesc', result.description);
         } else {
             workflow.id = editingId;
             const nameEl = document.getElementById('workflowName');
@@ -577,79 +581,84 @@ export class WorkflowUI {
             }
             workflow.description = this.currentDescription;
         }
-        
+
         // 保存到 sessionStorage，供工作流管理页面读取
-        sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+        Storage.session.set('savedWorkflow', workflow);
         this.markSaved();
-        
+
         // 同时保存到 localStorage，防止页面刷新丢失
         this.core.saveToLocalStorage();
-        
+
         // 只清除 editingWorkflow，保留 editingWorkflowId 供管理页面更新使用
-        sessionStorage.removeItem('editingWorkflow');
-        
+        Storage.session.remove('editingWorkflow');
+
         this.showMessage(t('messages.workflowSaved'), 'success');
-        
+
         // 延迟跳转，让用户看到保存成功的提示
         setTimeout(() => {
             goToManager();
         }, 500);
     }
-    
+
     /**
      * 确认退出并询问是否保存
      */
     async confirmExit() {
-        // 如果没有未保存的变更，直接退出不提问
-        if (!this.hasUnsavedChanges()) {
-            // 如果有 pending 的 quickSave 数据，保留 editingWorkflowId 供管理页面更新
-            if (!sessionStorage.getItem('savedWorkflow')) {
-                sessionStorage.removeItem('editingWorkflowId');
-            }
-            goToManager();
-            return;
-        }
+        if (this._confirmingExit) return;
+        this._confirmingExit = true;
 
-        const result = await Dialog.confirm(t('messages.exitConfirm'), t('messages.exitTitle'));
-        
-        if (result) {
-            // 用户选择保存
-            await this.saveAndReturn();
-        } else {
-            // 用户选择不保存，直接返回
-            sessionStorage.removeItem('editingWorkflowId');
-            sessionStorage.removeItem('savedWorkflow');
-            sessionStorage.removeItem('savedWorkflowName');
-            sessionStorage.removeItem('savedWorkflowDesc');
-            goToManager();
+        try {
+            if (!this.hasUnsavedChanges()) {
+                if (!Storage.session.get('savedWorkflow')) {
+                    Storage.session.remove('editingWorkflowId');
+                }
+                goToManager();
+                return;
+            }
+
+            const result = await Dialog.confirm(t('messages.exitConfirm'), t('messages.exitTitle'));
+
+            if (result === null) return;
+
+            if (result) {
+                await this.saveAndReturn();
+            } else {
+                Storage.session.remove('editingWorkflowId');
+                Storage.session.remove('savedWorkflow');
+                Storage.session.remove('savedWorkflowName');
+                Storage.session.remove('savedWorkflowDesc');
+                goToManager();
+            }
+        } finally {
+            this._confirmingExit = false;
         }
     }
-    
+
     /**
      * 快速保存（不返回）
      */
     async quickSave() {
         try {
-            const editingId = sessionStorage.getItem('editingWorkflowId');
-            
+            const editingId = Storage.session.get('editingWorkflowId');
+
             const workflow = {
                 nodes: deepClone(this.core.nodes),
                 edges: deepClone(this.core.edges),
                 selectedNode: this.core.selectedNode,
                 selectedEdge: this.core.selectedEdge,
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
             };
-            
+
             if (!editingId) {
                 const result = await Dialog.prompt(t('editor.saveWorkflow'));
                 if (!result) return;
-                
+
                 workflow.id = `wf_${Date.now()}`;
                 workflow.name = result.name;
                 workflow.description = result.description;
                 workflow.createdAt = Date.now();
-                sessionStorage.setItem('savedWorkflowName', result.name);
-                sessionStorage.setItem('savedWorkflowDesc', result.description);
+                Storage.session.set('savedWorkflowName', result.name);
+                Storage.session.set('savedWorkflowDesc', result.description);
             } else {
                 workflow.id = editingId;
                 const nameEl = document.getElementById('workflowName');
@@ -658,11 +667,11 @@ export class WorkflowUI {
                 }
                 workflow.description = this.currentDescription;
             }
-            
-            sessionStorage.setItem('savedWorkflow', JSON.stringify(workflow));
+
+            Storage.session.set('savedWorkflow', workflow);
             this.markSaved();
             this.core.saveToLocalStorage();
-            
+
             this.showMessage(t('messages.workflowSaved'), 'success');
         } catch (error) {
             Logger.error('保存失败:', error);
@@ -673,7 +682,7 @@ export class WorkflowUI {
     _setupDropdowns() {
         const dropdowns = [
             { toggle: 'btnExportDropdown', menu: 'exportDropdownMenu' },
-            { toggle: 'btnMoreDropdown', menu: 'moreDropdownMenu' }
+            { toggle: 'btnMoreDropdown', menu: 'moreDropdownMenu' },
         ];
 
         dropdowns.forEach(({ toggle, menu }) => {
@@ -683,20 +692,38 @@ export class WorkflowUI {
 
             toggleEl.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isOpen = menuEl.style.display === 'block';
-                document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
-                menuEl.style.display = isOpen ? 'none' : 'block';
+                const isOpen = menuEl.classList.contains('show');
+                document.querySelectorAll('.dropdown-menu').forEach((m) => m.classList.remove('show'));
+                if (!isOpen) {
+                    menuEl.classList.add('show');
+                }
             });
 
-            menuEl.querySelectorAll('.dropdown-item').forEach(item => {
+            menuEl.querySelectorAll('.dropdown-item').forEach((item) => {
                 item.addEventListener('click', () => {
-                    menuEl.style.display = 'none';
+                    menuEl.classList.remove('show');
                 });
             });
         });
 
         document.addEventListener('click', () => {
-            document.querySelectorAll('.dropdown-menu').forEach(m => m.style.display = 'none');
+            document.querySelectorAll('.dropdown-menu').forEach((m) => m.classList.remove('show'));
         });
+    }
+
+    /**
+     * 显示消息提示（转发到 messages 模块）
+     * @param {string} text
+     * @param {string} type
+     */
+    showMessage(text, type) {
+        this.messages.show(text, type);
+    }
+
+    /**
+     * 导出工作流（转发到 share 模块）
+     */
+    exportWorkflow() {
+        return this.share.exportWorkflow();
     }
 }

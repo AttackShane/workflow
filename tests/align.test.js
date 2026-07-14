@@ -4,7 +4,7 @@
 global.document = global.document || {
     getElementById: () => null,
     querySelectorAll: () => [],
-    createElement: () => ({ style: {}, classList: { add: () => {}, remove: () => {}, contains: () => false } })
+    createElement: () => ({ style: {}, classList: { add: () => {}, remove: () => {}, contains: () => false } }),
 };
 global.window = global.window || {};
 
@@ -15,7 +15,7 @@ function createMockNode(id, x, y, width, height) {
     const el = {
         dataset: { x: String(x), y: String(y) },
         style: {},
-        getBoundingClientRect: () => ({ left: x, right: x + (width || 200), top: y, bottom: y + (height || 100) })
+        getBoundingClientRect: () => ({ left: x, right: x + (width || 200), top: y, bottom: y + (height || 100) }),
     };
     return { node, el, x, y, width: width || 200, height: height || 100 };
 }
@@ -23,19 +23,19 @@ function createMockNode(id, x, y, width, height) {
 function createMockUI() {
     const core = {
         nodes: [],
-        updateNodePosition: function(id, newX, newY) {
-            const node = this.nodes.find(n => n.id === id);
+        updateNodePosition: function (id, newX, newY) {
+            const node = this.nodes.find((n) => n.id === id);
             if (node) {
                 node.x = newX;
                 node.y = newY;
             }
         },
-        saveHistory: () => {}
+        saveHistory: () => {},
     };
     return {
         core,
         updateEdges: () => {},
-        emitEvent: () => {}
+        emitEvent: () => {},
     };
 }
 
@@ -61,9 +61,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 20, 50, 60),
                 createMockNode('2', 100, 40, 60, 50),
-                createMockNode('3', 50, 60, 70, 40)
+                createMockNode('3', 50, 60, 70, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignLeft(nodes);
 
@@ -83,9 +83,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 20, 50, 60),
                 createMockNode('2', 100, 40, 60, 50),
-                createMockNode('3', 50, 60, 70, 40)
+                createMockNode('3', 50, 60, 70, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignRight(nodes);
 
@@ -101,14 +101,14 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 20, 50, 60),
                 createMockNode('2', 100, 40, 60, 50),
-                createMockNode('3', 50, 60, 70, 40)
+                createMockNode('3', 50, 60, 70, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignCenterH(nodes);
 
             const avgCenter = (10 + 25 + 100 + 30 + 50 + 35) / 3;
-            nodes.forEach(n => {
+            nodes.forEach((n) => {
                 expect(n.node.x).toBeCloseTo(avgCenter - n.width / 2, 1);
             });
         });
@@ -119,9 +119,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 100, 50, 60),
                 createMockNode('2', 20, 20, 50, 50),
-                createMockNode('3', 30, 50, 50, 40)
+                createMockNode('3', 30, 50, 50, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignTop(nodes);
 
@@ -136,9 +136,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 10, 50, 60),
                 createMockNode('2', 20, 20, 50, 50),
-                createMockNode('3', 30, 50, 50, 40)
+                createMockNode('3', 30, 50, 50, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignBottom(nodes);
 
@@ -154,14 +154,14 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 10, 10, 50, 60),
                 createMockNode('2', 20, 100, 50, 50),
-                createMockNode('3', 30, 50, 50, 40)
+                createMockNode('3', 30, 50, 50, 40),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.alignCenterV(nodes);
 
             const avgCenter = (10 + 30 + 100 + 25 + 50 + 20) / 3;
-            nodes.forEach(n => {
+            nodes.forEach((n) => {
                 expect(n.node.y).toBeCloseTo(avgCenter - n.height / 2, 1);
             });
         });
@@ -169,11 +169,8 @@ describe('WorkflowAlign', () => {
 
     describe('distributeHorizontal', () => {
         it('should not change order for few nodes', () => {
-            const nodes = [
-                createMockNode('1', 0, 0, 50, 50),
-                createMockNode('2', 100, 10, 50, 50)
-            ];
-            core.nodes = nodes.map(n => n.node);
+            const nodes = [createMockNode('1', 0, 0, 50, 50), createMockNode('2', 100, 10, 50, 50)];
+            core.nodes = nodes.map((n) => n.node);
 
             align.distributeHorizontal(nodes);
 
@@ -185,9 +182,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 0, 0, 50, 50),
                 createMockNode('2', 100, 10, 50, 50),
-                createMockNode('3', 300, 20, 50, 50)
+                createMockNode('3', 300, 20, 50, 50),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.distributeHorizontal(nodes);
 
@@ -200,11 +197,8 @@ describe('WorkflowAlign', () => {
 
     describe('distributeVertical', () => {
         it('should not change order for few nodes', () => {
-            const nodes = [
-                createMockNode('1', 0, 0, 50, 50),
-                createMockNode('2', 10, 100, 50, 50)
-            ];
-            core.nodes = nodes.map(n => n.node);
+            const nodes = [createMockNode('1', 0, 0, 50, 50), createMockNode('2', 10, 100, 50, 50)];
+            core.nodes = nodes.map((n) => n.node);
 
             align.distributeVertical(nodes);
 
@@ -216,9 +210,9 @@ describe('WorkflowAlign', () => {
             const nodes = [
                 createMockNode('1', 0, 0, 50, 50),
                 createMockNode('2', 10, 100, 50, 50),
-                createMockNode('3', 20, 300, 50, 50)
+                createMockNode('3', 20, 300, 50, 50),
             ];
-            core.nodes = nodes.map(n => n.node);
+            core.nodes = nodes.map((n) => n.node);
 
             align.distributeVertical(nodes);
 
@@ -243,7 +237,7 @@ describe('WorkflowAlign', () => {
 
             align.setupAlignToolbar();
 
-            expect(mockToolbar.addEventListener).toHaveBeenCalledWith('click', expect.any(Function));
+            expect(mockToolbar.addEventListener).toHaveBeenCalledWith('click', expect.any(Function), undefined);
         });
 
         it('should trigger alignNodes when align button clicked', () => {
@@ -257,7 +251,7 @@ describe('WorkflowAlign', () => {
 
             const clickHandler = mockToolbar.addEventListener.mock.calls[0][1];
             const mockBtn = {
-                closest: jest.fn().mockReturnValue({ dataset: { align: 'left' } })
+                closest: jest.fn().mockReturnValue({ dataset: { align: 'left' } }),
             };
 
             const mockAlignNodes = jest.spyOn(align, 'alignNodes');
@@ -278,7 +272,7 @@ describe('WorkflowAlign', () => {
 
             const clickHandler = mockToolbar.addEventListener.mock.calls[0][1];
             const mockBtn = {
-                closest: jest.fn().mockReturnValue(null)
+                closest: jest.fn().mockReturnValue(null),
             };
 
             const mockAlignNodes = jest.spyOn(align, 'alignNodes');
@@ -299,7 +293,7 @@ describe('WorkflowAlign', () => {
 
             const clickHandler = mockToolbar.addEventListener.mock.calls[0][1];
             const mockBtn = {
-                closest: jest.fn().mockReturnValue({ dataset: {} })
+                closest: jest.fn().mockReturnValue({ dataset: {} }),
             };
 
             const mockAlignNodes = jest.spyOn(align, 'alignNodes');
@@ -316,7 +310,14 @@ describe('WorkflowAlign', () => {
         });
 
         it('should hide toolbar when less than 2 nodes selected', () => {
-            const mockToolbar = { addEventListener: jest.fn(), removeEventListener: jest.fn(), offsetWidth: 280, offsetHeight: 36, classList: { add: jest.fn(), remove: jest.fn() }, style: {} };
+            const mockToolbar = {
+                addEventListener: jest.fn(),
+                removeEventListener: jest.fn(),
+                offsetWidth: 280,
+                offsetHeight: 36,
+                classList: { add: jest.fn(), remove: jest.fn() },
+                style: {},
+            };
             global.document.getElementById = jest.fn((id) => {
                 if (id === 'alignToolbar') return mockToolbar;
                 return null;
@@ -329,7 +330,14 @@ describe('WorkflowAlign', () => {
         });
 
         it('should show toolbar when 2+ nodes selected', () => {
-            const mockToolbar = { addEventListener: jest.fn(), removeEventListener: jest.fn(), offsetWidth: 280, offsetHeight: 36, classList: { add: jest.fn(), remove: jest.fn() }, style: {} };
+            const mockToolbar = {
+                addEventListener: jest.fn(),
+                removeEventListener: jest.fn(),
+                offsetWidth: 280,
+                offsetHeight: 36,
+                classList: { add: jest.fn(), remove: jest.fn() },
+                style: {},
+            };
             const mockCanvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
             global.document.getElementById = jest.fn((id) => {
                 if (id === 'alignToolbar') return mockToolbar;
@@ -337,8 +345,14 @@ describe('WorkflowAlign', () => {
                 return null;
             });
             global.document.querySelectorAll = jest.fn(() => [
-                { dataset: { nodeId: '1' }, getBoundingClientRect: () => ({ left: 100, top: 100, right: 300, bottom: 200 }) },
-                { dataset: { nodeId: '2' }, getBoundingClientRect: () => ({ left: 400, top: 100, right: 600, bottom: 200 }) }
+                {
+                    dataset: { nodeId: '1' },
+                    getBoundingClientRect: () => ({ left: 100, top: 100, right: 300, bottom: 200 }),
+                },
+                {
+                    dataset: { nodeId: '2' },
+                    getBoundingClientRect: () => ({ left: 400, top: 100, right: 600, bottom: 200 }),
+                },
             ]);
 
             align.updateAlignToolbar();
@@ -349,7 +363,14 @@ describe('WorkflowAlign', () => {
         });
 
         it('should position toolbar below selection when top would overflow', () => {
-            const mockToolbar = { addEventListener: jest.fn(), removeEventListener: jest.fn(), offsetWidth: 280, offsetHeight: 36, classList: { add: jest.fn(), remove: jest.fn() }, style: {} };
+            const mockToolbar = {
+                addEventListener: jest.fn(),
+                removeEventListener: jest.fn(),
+                offsetWidth: 280,
+                offsetHeight: 36,
+                classList: { add: jest.fn(), remove: jest.fn() },
+                style: {},
+            };
             const mockCanvas = { getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) };
             global.document.getElementById = jest.fn((id) => {
                 if (id === 'alignToolbar') return mockToolbar;
@@ -357,8 +378,14 @@ describe('WorkflowAlign', () => {
                 return null;
             });
             global.document.querySelectorAll = jest.fn(() => [
-                { dataset: { nodeId: '1' }, getBoundingClientRect: () => ({ left: 100, top: 0, right: 300, bottom: 100 }) },
-                { dataset: { nodeId: '2' }, getBoundingClientRect: () => ({ left: 400, top: 0, right: 600, bottom: 100 }) }
+                {
+                    dataset: { nodeId: '1' },
+                    getBoundingClientRect: () => ({ left: 100, top: 0, right: 300, bottom: 100 }),
+                },
+                {
+                    dataset: { nodeId: '2' },
+                    getBoundingClientRect: () => ({ left: 400, top: 0, right: 600, bottom: 100 }),
+                },
             ]);
 
             align.updateAlignToolbar();

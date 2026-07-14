@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 工作流画布模块（含视口剔除优化）
  * 实现视口剔除（Viewport Culling）技术，提升大规模节点渲染性能
@@ -13,33 +12,33 @@ export class WorkflowCanvas {
         this.ui = ui;
         this.core = ui.core;
         this.prefix = prefix;
-        
+
         // 状态管理
         this.canvasScale = 1;
         this.lastMouseX = 0;
         this.lastMouseY = 0;
         this.isMarqueeSelectionActive = false;
         this.hasDraggedCanvas = false;
-        
+
         // 性能优化相关
         this.renderDebounceTimer = null;
         this.visibleNodes = new Set();
         this.renderBatchSize = 50;
         this.renderThreshold = 50;
-        
+
         // 网格吸附
         this.gridVisible = false;
         this.snapEnabled = false;
         this.gridSize = 20;
         this.gridSvg = null;
         this.gridPattern = null;
-        
+
         // 视口信息
         this.viewport = {
             left: 0,
             top: 0,
             right: 0,
-            bottom: 0
+            bottom: 0,
         };
     }
 
@@ -53,7 +52,7 @@ export class WorkflowCanvas {
         this.svgHitLayer = DOM.get(this.prefix + SELECTORS.EDITOR.SVG_HIT_LAYER);
         this.alignmentGuides = this._createAlignmentGuides();
         this.emptyState = DOM.get(this.prefix + SELECTORS.EDITOR.EMPTY_STATE);
-        
+
         this.setupEventListeners();
         this.setupZoomControls();
         this.initMinimap();
@@ -94,7 +93,7 @@ export class WorkflowCanvas {
         }
         svg.setAttribute('class', 'grid-layer');
         svg.setAttribute('id', 'gridLayer');
-        svg.style.display = 'none';
+        DOM.hide(svg);
         svg.style.pointerEvents = 'none';
 
         const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -135,7 +134,7 @@ export class WorkflowCanvas {
             this._createGridLayer();
         }
         if (this.gridSvg) {
-            this.gridSvg.style.display = this.gridVisible ? '' : 'none';
+            this.gridVisible ? DOM.show(this.gridSvg) : DOM.hide(this.gridSvg);
         }
         this.updateSvgSize();
     }
@@ -177,19 +176,19 @@ export class WorkflowCanvas {
      * 设置事件监听器
      */
     setupEventListeners() {
-        DOM.on(this.canvas, 'mousemove', (e) => this.onMouseMove(e));
-        DOM.on(this.canvas, 'wheel', (e) => this.onCanvasWheel(e));
-        DOM.on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(e));
-        DOM.on(this.canvas, 'click', (e) => this.onCanvasClick(e));
-        DOM.on(this.canvas, 'touchstart', (e) => this.onTouchStart(e), { passive: false });
-        DOM.on(this.canvas, 'touchmove', (e) => this.onTouchMove(e), { passive: false });
-        DOM.on(this.canvas, 'touchend', (e) => this.onTouchEnd(e));
-        
+        DOM.on(this.canvas, 'mousemove', (e) => this.onMouseMove(/** @type {MouseEvent} */ (e)));
+        DOM.on(this.canvas, 'wheel', (e) => this.onCanvasWheel(/** @type {WheelEvent} */ (e)));
+        DOM.on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(/** @type {MouseEvent} */ (e)));
+        DOM.on(this.canvas, 'click', (e) => this.onCanvasClick(/** @type {MouseEvent} */ (e)));
+        DOM.on(this.canvas, 'touchstart', (e) => this.onTouchStart(/** @type {TouchEvent} */ (e)), { passive: false });
+        DOM.on(this.canvas, 'touchmove', (e) => this.onTouchMove(/** @type {TouchEvent} */ (e)), { passive: false });
+        DOM.on(this.canvas, 'touchend', () => this.onTouchEnd());
+
         DOM.on(window, 'resize', () => {
             this.updateSvgSize();
             this.scheduleRenderUpdate();
         });
-        
+
         DOM.on(this.canvas, 'scroll', () => this.scheduleRenderUpdate());
 
         const themeObserver = new MutationObserver(() => {
@@ -254,7 +253,7 @@ export class WorkflowCanvas {
 
     initMinimap() {
         this.minimapEl = document.getElementById('minimap');
-        this.minimapCanvas = document.getElementById('minimapCanvas');
+        this.minimapCanvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById('minimapCanvas'));
         this.minimapViewport = document.getElementById('minimapViewport');
         if (!this.minimapEl || !this.minimapCanvas) return;
 
@@ -297,7 +296,7 @@ export class WorkflowCanvas {
         }
         this.minimapVisible = !this.minimapVisible;
         if (this.minimapEl) {
-            this.minimapEl.style.display = this.minimapVisible ? '' : 'none';
+            this.minimapVisible ? DOM.show(this.minimapEl) : DOM.hide(this.minimapEl);
         }
         if (this.minimapVisible) {
             this.renderMinimap();
@@ -328,15 +327,21 @@ export class WorkflowCanvas {
         const offsetX = (w - totalW * scale) / 2;
         const offsetY = (h - totalH * scale) / 2;
 
-        this._minimapTransform = { scale, offsetX, offsetY, boundsMinX: bounds.minX - padding, boundsMinY: bounds.minY - padding };
+        this._minimapTransform = {
+            scale,
+            offsetX,
+            offsetY,
+            boundsMinX: bounds.minX - padding,
+            boundsMinY: bounds.minY - padding,
+        };
 
         const selectedNodeIds = new Set();
-        document.querySelectorAll('.canvas-node.selected').forEach(el => {
-            selectedNodeIds.add(el.dataset.nodeId);
+        document.querySelectorAll('.canvas-node.selected').forEach((el) => {
+            selectedNodeIds.add(/** @type {HTMLElement} */ (el).dataset.nodeId);
         });
 
-        const topLevelNodes = this.core.nodes.filter(n => !n.parentId);
-        topLevelNodes.forEach(node => {
+        const topLevelNodes = this.core.nodes.filter((n) => !n.parentId);
+        topLevelNodes.forEach((node) => {
             const nx = (node.x - this._minimapTransform.boundsMinX) * scale + offsetX;
             const ny = (node.y - this._minimapTransform.boundsMinY) * scale + offsetY;
             const nw = (node.width || 200) * scale;
@@ -355,10 +360,14 @@ export class WorkflowCanvas {
         const canvasRect = this.canvas.getBoundingClientRect();
         const { translateX, translateY, scale } = this.getCurrentTransform();
 
-        const vx = (-translateX / scale - this._minimapTransform.boundsMinX) * this._minimapTransform.scale + this._minimapTransform.offsetX;
-        const vy = (-translateY / scale - this._minimapTransform.boundsMinY) * this._minimapTransform.scale + this._minimapTransform.offsetY;
-        const vw = canvasRect.width / scale * this._minimapTransform.scale;
-        const vh = canvasRect.height / scale * this._minimapTransform.scale;
+        const vx =
+            (-translateX / scale - this._minimapTransform.boundsMinX) * this._minimapTransform.scale +
+            this._minimapTransform.offsetX;
+        const vy =
+            (-translateY / scale - this._minimapTransform.boundsMinY) * this._minimapTransform.scale +
+            this._minimapTransform.offsetY;
+        const vw = (canvasRect.width / scale) * this._minimapTransform.scale;
+        const vh = (canvasRect.height / scale) * this._minimapTransform.scale;
 
         this.minimapViewport.style.left = Math.max(0, vx) + 'px';
         this.minimapViewport.style.top = Math.max(0, vy) + 'px';
@@ -373,8 +382,10 @@ export class WorkflowCanvas {
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
 
-        const canvasX = (mx - this._minimapTransform.offsetX) / this._minimapTransform.scale + this._minimapTransform.boundsMinX;
-        const canvasY = (my - this._minimapTransform.offsetY) / this._minimapTransform.scale + this._minimapTransform.boundsMinY;
+        const canvasX =
+            (mx - this._minimapTransform.offsetX) / this._minimapTransform.scale + this._minimapTransform.boundsMinX;
+        const canvasY =
+            (my - this._minimapTransform.offsetY) / this._minimapTransform.scale + this._minimapTransform.boundsMinY;
 
         const canvasRect = this.canvas.getBoundingClientRect();
         const newTranslateX = canvasRect.width / 2 - canvasX * this.canvasScale;
@@ -391,10 +402,10 @@ export class WorkflowCanvas {
      */
     updateViewport() {
         if (!this.canvas) return;
-        
+
         const rect = this.canvas.getBoundingClientRect();
         const { translateX, translateY, scale } = this.getCurrentTransform();
-        
+
         this.viewport.left = -translateX / scale - this.renderThreshold;
         this.viewport.top = -translateY / scale - this.renderThreshold;
         this.viewport.right = (rect.width - translateX) / scale + this.renderThreshold;
@@ -408,7 +419,7 @@ export class WorkflowCanvas {
         if (this.renderDebounceTimer) {
             clearTimeout(this.renderDebounceTimer);
         }
-        
+
         this.renderDebounceTimer = setTimeout(() => {
             this.updateViewport();
             this.updateVisibleNodes();
@@ -423,19 +434,19 @@ export class WorkflowCanvas {
         if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
             return;
         }
-        
+
         const newVisibleNodes = new Set();
-        
+
         for (let i = 0; i < this.core.nodes.length; i += this.renderBatchSize) {
             const batch = this.core.nodes.slice(i, i + this.renderBatchSize);
-            
-            batch.forEach(node => {
+
+            batch.forEach((node) => {
                 if (this.isNodeVisible(node)) {
                     newVisibleNodes.add(node.id);
                 }
             });
         }
-        
+
         this.updateNodeVisibility(newVisibleNodes);
         this.visibleNodes = newVisibleNodes;
         this.updateEdgeVisibility(newVisibleNodes);
@@ -453,7 +464,7 @@ export class WorkflowCanvas {
         const height = node.height || 100;
 
         if (node.parentId) {
-            const parent = this.core.nodes.find(n => n.id === node.parentId);
+            const parent = this.core.nodes.find((n) => n.id === node.parentId);
             if (parent) {
                 x = (parent.x || 0) + x;
                 y = (parent.y || 0) + 56 + y;
@@ -473,13 +484,13 @@ export class WorkflowCanvas {
      * @param {Set} visibleNodeIds - 可见节点ID集合
      */
     updateNodeVisibility(visibleNodeIds) {
-        const searchInput = document.getElementById('nodeSearchInput');
+        const searchInput = /** @type {HTMLInputElement|null} */ (document.getElementById('nodeSearchInput'));
         if (searchInput && searchInput.value.trim()) return;
 
-        document.querySelectorAll('.canvas-node').forEach(nodeEl => {
-            const nodeId = nodeEl.dataset.nodeId;
+        document.querySelectorAll('.canvas-node').forEach((nodeEl) => {
+            const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
             const isVisible = visibleNodeIds.has(nodeId);
-            
+
             DOM.setStyle(nodeEl, 'display', isVisible ? '' : 'none');
         });
     }
@@ -489,18 +500,18 @@ export class WorkflowCanvas {
      * @param {Set} visibleNodeIds - 可见节点ID集合
      */
     updateEdgeVisibility(visibleNodeIds) {
-        const searchInput = document.getElementById('nodeSearchInput');
+        const searchInput = /** @type {HTMLInputElement|null} */ (document.getElementById('nodeSearchInput'));
         if (searchInput && searchInput.value.trim()) return;
 
-        document.querySelectorAll('[data-edge-id]').forEach(edgeEl => {
+        document.querySelectorAll('[data-edge-id]').forEach((edgeEl) => {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             if (!edgeId) return;
-            
-            const edge = this.core.edges.find(e => e.id === edgeId);
+
+            const edge = this.core.edges.find((e) => e.id === edgeId);
             if (!edge) return;
-            
+
             const isVisible = visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);
-            
+
             DOM.setStyle(edgeEl, 'display', isVisible ? '' : 'none');
         });
     }
@@ -512,7 +523,7 @@ export class WorkflowCanvas {
     onMouseMove(e) {
         const rect = this.canvas?.getBoundingClientRect();
         if (!rect) return;
-        
+
         this.lastMouseX = e.clientX - rect.left;
         this.lastMouseY = e.clientY - rect.top;
     }
@@ -523,35 +534,38 @@ export class WorkflowCanvas {
      */
     onCanvasWheel(e) {
         if (!e.ctrlKey && !e.metaKey) return;
-        
+
         e.preventDefault();
-        
+
         const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
         const transform = this.canvasContent?.style.transform || '';
-        
+
         const currentScale = parseFloat(transform.match(/scale\(([\d.]+)\)/)?.[1]) || 1;
         const match = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const currentTranslateX = match ? parseFloat(match[1]) : 0;
         const currentTranslateY = match ? parseFloat(match[2]) : 0;
-        
+
         const rect = this.canvas?.getBoundingClientRect();
         if (!rect) return;
-        
+
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
-        
-        const newScale = Math.max(APP_CONFIG.ZOOM.MIN_SCALE, Math.min(APP_CONFIG.ZOOM.MAX_SCALE, currentScale * zoomFactor));
+
+        const newScale = Math.max(
+            APP_CONFIG.ZOOM.MIN_SCALE,
+            Math.min(APP_CONFIG.ZOOM.MAX_SCALE, currentScale * zoomFactor)
+        );
         this.canvasScale = newScale;
-        
+
         const newTranslateX = mouseX - (mouseX - currentTranslateX) * (newScale / currentScale);
         const newTranslateY = mouseY - (mouseY - currentTranslateY) * (newScale / currentScale);
-        
+
         this.applyTransform(newTranslateX, newTranslateY, newScale);
         this.updateSvgSize();
         this.scheduleRenderUpdate();
         this.updateZoomLevel();
     }
-    
+
     /**
      * 应用变换到画布元素
      * @param {number} translateX - X 轴平移
@@ -560,7 +574,7 @@ export class WorkflowCanvas {
      */
     applyTransform(translateX, translateY, scale) {
         const transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        
+
         DOM.setStyle(this.canvasContent, 'transform', transform);
         DOM.setStyle(this.svgLayer, 'transform', transform);
         DOM.setStyle(this.svgHitLayer, 'transform', transform);
@@ -572,30 +586,30 @@ export class WorkflowCanvas {
         }
         this.updateMinimapViewport();
     }
-    
+
     /**
      * 更新 SVG 尺寸
      */
     updateSvgSize() {
         if (!this.svgLayer || !this.canvas) return;
-        
+
         const rect = this.canvas.getBoundingClientRect();
-        
+
         if (!this.core || !this.core.nodes || this.core.nodes.length === 0) {
             this.setFixedSvgSize(rect);
             return;
         }
-        
+
         const bounds = this.calculateNodesBounds();
-        
+
         if (bounds.minX === Infinity) {
             this.setFixedSvgSize(rect);
             return;
         }
-        
+
         this.setContentSvgSize(rect, bounds);
     }
-    
+
     /**
      * 计算节点边界框
      * @returns {Object} - 包含 minX, minY, maxX, maxY 的边界框对象
@@ -603,7 +617,7 @@ export class WorkflowCanvas {
     calculateNodesBounds() {
         return NodeUtils.getBounds(this.core.nodes);
     }
-    
+
     /**
      * 设置固定 SVG 尺寸
      * @param {DOMRect} rect - 画布边界矩形
@@ -612,7 +626,7 @@ export class WorkflowCanvas {
         const size = Math.max(rect.width, rect.height) * 3;
         this.setSvgSize(size, size);
     }
-    
+
     /**
      * 根据内容设置 SVG 尺寸
      * @param {DOMRect} rect - 画布边界矩形
@@ -622,17 +636,17 @@ export class WorkflowCanvas {
         const padding = 400;
         const contentWidth = bounds.maxX - bounds.minX;
         const contentHeight = bounds.maxY - bounds.minY;
-        
+
         const scaledWidth = contentWidth + padding * 2;
         const scaledHeight = contentHeight + padding * 2;
-        
+
         const minSize = Math.max(rect.width, rect.height) * 2;
         const svgWidth = Math.max(scaledWidth, minSize, 2000);
         const svgHeight = Math.max(scaledHeight, minSize, 2000);
-        
+
         this.setSvgSize(svgWidth, svgHeight);
     }
-    
+
     /**
      * 设置 SVG 尺寸
      * @param {number} width - 宽度
@@ -652,7 +666,7 @@ export class WorkflowCanvas {
             DOM.setAttr(this.gridSvg, 'height', height);
         }
     }
-    
+
     /**
      * 触摸开始 - 支持单指拖拽和双指缩放
      * @param {TouchEvent} e - 触摸事件
@@ -661,15 +675,17 @@ export class WorkflowCanvas {
         if (e.touches.length === 1) {
             this._touchStartX = e.touches[0].clientX;
             this._touchStartY = e.touches[0].clientY;
-            this._touchStartTranslateX = this.canvasTranslateX;
-            this._touchStartTranslateY = this.canvasTranslateY;
+            const { translateX, translateY } = this.getCurrentTransform();
+            this._touchStartTranslateX = translateX;
+            this._touchStartTranslateY = translateY;
             this._touchStartScale = this.canvasScale;
             this._touchMoved = false;
         } else if (e.touches.length === 2) {
             this._touchStartDistance = this._getTouchDistance(e.touches);
             this._touchStartScale = this.canvasScale;
-            this._touchStartTranslateX = this.canvasTranslateX;
-            this._touchStartTranslateY = this.canvasTranslateY;
+            const { translateX, translateY } = this.getCurrentTransform();
+            this._touchStartTranslateX = translateX;
+            this._touchStartTranslateY = translateY;
             const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             this._touchCenterX = cx;
@@ -699,7 +715,10 @@ export class WorkflowCanvas {
             const newDist = this._getTouchDistance(e.touches);
             if (this._touchStartDistance && newDist > 0) {
                 const scaleRatio = newDist / this._touchStartDistance;
-                const newScale = Math.max(APP_CONFIG.ZOOM.MIN_SCALE, Math.min(APP_CONFIG.ZOOM.MAX_SCALE, this._touchStartScale * scaleRatio));
+                const newScale = Math.max(
+                    APP_CONFIG.ZOOM.MIN_SCALE,
+                    Math.min(APP_CONFIG.ZOOM.MAX_SCALE, this._touchStartScale * scaleRatio)
+                );
                 const rect = this.canvas.getBoundingClientRect();
                 const cx = this._touchCenterX - rect.left;
                 const cy = this._touchCenterY - rect.top;
@@ -732,21 +751,22 @@ export class WorkflowCanvas {
         const dy = touches[0].clientY - touches[1].clientY;
         return Math.sqrt(dx * dx + dy * dy);
     }
-    
+
     /**
      * 处理画布鼠标按下
      * @param {MouseEvent} e - 鼠标事件
      */
     onCanvasMouseDown(e) {
-        const isNode = e.target.closest('.canvas-node');
-        const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');
-        const isContainerBody = e.target.closest('.container-body');
+        const target = /** @type {Element} */ (e.target);
+        const isNode = target.closest('.canvas-node');
+        const isEdge = target.tagName === 'path' && target.getAttribute('data-edge-id');
+        const isContainerBody = target.closest('.container-body');
 
         let containerId = null;
         if (isContainerBody) {
             const containerNodeEl = isContainerBody.closest('.canvas-node.container');
             if (containerNodeEl) {
-                containerId = containerNodeEl.dataset.nodeId;
+                containerId = /** @type {HTMLElement} */ (containerNodeEl).dataset.nodeId;
             }
             const startX = e.clientX;
             const startY = e.clientY;
@@ -768,9 +788,13 @@ export class WorkflowCanvas {
                 const body = c.querySelector('.container-body');
                 if (body) {
                     const rect = body.getBoundingClientRect();
-                    if (e.clientX >= rect.left && e.clientX <= rect.right &&
-                        e.clientY >= rect.top && e.clientY <= rect.bottom) {
-                        containerId = c.dataset.nodeId;
+                    if (
+                        e.clientX >= rect.left &&
+                        e.clientX <= rect.right &&
+                        e.clientY >= rect.top &&
+                        e.clientY <= rect.bottom
+                    ) {
+                        containerId = /** @type {HTMLElement} */ (c).dataset.nodeId;
                         break;
                     }
                 }
@@ -788,15 +812,19 @@ export class WorkflowCanvas {
                 return;
             }
         }
-        
-        if (e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.length > 0) {
+
+        if (
+            /** @type {*} */ (e).dataTransfer &&
+            /** @type {*} */ (e).dataTransfer.types &&
+            /** @type {*} */ (e).dataTransfer.types.length > 0
+        ) {
             return;
         }
-        
+
         const startX = e.clientX;
         const startY = e.clientY;
         const isMarqueeMode = e.shiftKey;
-        
+
         if (isMarqueeMode) {
             this.handleMarqueeSelection(startX, startY, true);
         } else {
@@ -814,52 +842,52 @@ export class WorkflowCanvas {
     handleMarqueeSelection(startX, startY, accumulate = false, containerId = null) {
         this.isMarqueeSelectionActive = true;
         DOM.setStyle(this.canvas, 'cursor', 'crosshair');
-        
+
         const marquee = DOM.create('div', {
             className: 'marquee-selection',
             style: {
                 left: `${startX}px`,
                 top: `${startY}px`,
                 width: '0px',
-                height: '0px'
-            }
+                height: '0px',
+            },
         });
         document.body.appendChild(marquee);
-        
+
         const onMouseMove = (e) => {
             const width = Math.abs(e.clientX - startX);
             const height = Math.abs(e.clientY - startY);
             const left = Math.min(startX, e.clientX);
             const top = Math.min(startY, e.clientY);
-            
+
             if (width > 3 || height > 3) {
                 this.hasDraggedCanvas = true;
             }
-            
+
             DOM.setStyle(marquee, 'left', `${left}px`);
             DOM.setStyle(marquee, 'top', `${top}px`);
             DOM.setStyle(marquee, 'width', `${width}px`);
             DOM.setStyle(marquee, 'height', `${height}px`);
         };
-        
+
         const onMouseUp = (e) => {
             const width = Math.abs(e.clientX - startX);
             const height = Math.abs(e.clientY - startY);
-            
+
             if (width > 10 && height > 10) {
                 const left = Math.min(startX, e.clientX);
                 const top = Math.min(startY, e.clientY);
-                
+
                 this.ui.selection.selectNodesInRect(left, top, width, height, accumulate, containerId);
             }
-            
+
             document.body.removeChild(marquee);
             DOM.setStyle(this.canvas, 'cursor', 'default');
             DOM.off(document, 'mousemove', onMouseMove);
             DOM.off(document, 'mouseup', onMouseUp);
             DOM.off(document, 'keydown', onKeyDown);
             this.hasDraggedCanvas = false;
-            
+
             setTimeout(() => {
                 this.isMarqueeSelectionActive = false;
             }, 100);
@@ -877,7 +905,7 @@ export class WorkflowCanvas {
                 this.isMarqueeSelectionActive = false;
             }
         };
-        
+
         DOM.on(document, 'mousemove', onMouseMove);
         DOM.on(document, 'mouseup', onMouseUp);
         DOM.on(document, 'keydown', onKeyDown);
@@ -890,35 +918,35 @@ export class WorkflowCanvas {
      */
     handleCanvasDrag(startX, startY) {
         DOM.setStyle(this.canvas, 'cursor', 'grabbing');
-        
+
         this.hasDraggedCanvas = false;
-        
+
         const transform = this.canvasContent?.style.transform || '';
-        
+
         const match = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const startTranslateX = match ? parseFloat(match[1]) : 0;
         const startTranslateY = match ? parseFloat(match[2]) : 0;
-        
+
         const onMouseMove = (e) => {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
-            
+
             if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
                 this.hasDraggedCanvas = true;
             }
-            
+
             const newTranslateX = startTranslateX + deltaX;
             const newTranslateY = startTranslateY + deltaY;
-            
+
             this.applyTransform(newTranslateX, newTranslateY, this.canvasScale);
         };
-        
+
         const onMouseUp = () => {
             DOM.setStyle(this.canvas, 'cursor', 'default');
             DOM.off(document, 'mousemove', onMouseMove);
             DOM.off(document, 'mouseup', onMouseUp);
             DOM.off(document, 'keydown', onKeyDown);
-            
+
             this.scheduleRenderUpdate();
         };
 
@@ -931,7 +959,7 @@ export class WorkflowCanvas {
                 DOM.off(document, 'keydown', onKeyDown);
             }
         };
-        
+
         DOM.on(document, 'mousemove', onMouseMove);
         DOM.on(document, 'mouseup', onMouseUp);
         DOM.on(document, 'keydown', onKeyDown);
@@ -952,16 +980,19 @@ export class WorkflowCanvas {
             return;
         }
 
-        const isOnMinimap = e.target.closest('#minimap, .minimap, #minimapCanvas, .minimap-viewport');
-        const isOnToolbar = e.target.closest('.toolbar, .align-toolbar, .align-btn, .property-panel, .property-panel-content, .btn, .zoom-controls, .zoom-btn, .empty-state');
-        const isOnDropdown = e.target.closest('.dropdown-menu');
+        const target = /** @type {Element} */ (e.target);
+        const isOnMinimap = target.closest('#minimap, .minimap, #minimapCanvas, .minimap-viewport');
+        const isOnToolbar = target.closest(
+            '.toolbar, .align-toolbar, .align-btn, .property-panel, .property-panel-content, .btn, .zoom-controls, .zoom-btn, .empty-state'
+        );
+        const isOnDropdown = target.closest('.dropdown-menu');
         if (isOnMinimap || isOnToolbar || isOnDropdown) {
             return;
         }
-        
-        const isNode = e.target.closest('.canvas-node');
-        const isEdge = e.target.tagName === 'path' && e.target.getAttribute('data-edge-id');
-        
+
+        const isNode = target.closest('.canvas-node');
+        const isEdge = target.tagName === 'path' && target.getAttribute('data-edge-id');
+
         if (!isNode && !isEdge) {
             this.ui.selection.deselectAll();
         }
@@ -974,17 +1005,17 @@ export class WorkflowCanvas {
      */
     getCurrentTransform() {
         const transform = this.canvasContent?.style.transform || '';
-        
+
         const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
         const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
-        
+
         const translateMatch = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const translateX = translateMatch ? parseFloat(translateMatch[1]) : 0;
         const translateY = translateMatch ? parseFloat(translateMatch[2]) : 0;
-        
+
         return { translateX, translateY, scale };
     }
-    
+
     /**
      * 将屏幕坐标转换为画布坐标（考虑平移和缩放）
      * @param {number} screenX - 屏幕 X 坐标（相对于 canvas 元素）
@@ -993,13 +1024,13 @@ export class WorkflowCanvas {
      */
     screenToCanvas(screenX, screenY) {
         const { translateX, translateY, scale } = this.getCurrentTransform();
-        
+
         const canvasX = (screenX - translateX) / scale;
         const canvasY = (screenY - translateY) / scale;
-        
+
         return { canvasX, canvasY };
     }
-    
+
     /**
      * 重置视图
      */
@@ -1069,27 +1100,27 @@ export class WorkflowCanvas {
             this.resetView();
             return;
         }
-        
+
         const bounds = this.calculateNodesBounds();
         const rect = this.canvas?.getBoundingClientRect();
-        
+
         if (!rect || bounds.minX === Infinity) {
             this.resetView();
             return;
         }
-        
+
         const centerX = (bounds.minX + bounds.maxX) / 2;
         const centerY = (bounds.minY + bounds.maxY) / 2;
-        
+
         const contentWidth = bounds.maxX - bounds.minX;
         const contentHeight = bounds.maxY - bounds.minY;
         const scaleX = rect.width / (contentWidth + 200);
         const scaleY = rect.height / (contentHeight + 200);
         const newScale = Math.min(scaleX, scaleY, 1);
-        
+
         const translateX = rect.width / 2 - centerX * newScale;
         const translateY = rect.height / 2 - centerY * newScale;
-        
+
         this.canvasScale = newScale;
         this.updateSvgSize();
         this.applyTransform(translateX, translateY, newScale);
@@ -1102,9 +1133,7 @@ export class WorkflowCanvas {
      * @param {boolean} show - 是否显示空状态
      */
     setEmptyState(show) {
-        if (this.emptyState) {
-            this.emptyState.style.display = show ? 'flex' : 'none';
-        }
+        DOM.setStyle(this.emptyState, 'display', show ? 'flex' : 'none');
     }
 
     /**
@@ -1130,14 +1159,14 @@ export class WorkflowCanvas {
         const totalNodes = this.core?.nodes?.length || 0;
         const visibleNodes = this.visibleNodes.size;
         const hiddenNodes = totalNodes - visibleNodes;
-        const visibilityRatio = totalNodes > 0 ? (visibleNodes / totalNodes * 100).toFixed(1) : '0';
-        
+        const visibilityRatio = totalNodes > 0 ? ((visibleNodes / totalNodes) * 100).toFixed(1) : '0';
+
         return {
             totalNodes,
             visibleNodes,
             hiddenNodes,
             visibilityRatio: `${visibilityRatio}%`,
-            canvasScale: this.canvasScale.toFixed(2)
+            canvasScale: this.canvasScale.toFixed(2),
         };
     }
 
@@ -1163,9 +1192,12 @@ export class WorkflowCanvas {
         const invScale = 1 / canvasScale;
         const canvasRect = this.canvas.getBoundingClientRect();
 
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
 
-        allNodeEls.forEach(el => {
+        allNodeEls.forEach((el) => {
             const rect = el.getBoundingClientRect();
             const screenX = rect.left - canvasRect.left;
             const screenY = rect.top - canvasRect.top;
@@ -1179,10 +1211,12 @@ export class WorkflowCanvas {
             maxY = Math.max(maxY, y + h);
         });
 
-        const edgeElems = this.svgLayer.querySelectorAll('path[data-edge-id], polygon[data-edge-id], text[data-edge-id]');
-        edgeElems.forEach(el => {
-            if (el.getBBox) {
-                const bbox = el.getBBox();
+        const edgeElems = this.svgLayer.querySelectorAll(
+            'path[data-edge-id], polygon[data-edge-id], text[data-edge-id]'
+        );
+        edgeElems.forEach((el) => {
+            if (/** @type {SVGGraphicsElement} */ (el).getBBox) {
+                const bbox = /** @type {SVGGraphicsElement} */ (el).getBBox();
                 minX = Math.min(minX, bbox.x);
                 minY = Math.min(minY, bbox.y);
                 maxX = Math.max(maxX, bbox.x + bbox.width);
@@ -1201,7 +1235,7 @@ export class WorkflowCanvas {
 
         if (edgeElems.length > 0) {
             svgParts.push(`<g transform="translate(${offsetX},${offsetY})">`);
-            edgeElems.forEach(el => {
+            edgeElems.forEach((el) => {
                 svgParts.push(el.outerHTML);
             });
             svgParts.push('</g>');
@@ -1242,54 +1276,86 @@ export class WorkflowCanvas {
                 const descH = descText ? 20 : 0;
                 const bodyH = h - headerH - descH;
 
-                parts.push(`<rect x="0" y="0" width="${w}" height="${h}" rx="12" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`);
-                parts.push(`<rect x="0" y="0" width="${w}" height="${headerH}" rx="12" fill="${headerBg}" opacity="0.3"/>`);
-                parts.push(`<rect x="0" y="${headerH - 12}" width="${w}" height="12" fill="${headerBg}" opacity="0.3"/>`);
+                parts.push(
+                    `<rect x="0" y="0" width="${w}" height="${h}" rx="12" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
+                );
+                parts.push(
+                    `<rect x="0" y="0" width="${w}" height="${headerH}" rx="12" fill="${headerBg}" opacity="0.3"/>`
+                );
+                parts.push(
+                    `<rect x="0" y="${headerH - 12}" width="${w}" height="12" fill="${headerBg}" opacity="0.3"/>`
+                );
                 if (iconText) {
-                    parts.push(`<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`);
+                    parts.push(
+                        `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
+                    );
                 }
-                parts.push(`<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="13" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`);
+                parts.push(
+                    `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="13" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
+                );
                 if (descText) {
-                    parts.push(`<text x="10" y="${headerH + descH - 4}" font-size="11" fill="#888" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`);
+                    parts.push(
+                        `<text x="10" y="${headerH + descH - 4}" font-size="11" fill="#888" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
+                    );
                 }
                 if (bodyH > 0) {
-                    parts.push(`<rect x="0" y="${headerH + descH}" width="${w}" height="${bodyH}" rx="0" fill="rgba(0,0,0,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,4"/>`);
+                    parts.push(
+                        `<rect x="0" y="${headerH + descH}" width="${w}" height="${bodyH}" rx="0" fill="rgba(0,0,0,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,4"/>`
+                    );
                 }
             } else {
-                parts.push(`<rect x="0" y="0" width="${w}" height="${h}" rx="8" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`);
+                parts.push(
+                    `<rect x="0" y="0" width="${w}" height="${h}" rx="8" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
+                );
                 parts.push(`<rect x="0" y="0" width="${w}" height="${headerH}" rx="8" fill="${headerBg}"/>`);
                 parts.push(`<rect x="0" y="${headerH - 8}" width="${w}" height="8" fill="${headerBg}"/>`);
 
                 if (iconText) {
-                    parts.push(`<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`);
+                    parts.push(
+                        `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
+                    );
                 }
-                parts.push(`<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="12" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`);
+                parts.push(
+                    `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="12" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
+                );
 
                 if (typeText) {
                     const typeTextEl = el.querySelector('.node-type');
-                    const typeBg = typeTextEl ? this._rgb(window.getComputedStyle(typeTextEl).backgroundColor) || 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.1)';
-                    const typeColor = typeTextEl ? this._rgb(window.getComputedStyle(typeTextEl).color) || '#94a3b8' : '#94a3b8';
+                    const typeBg = typeTextEl
+                        ? this._rgb(window.getComputedStyle(typeTextEl).backgroundColor) || 'rgba(255,255,255,0.1)'
+                        : 'rgba(255,255,255,0.1)';
+                    const typeColor = typeTextEl
+                        ? this._rgb(window.getComputedStyle(typeTextEl).color) || '#94a3b8'
+                        : '#94a3b8';
                     const typeW = typeText.length * 7 + 12;
                     const typeH = 16;
                     const typeX = w - typeW - 6;
                     const typeY = (headerH - typeH) / 2;
-                    parts.push(`<rect x="${typeX}" y="${typeY}" width="${typeW}" height="${typeH}" rx="4" fill="${typeBg}"/>`);
-                    parts.push(`<text x="${typeX + typeW / 2}" y="${headerH / 2 + 5}" font-size="10" fill="${typeColor}" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="middle">${this._escapeXml(typeText)}</text>`);
+                    parts.push(
+                        `<rect x="${typeX}" y="${typeY}" width="${typeW}" height="${typeH}" rx="4" fill="${typeBg}"/>`
+                    );
+                    parts.push(
+                        `<text x="${typeX + typeW / 2}" y="${headerH / 2 + 5}" font-size="10" fill="${typeColor}" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="middle">${this._escapeXml(typeText)}</text>`
+                    );
                 }
                 if (descText) {
-                    parts.push(`<text x="10" y="${headerH + 16}" font-size="10" fill="#666" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`);
+                    parts.push(
+                        `<text x="10" y="${headerH + 16}" font-size="10" fill="#666" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
+                    );
                 }
             }
 
             const points = el.querySelectorAll('.connection-point');
-            points.forEach(pt => {
+            points.forEach((pt) => {
                 const pr = pt.getBoundingClientRect();
                 const cx = (pr.left - rect.left) * invScale;
                 const cy = (pr.top - rect.top) * invScale;
                 const r = (pr.width / 2) * invScale;
                 const isInput = pt.classList.contains('input');
                 const isOutput = pt.classList.contains('output');
-                parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${isInput ? '#4CAF50' : isOutput ? '#2196F3' : '#FF9800'}" stroke="#fff" stroke-width="1.5"/>`);
+                parts.push(
+                    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${isInput ? '#4CAF50' : isOutput ? '#2196F3' : '#FF9800'}" stroke="#fff" stroke-width="1.5"/>`
+                );
             });
 
             parts.push('</g>');
@@ -1297,7 +1363,7 @@ export class WorkflowCanvas {
         };
 
         // 所有节点平铺到顶层，每个节点用 getBoundingClientRect 独立计算绝对位置
-        allNodeEls.forEach(el => {
+        allNodeEls.forEach((el) => {
             svgParts.push(renderNode(el));
         });
 

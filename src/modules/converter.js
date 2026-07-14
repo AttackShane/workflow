@@ -3,12 +3,12 @@
  * 负责将YAML格式的工作流定义转换为Coze剪贴板格式
  * 支持22种节点类型的转换，包括start、end、llm、plugin、code等
  */
-import { TYPE_MAP, getMainColor, getSubTitle, getBounds, clearRefCache, resolveNodeType } from "../utils/types.js";
-import { buildOutputMap } from "../components/outputMapper.js";
-import { convertInputParameters } from "../components/inputMapper.js";
-import { nodeHandlers } from "../components/nodeHandlers.js";
-import { validateYamlInput, convertEdges, cleanIcon } from "../utils/utils.js";
-import { t } from "../i18n/i18n.js";
+import { getMainColor, getSubTitle, getBounds, clearRefCache, resolveNodeType } from '../utils/types.js';
+import { buildOutputMap } from '../components/outputMapper.js';
+import { convertInputParameters } from '../components/inputMapper.js';
+import { nodeHandlers } from '../components/nodeHandlers.js';
+import { validateYamlInput, convertEdges, cleanIcon } from '../utils/utils.js';
+import { t } from '../i18n/i18n.js';
 
 /**
  * 默认节点标题映射
@@ -34,9 +34,9 @@ function getNodeDefaultTitle(type) {
  */
 function processPluginNode(data, nodeMeta, params, type) {
     const apiParam = params.apiParam;
-    if (type === "plugin" && apiParam) {
-        const pluginName = apiParam.find(p => p.name === "pluginName")?.input?.value?.content;
-        const apiName = apiParam.find(p => p.name === "apiName")?.input?.value?.content;
+    if (type === 'plugin' && apiParam) {
+        const pluginName = apiParam.find((p) => p.name === 'pluginName')?.input?.value?.content;
+        const apiName = apiParam.find((p) => p.name === 'apiName')?.input?.value?.content;
         if (pluginName && apiName) nodeMeta.subTitle = `${pluginName}:${apiName}`;
     }
 }
@@ -51,9 +51,9 @@ function buildNodeMeta(node, type) {
     return {
         title: node.title || getNodeDefaultTitle(type),
         icon: cleanIcon(node.icon),
-        description: node.description || "",
+        description: node.description || '',
         mainColor: getMainColor(type),
-        subTitle: getSubTitle(type)
+        subTitle: getSubTitle(type),
     };
 }
 
@@ -65,9 +65,14 @@ function buildNodeMeta(node, type) {
  * @returns {object} 外部数据对象
  */
 function buildExternalData(node, type, params) {
-    const ext = { icon: cleanIcon(node.icon), description: node.description || "", title: node.title || "", mainColor: getMainColor(type) };
-    if (type === "plugin" && params.apiParam) {
-        const pid = params.apiParam.find(p => p.name === "pluginID");
+    const ext = {
+        icon: cleanIcon(node.icon),
+        description: node.description || '',
+        title: node.title || '',
+        mainColor: getMainColor(type),
+    };
+    if (type === 'plugin' && params.apiParam) {
+        const pid = params.apiParam.find((p) => p.name === 'pluginID');
         if (pid) ext.pluginID = pid.input?.value;
     }
     return ext;
@@ -79,7 +84,10 @@ function buildExternalData(node, type, params) {
  * @returns {object} 边界对象 { x, y, width, height }
  */
 function calculateBounds(nodes) {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+        minY = Infinity,
+        maxX = -Infinity,
+        maxY = -Infinity;
     function processNode(n) {
         const x = n.meta.position?.x ?? 0;
         const y = n.meta.position?.y ?? 0;
@@ -110,35 +118,35 @@ export function convertNode(node, outputMap) {
     const id = String(node.id);
     const type = node.type.toLowerCase();
     const mapped = resolveNodeType(type);
-    
+
     const pos = node.position;
     const meta = { position: pos || { x: 0, y: 0 } };
     if (node.canvas_position) meta.canvasPosition = node.canvas_position;
 
     const params = node.parameters || {};
     const inputParams = convertInputParameters(params.node_inputs, outputMap, type);
-    
+
     const inputs = {};
     const outputs = [];
     const handlerData = { inputs, outputs };
     const handler = nodeHandlers[type] || nodeHandlers.default;
     handler(handlerData, params, { node, outputMap, inputParams, convertNode });
-    
+
     const data = {
         inputs: handlerData.inputs,
         nodeMeta: buildNodeMeta(node, type),
         outputs: handlerData.outputs,
         blocks: handlerData.blocks,
-        edges: handlerData.edges
+        edges: handlerData.edges,
     };
 
     processPluginNode(data, data.nodeMeta, params, type);
-    
+
     const blocks = data.blocks;
     const edges = data.edges;
     delete data.blocks;
     delete data.edges;
-    
+
     if (data.outputs && data.outputs.length > 0) {
         const outputOrder = ['optionId', 'optionContent', 'QUESTION_DATA'];
         data.outputs.sort((a, b) => {
@@ -150,15 +158,18 @@ export function convertNode(node, outputMap) {
             return 0;
         });
     }
-    
+
     const result = {
-        id, type: mapped, meta, data,
-        _temp: { bounds: getBounds(node), externalData: buildExternalData(node, type, params) }
+        id,
+        type: mapped,
+        meta,
+        data,
+        _temp: { bounds: getBounds(node), externalData: buildExternalData(node, type, params) },
     };
-    
+
     if (blocks && blocks.length) result.blocks = blocks;
     if (edges && edges.length) result.edges = edges;
-    
+
     return result;
 }
 
@@ -188,7 +199,7 @@ function findNodeLineInYaml(rawYaml, node) {
 
 /**
  * 将YAML格式转换为Coze剪贴板格式
- * 
+ *
  * @param {object} yaml - YAML解析后的工作流对象
  * @param {object} yaml.id - 工作流ID
  * @param {string} [yaml.name] - 工作流名称
@@ -210,7 +221,13 @@ export function convertYamlToClipboard(yaml, rawYaml) {
         } catch (e) {
             const line = findNodeLineInYaml(rawYaml, n);
             const lineInfo = line ? `（第 ${line} 行附近）` : '';
-            const nodeInfo = t('converter.nodeConvertError', { title: n.title || '', id: n.id, type: n.type, lineInfo, message: e.message });
+            const nodeInfo = t('converter.nodeConvertError', {
+                title: n.title || '',
+                id: n.id,
+                type: n.type,
+                lineInfo,
+                message: e.message,
+            });
             const enrichedError = new Error(nodeInfo);
             /** @type {any} */ (enrichedError).nodeInfo = { id: n.id, title: n.title, type: n.type, line };
             throw enrichedError;
@@ -218,17 +235,21 @@ export function convertYamlToClipboard(yaml, rawYaml) {
     }
 
     clearRefCache();
-    
+
     return {
-        type: "coze-workflow-clipboard-data",
+        type: 'coze-workflow-clipboard-data',
         source: {
-            workflowId: yaml.id ? String(yaml.id) : "imported_workflow",
+            workflowId: yaml.id ? String(yaml.id) : 'imported_workflow',
             flowMode: 0,
-            spaceId: "imported_space",
+            spaceId: 'imported_space',
             isDouyin: false,
-            host: "www.coze.cn"
+            host: 'www.coze.cn',
         },
-        json: { nodes: newNodes, edges: convertEdges(yaml.edges || []), name: yaml.name || yaml.id || "imported_workflow" },
-        bounds: calculateBounds(newNodes)
+        json: {
+            nodes: newNodes,
+            edges: convertEdges(yaml.edges || []),
+            name: yaml.name || yaml.id || 'imported_workflow',
+        },
+        bounds: calculateBounds(newNodes),
     };
 }

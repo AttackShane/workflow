@@ -145,7 +145,12 @@ body {
 }
 
 .dropdown-menu {
-    display: none;
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    pointer-events: none;
     position: absolute;
     top: 100%;
     right: 0;
@@ -158,6 +163,13 @@ body {
     z-index: 1000;
     padding: 0.25rem;
     overflow: hidden;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .dropdown-item {
@@ -1360,10 +1372,6 @@ polygon.workflow-edge.selected {
     padding: 0.25rem 0.5rem;
     font-size: 0.75rem;
     line-height: 1;
-}
-
-.node-detail {
-    display: none;
 }
 
 .property-panel-section h4 {

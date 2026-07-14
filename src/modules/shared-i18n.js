@@ -18,7 +18,7 @@ export class I18nController {
         this.cachedElements = {
             i18nElements: null,
             placeholderElements: null,
-            titleElement: null
+            titleElement: null,
         };
         this.updateTimeout = null;
         this.isUpdating = false;
@@ -33,8 +33,8 @@ export class I18nController {
         this.bindEvents();
         this.currentLang = getLanguage();
         this.updateLanguageButton();
-        this.updatePageTexts();
-        
+        this.performUpdate();
+
         // 添加语言变化监听器
         i18n.addListener((lang) => this.handleLanguageChange(lang));
     }
@@ -63,7 +63,7 @@ export class I18nController {
     toggleLanguage() {
         // 如果正在更新，直接返回
         if (this.isUpdating) return;
-        
+
         const currentLang = getLanguage();
         const nextLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
         setLanguage(nextLang);
@@ -74,9 +74,9 @@ export class I18nController {
      */
     updateLanguageButton() {
         if (!this.elements.languageBtn) return;
-        
-        const langInfo = SUPPORTED_LANGUAGES.find(l => l.code === this.currentLang);
-        
+
+        const langInfo = SUPPORTED_LANGUAGES.find((l) => l.code === this.currentLang);
+
         if (langInfo) {
             const icon = this.currentLang === 'zh-CN' ? 'US' : 'CN';
             const text = this.currentLang === 'zh-CN' ? 'English' : '中文';
@@ -130,7 +130,7 @@ export class I18nController {
             if (el.id === 'themeBtn') {
                 continue;
             }
-            
+
             const key = el.getAttribute('data-i18n');
             if (key) {
                 const text = i18n.t(key);
@@ -176,13 +176,13 @@ export class I18nController {
     handleLanguageChange(lang) {
         // 更新缓存的语言
         this.currentLang = lang;
-        
+
         // 更新语言按钮（立即更新）
         this.updateLanguageButton();
-        
+
         // 更新页面文本（防抖）
         this.updatePageTexts();
-        
+
         // 更新主题按钮文本
         updateThemeButtonText();
 

@@ -6,13 +6,14 @@
 import { zhCN } from './zh-CN.js';
 import { enUS } from './en-US.js';
 import { Logger } from '../utils/logger.js';
+import { Storage } from '../utils/helpers.js';
 
 /**
  * 支持的语言列表
  */
 export const SUPPORTED_LANGUAGES = [
     { code: 'zh-CN', name: '中文' },
-    { code: 'en-US', name: 'English' }
+    { code: 'en-US', name: 'English' },
 ];
 
 /**
@@ -25,7 +26,7 @@ export const DEFAULT_LANGUAGE = 'zh-CN';
  */
 const LOCALES = {
     'zh-CN': zhCN,
-    'en-US': enUS
+    'en-US': enUS,
 };
 
 /**
@@ -73,11 +74,11 @@ export class I18nManager {
     t(key, params = {}) {
         const locale = LOCALES[this.language] || LOCALES[DEFAULT_LANGUAGE];
         const value = this.getValueByKey(locale, key);
-        
+
         if (typeof value === 'string') {
             return this.replaceParams(value, params);
         }
-        
+
         return key;
     }
 
@@ -89,10 +90,10 @@ export class I18nManager {
      */
     getValueByKey(obj, key) {
         if (!obj || !key) return key;
-        
+
         const keys = key.split('.');
         let result = obj;
-        
+
         for (const k of keys) {
             if (result && typeof result === 'object' && k in result) {
                 result = result[k];
@@ -100,7 +101,7 @@ export class I18nManager {
                 return key;
             }
         }
-        
+
         return result;
     }
 
@@ -112,7 +113,7 @@ export class I18nManager {
      */
     replaceParams(text, params) {
         if (!text || typeof text !== 'string') return text;
-        
+
         return text.replace(/\{(\w+)\}/g, (match, key) => {
             if (params && params[key] !== undefined) {
                 return params[key];
@@ -130,29 +131,12 @@ export class I18nManager {
     }
 
     /**
-     * 检查 localStorage 是否可用（兼容 Node.js 测试环境）
-     * @returns {boolean}
-     */
-    _isStorageAvailable() {
-        try {
-            return typeof localStorage !== 'undefined' && localStorage !== null;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
      * 从本地存储加载语言设置
      */
     loadFromStorage() {
-        if (!this._isStorageAvailable()) return;
-        try {
-            const stored = localStorage.getItem('workflow_language');
-            if (stored && LOCALES[stored]) {
-                this.language = stored;
-            }
-        } catch (e) {
-            Logger.warn('Failed to load language from storage:', e);
+        const stored = Storage.get('workflow_language');
+        if (stored && LOCALES[stored]) {
+            this.language = stored;
         }
     }
 
@@ -160,12 +144,7 @@ export class I18nManager {
      * 保存语言设置到本地存储
      */
     saveToStorage() {
-        if (!this._isStorageAvailable()) return;
-        try {
-            localStorage.setItem('workflow_language', this.language);
-        } catch (e) {
-            Logger.warn('Failed to save language to storage:', e);
-        }
+        Storage.set('workflow_language', this.language);
     }
 
     /**
@@ -208,7 +187,7 @@ export class I18nManager {
      * @returns {string} 语言显示名称
      */
     getLanguageName(language = this.language) {
-        const lang = SUPPORTED_LANGUAGES.find(l => l.code === language);
+        const lang = SUPPORTED_LANGUAGES.find((l) => l.code === language);
         return lang ? lang.name : language;
     }
 

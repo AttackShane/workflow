@@ -1,44 +1,53 @@
-// @ts-nocheck
 /**
  * 工作流容器渲染模块
  * 负责容器节点（loop、batch）的子节点管理、自动布局和大小调整
  */
-import { StringUtils } from '../utils/helpers.js';
 
 /**
  * 容器渲染相关的 mixin 方法
  * @param {object} node - WorkflowNode 实例
  */
-export function mixinContainerRender(node) {
-    if (!node._elMap) {
-        node._elMap = new Map();
-    }
-
+export class WorkflowContainerRender {
     /**
-     * 容器布局常量
+     * @param {import("./editor-node.js").WorkflowNode} node - WorkflowNode 实例
      */
-    node.CONTAINER_HEADER_H = 36;
-    node.CONTAINER_DESC_H = 20;
-    node.CONTAINER_BORDER = 1;
-    node.CONNECTION_POINT_EXT = 6;
+    constructor(node) {
+        this.node = node;
+        const n = /** @type {*} */ (node);
+        if (!n._elMap) {
+            n._elMap = new Map();
+        }
+        if (!n.CONTAINER_HEADER_H) {
+            n.CONTAINER_HEADER_H = 36;
+        }
+        if (!n.CONTAINER_DESC_H) {
+            n.CONTAINER_DESC_H = 20;
+        }
+        if (!n.CONTAINER_BORDER) {
+            n.CONTAINER_BORDER = 1;
+        }
+        if (!n.CONNECTION_POINT_EXT) {
+            n.CONNECTION_POINT_EXT = 6;
+        }
+    }
 
     /**
      * 渲染容器节点的子节点
      * @param {string} containerId - 容器节点ID
      */
-    node.renderContainerChildren = function(containerId) {
-        const containerEl = this._elMap.get(containerId);
+    renderContainerChildren(containerId) {
+        const containerEl = /** @type {*} */ (this.node)._elMap.get(containerId);
         if (!containerEl) return;
         const containerBody = containerEl.querySelector('.container-body');
         if (!containerBody) return;
 
-        const containerNode = this.core.nodes.find(n => n.id === containerId);
+        const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
         if (!containerNode) return;
 
-        const children = this.core.getChildNodes(containerId);
-        
-        containerBody.querySelectorAll('.canvas-node').forEach(el => el.remove());
-        
+        const children = this.node.core.getChildNodes(containerId);
+
+        containerBody.querySelectorAll('.canvas-node').forEach((el) => el.remove());
+
         let placeholder = containerBody.querySelector('.container-placeholder');
         if (children.length === 0) {
             if (!placeholder) {
@@ -49,31 +58,31 @@ export function mixinContainerRender(node) {
             }
         } else {
             if (placeholder) placeholder.remove();
-            children.forEach(child => {
-                const childEl = this.createElement(child);
+            children.forEach((child) => {
+                const childEl = this.node.render.createElement(child);
                 containerBody.appendChild(childEl);
             });
         }
-        
+
         this.updateContainerSize(containerId);
-    };
+    }
 
     /**
      * 根据子节点自动调整容器大小
      * @param {string} containerId - 容器节点ID
      */
-    node.updateContainerSize = function(containerId) {
-        const containerNode = this.core.nodes.find(n => n.id === containerId);
+    updateContainerSize(containerId) {
+        const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
         if (!containerNode) return;
-        const containerEl = this._elMap.get(containerId);
+        const containerEl = /** @type {*} */ (this.node)._elMap.get(containerId);
         if (!containerEl) return;
-        const info = this.core.nodeTypeInfo[containerNode.type] || {};
+        const info = this.node.core.nodeTypeInfo[containerNode.type] || {};
         const minW = info.containerMinWidth || 300;
         const minH = info.containerMinHeight || 200;
 
-        const HEADER_H = this.CONTAINER_HEADER_H;
-        const DESC_H = this.CONTAINER_DESC_H;
-        const BORDER = this.CONTAINER_BORDER;
+        const HEADER_H = /** @type {*} */ (this.node).CONTAINER_HEADER_H;
+        const DESC_H = /** @type {*} */ (this.node).CONTAINER_DESC_H;
+        const BORDER = /** @type {*} */ (this.node).CONTAINER_BORDER;
         const PADDING = 20;
 
         const children = containerEl.querySelectorAll('.container-body .canvas-node');
@@ -81,10 +90,12 @@ export function mixinContainerRender(node) {
 
         const allTransitionEls = [containerEl];
         if (bodyEl) allTransitionEls.push(bodyEl);
-        children.forEach(child => allTransitionEls.push(child));
-        allTransitionEls.forEach(el => { el.style.transition = 'none'; });
+        children.forEach((child) => allTransitionEls.push(child));
+        allTransitionEls.forEach((el) => {
+            el.style.transition = 'none';
+        });
         containerEl.offsetHeight;
-        
+
         if (children.length === 0) {
             const bodyW = minW - 2 * BORDER;
             const bodyH = minH - HEADER_H - DESC_H - 2 * BORDER;
@@ -97,15 +108,19 @@ export function mixinContainerRender(node) {
             containerNode.width = minW;
             containerNode.height = minH;
             containerEl.offsetHeight;
-            allTransitionEls.forEach(el => { el.style.transition = ''; });
+            allTransitionEls.forEach((el) => {
+                el.style.transition = '';
+            });
             return;
         }
 
         const childData = [];
-        let minX = Infinity, minY = Infinity;
-        let maxRight = -Infinity, maxBottom = -Infinity;
+        let minX = Infinity,
+            minY = Infinity;
+        let maxRight = -Infinity,
+            maxBottom = -Infinity;
 
-        children.forEach(child => {
+        children.forEach((child) => {
             const left = parseFloat(child.dataset.x) || 0;
             const top = parseFloat(child.dataset.y) || 0;
             const childW = child.offsetWidth;
@@ -120,7 +135,7 @@ export function mixinContainerRender(node) {
         const alignX = minX - PADDING;
         const alignY = minY - PADDING;
         if (!containerNode._skipLayout && (alignX !== 0 || alignY !== 0)) {
-            childData.forEach(cd => {
+            childData.forEach((cd) => {
                 cd.left -= alignX;
                 cd.top -= alignY;
             });
@@ -128,9 +143,11 @@ export function mixinContainerRender(node) {
             containerNode.y += alignY;
         }
 
-        let newMinX = Infinity, newMinY = Infinity;
-        let newMaxRight = -Infinity, newMaxBottom = -Infinity;
-        childData.forEach(cd => {
+        let newMinX = Infinity,
+            newMinY = Infinity;
+        let newMaxRight = -Infinity,
+            newMaxBottom = -Infinity;
+        childData.forEach((cd) => {
             newMinX = Math.min(newMinX, cd.left);
             newMinY = Math.min(newMinY, cd.top);
             newMaxRight = Math.max(newMaxRight, cd.left + cd.w);
@@ -148,9 +165,10 @@ export function mixinContainerRender(node) {
         let bodyW = Math.max(minW - 2 * BORDER, neededBodyW);
         let bodyH = Math.max(minH - HEADER_H - DESC_H - 2 * BORDER, neededBodyH);
 
-        let extraW = bodyW - neededBodyW;
-        let extraH = bodyH - neededBodyH;
-        let offsetX = 0, offsetY = 0;
+        const extraW = bodyW - neededBodyW;
+        const extraH = bodyH - neededBodyH;
+        let offsetX = 0,
+            offsetY = 0;
         if (!containerNode._skipLayout) {
             if (extraW > 0) {
                 offsetX = extraW / 2;
@@ -160,7 +178,7 @@ export function mixinContainerRender(node) {
             }
         }
         if (offsetX !== 0 || offsetY !== 0) {
-            childData.forEach(cd => {
+            childData.forEach((cd) => {
                 cd.left += offsetX;
                 cd.top += offsetY;
             });
@@ -169,20 +187,20 @@ export function mixinContainerRender(node) {
         }
 
         if (!containerNode._skipLayout) {
-            childData.forEach(cd => {
+            childData.forEach((cd) => {
                 const newLeft = Math.round(cd.left);
                 const newTop = Math.round(cd.top);
                 cd.el.dataset.x = newLeft;
                 cd.el.dataset.y = newTop;
                 cd.el.style.transform = `translate(${newLeft}px, ${newTop}px)`;
-                const nodeData = this.core.nodes.find(n => n.id === cd.el.dataset.nodeId);
+                const nodeData = this.node.core.nodes.find((n) => n.id === cd.el.dataset.nodeId);
                 if (nodeData) {
                     nodeData.x = newLeft;
                     nodeData.y = newTop;
                 }
             });
         } else {
-            childData.forEach(cd => {
+            childData.forEach((cd) => {
                 cd.el.dataset.x = cd.left;
                 cd.el.dataset.y = cd.top;
                 cd.el.style.transform = `translate(${cd.left}px, ${cd.top}px)`;
@@ -210,11 +228,13 @@ export function mixinContainerRender(node) {
         containerNode.height = h;
         delete containerNode._skipLayout;
 
-        if (this.ui && this.ui.edge) {
-            this.ui.edge.updateAffectedEdges([containerId]);
+        if (this.node.ui && this.node.ui.edge) {
+            this.node.ui.edge.updateAffectedEdges([containerId]);
         }
 
         containerEl.offsetHeight;
-        allTransitionEls.forEach(el => { el.style.transition = ''; });
-    };
+        allTransitionEls.forEach((el) => {
+            el.style.transition = '';
+        });
+    }
 }

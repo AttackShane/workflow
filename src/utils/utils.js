@@ -16,7 +16,7 @@ export const ERROR_CODES = {
     YAML_PARSE_ERROR: 'YAML_PARSE_ERROR',
     JSON_PARSE_ERROR: 'JSON_PARSE_ERROR',
     INVALID_PARAMETER: 'INVALID_PARAMETER',
-    MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD'
+    MISSING_REQUIRED_FIELD: 'MISSING_REQUIRED_FIELD',
 };
 
 /**
@@ -35,7 +35,7 @@ export const ERROR_MESSAGES = {
     [ERROR_CODES.YAML_PARSE_ERROR]: 'YAML解析错误：{message}（行{line}，列{column}）',
     [ERROR_CODES.JSON_PARSE_ERROR]: 'JSON解析错误：{message}',
     [ERROR_CODES.INVALID_PARAMETER]: '参数"{param}"的值无效：{value}',
-    [ERROR_CODES.MISSING_REQUIRED_FIELD]: '缺少必填字段：{field}'
+    [ERROR_CODES.MISSING_REQUIRED_FIELD]: '缺少必填字段：{field}',
 };
 
 /**
@@ -106,7 +106,7 @@ export class ConversionError extends Error {
             column: this.column,
             nodeId: this.nodeId,
             details: this.details,
-            timestamp: this.timestamp
+            timestamp: this.timestamp,
         };
     }
 
@@ -118,17 +118,17 @@ export class ConversionError extends Error {
     static fromYamlError(error) {
         let line = null;
         let column = null;
-        let message = error.message;
+        const message = error.message;
 
         const lineMatch = error.message.match(/at line (\d+)/);
         const columnMatch = error.message.match(/column (\d+)/);
-        
+
         if (lineMatch) line = parseInt(lineMatch[1], 10);
         if (columnMatch) column = parseInt(columnMatch[1], 10);
 
-        if (/** @type {*} */(error).mark) {
-            line = /** @type {*} */(error).mark.line + 1;
-            column = /** @type {*} */(error).mark.column + 1;
+        if (/** @type {*} */ (error).mark) {
+            line = /** @type {*} */ (error).mark.line + 1;
+            column = /** @type {*} */ (error).mark.column + 1;
         }
 
         return new ConversionError(
@@ -146,11 +146,7 @@ export class ConversionError extends Error {
      * @returns {ConversionError} 转换错误实例
      */
     static fromJsonError(error) {
-        return new ConversionError(
-            error.message,
-            ERROR_CODES.JSON_PARSE_ERROR,
-            { originalError: error.message }
-        );
+        return new ConversionError(error.message, ERROR_CODES.JSON_PARSE_ERROR, { originalError: error.message });
     }
 }
 
@@ -161,11 +157,11 @@ export class ConversionError extends Error {
  */
 export function convertEdges(edges) {
     if (!edges?.length) return [];
-    return edges.map(e => ({
+    return edges.map((e) => ({
         sourceNodeID: String(e.source_node || e.sourceNodeID),
         targetNodeID: String(e.target_node || e.targetNodeID),
         ...(e.source_port !== undefined && { sourcePortID: String(e.source_port) }),
-        ...(e.target_port !== undefined && { targetPortID: String(e.target_port) })
+        ...(e.target_port !== undefined && { targetPortID: String(e.target_port) }),
     }));
 }
 
@@ -176,11 +172,11 @@ export function convertEdges(edges) {
  */
 export function convertEdgesReverse(edges) {
     if (!edges?.length) return [];
-    return edges.map(e => ({
+    return edges.map((e) => ({
         source_node: e.sourceNodeID,
         target_node: e.targetNodeID,
         ...(e.sourcePortID && { source_port: e.sourcePortID }),
-        ...(e.targetPortID && { target_port: e.targetPortID })
+        ...(e.targetPortID && { target_port: e.targetPortID }),
     }));
 }
 
@@ -190,8 +186,10 @@ export function convertEdgesReverse(edges) {
  * @returns {string} 清理后的字符串
  */
 export function cleanIcon(icon) {
-    if (!icon) return "";
-    return String(icon).replace(/[`'"\\]/g, '').trim();
+    if (!icon) return '';
+    return String(icon)
+        .replace(/[`'"\\]/g, '')
+        .trim();
 }
 
 /**
@@ -201,7 +199,7 @@ export function cleanIcon(icon) {
  */
 export function convertLargeNumbersToStrings(input) {
     const idPattern = /(\b(id|ref_node|source_node|target_node)\s*:\s*)(\d{16,})/g;
-    
+
     return input.replace(idPattern, (match, prefix, key, numStr) => {
         return `${prefix}"${numStr}"`;
     });
@@ -218,19 +216,17 @@ export function validateYamlInput(yaml) {
     }
 
     if (typeof yaml !== 'object') {
-        throw new ConversionError(
-            '无效的数据格式，期望对象类型',
-            ERROR_CODES.INVALID_STRUCTURE,
-            { expectedType: 'object', actualType: typeof yaml }
-        );
+        throw new ConversionError('无效的数据格式，期望对象类型', ERROR_CODES.INVALID_STRUCTURE, {
+            expectedType: 'object',
+            actualType: typeof yaml,
+        });
     }
 
     if (!yaml.nodes || !Array.isArray(yaml.nodes)) {
-        throw new ConversionError(
-            '无效YAML:缺少nodes数组',
-            ERROR_CODES.INVALID_STRUCTURE,
-            { missingField: 'nodes', expectedType: 'array' }
-        );
+        throw new ConversionError('无效YAML:缺少nodes数组', ERROR_CODES.INVALID_STRUCTURE, {
+            missingField: 'nodes',
+            expectedType: 'array',
+        });
     }
 
     const nodeIds = new Set();
@@ -255,7 +251,7 @@ export function validateYamlInput(yaml) {
             throw new ConversionError(
                 `发现重复的节点ID："${nodeId}"`,
                 ERROR_CODES.DUPLICATE_NODE_ID,
-                { duplicateId: nodeId, occurrences: Array.from(nodeIds).filter(id => id === nodeId).length + 1 },
+                { duplicateId: nodeId, occurrences: Array.from(nodeIds).filter((id) => id === nodeId).length + 1 },
                 null,
                 null,
                 nodeId
@@ -292,19 +288,14 @@ export function validateEdges(edges, nodeIds) {
         const targetNode = String(edge.target_node || edge.targetNodeID);
 
         if (!sourceNode) {
-            throw new ConversionError(
-                `边缺少源节点`,
-                ERROR_CODES.INVALID_EDGE,
-                { edge, missingField: 'source_node' }
-            );
+            throw new ConversionError(`边缺少源节点`, ERROR_CODES.INVALID_EDGE, { edge, missingField: 'source_node' });
         }
 
         if (!targetNode) {
-            throw new ConversionError(
-                `边缺少目标节点`,
-                ERROR_CODES.INVALID_EDGE,
-                { edge, missingField: 'target_node' }
-            );
+            throw new ConversionError(`边缺少目标节点`, ERROR_CODES.INVALID_EDGE, {
+                edge,
+                missingField: 'target_node',
+            });
         }
 
         if (!nodeIds.has(sourceNode)) {
@@ -342,27 +333,23 @@ export function validateClipboardInput(clip) {
     }
 
     if (clip.type !== 'coze-workflow-clipboard-data') {
-        throw new ConversionError(
-            '无效剪贴板数据',
-            ERROR_CODES.INVALID_TYPE,
-            { expected: 'coze-workflow-clipboard-data', actual: clip.type }
-        );
+        throw new ConversionError('无效剪贴板数据', ERROR_CODES.INVALID_TYPE, {
+            expected: 'coze-workflow-clipboard-data',
+            actual: clip.type,
+        });
     }
 
     if (!clip.json) {
-        throw new ConversionError(
-            'JSON结构错误：缺少json字段',
-            ERROR_CODES.INVALID_STRUCTURE,
-            { missingField: 'json' }
-        );
+        throw new ConversionError('JSON结构错误：缺少json字段', ERROR_CODES.INVALID_STRUCTURE, {
+            missingField: 'json',
+        });
     }
 
     if (!clip.json.nodes || !Array.isArray(clip.json.nodes)) {
-        throw new ConversionError(
-            'JSON结构错误：缺少nodes数组',
-            ERROR_CODES.INVALID_STRUCTURE,
-            { missingField: 'json.nodes', expectedType: 'array' }
-        );
+        throw new ConversionError('JSON结构错误：缺少nodes数组', ERROR_CODES.INVALID_STRUCTURE, {
+            missingField: 'json.nodes',
+            expectedType: 'array',
+        });
     }
 }
 
@@ -373,7 +360,9 @@ export function validateClipboardInput(clip) {
  */
 export function getNodeTypeName(type) {
     const typeName = REV_TYPE_MAP[String(type)];
-    return typeName ? NODE_DISPLAY_NAMES[/** @type {keyof typeof NODE_DISPLAY_NAMES} */ (typeName)] : String(type || 'Unknown');
+    return typeName
+        ? NODE_DISPLAY_NAMES[/** @type {keyof typeof NODE_DISPLAY_NAMES} */ (typeName)]
+        : String(type || 'Unknown');
 }
 
 /**

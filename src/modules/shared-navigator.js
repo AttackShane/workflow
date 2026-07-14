@@ -3,17 +3,21 @@
  */
 
 import { Logger } from '../utils/logger.js';
+import { Storage } from '../utils/helpers.js';
 
 const PAGES = {
     MANAGER: '/',
     CONVERTER: '/converter',
-    EDITOR: '/editor'
+    EDITOR: '/editor',
 };
 
 class Navigator {
     constructor() {
         this._isNavigating = false;
         this._tFn = null;
+        if (typeof window !== 'undefined') {
+            window.addEventListener('pageshow', () => this._restoreOpacity());
+        }
     }
 
     _navT(key, fallback) {
@@ -59,13 +63,18 @@ class Navigator {
         }
 
         if (animate) {
+            const theme = document.documentElement.getAttribute('data-theme');
+            document.documentElement.style.backgroundColor = theme === 'dark' ? '#0a0e17' : '#f1f5f9';
+            document.body.style.transition = 'opacity 0.2s ease-out';
             document.body.style.opacity = '0';
-            document.body.style.transition = 'opacity 0.3s ease-out';
         }
 
-        setTimeout(() => {
-            window.location.href = url;
-        }, animate ? 300 : 0);
+        setTimeout(
+            () => {
+                window.location.href = url;
+            },
+            animate ? 200 : 0
+        );
     };
 
     /**
@@ -101,19 +110,19 @@ class Navigator {
     goToEditor = (options = {}) => {
         const { newWorkflow = false } = options;
         if (newWorkflow) {
-            sessionStorage.removeItem('editingWorkflowId');
-            sessionStorage.removeItem('editingWorkflow');
-            localStorage.removeItem('workflow_current');
+            Storage.session.remove('editingWorkflowId');
+            Storage.session.remove('editingWorkflow');
+            Storage.remove('workflow_current');
         }
         this.navigateTo(PAGES.EDITOR, { message: this._navT('navigator.goingEditor', '正在打开编辑器...') });
     };
 
     /**
-     * 恢复页面透明度
+     * 恢复页面状态（仅用于 bfcache 恢复）
      */
     _restoreOpacity = () => {
-        document.body.style.opacity = '1';
-        document.body.style.transition = 'opacity 0.3s ease-in';
+        document.body.style.opacity = '';
+        document.body.style.transition = '';
         this._isNavigating = false;
     };
 
@@ -121,20 +130,18 @@ class Navigator {
      * 初始化导航模块（只调用一次）
      */
     initNavigator = () => {
-        document.addEventListener('DOMContentLoaded', this._restoreOpacity);
-
         window.addEventListener('pageshow', (event) => {
-            if (event.persisted || this._isNavigating) {
+            if (event.persisted) {
                 this._restoreOpacity();
             }
         });
-
-        window.addEventListener('popstate', this._restoreOpacity);
     };
 }
 
 const _instance = new Navigator();
-_instance._loadI18n();
+if (typeof window !== 'undefined') {
+    _instance._loadI18n();
+}
 
 // @ts-ignore
 export const navigateTo = (...args) => _instance.navigateTo(...args);

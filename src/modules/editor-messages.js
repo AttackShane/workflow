@@ -1,20 +1,23 @@
-// @ts-nocheck
 /**
  * 工作流消息模块
  * 负责 Toast 消息提示的创建和显示
  */
 import { DOM } from '../utils/helpers.js';
 
-/**
- * 消息相关的 mixin 方法
- * @param {import('./editor-ui.js').WorkflowUI} ui - WorkflowUI 实例
- */
-export function mixinMessages(ui) {
+export class WorkflowMessages {
+    /**
+     * @param {import('./editor-ui.js').WorkflowUI} ui - 主 UI 实例
+     */
+    constructor(ui) {
+        this.ui = ui;
+        this.container = null;
+    }
+
     /**
      * 创建消息容器
      */
-    ui.createMessageContainer = function() {
-        this.messageContainer = DOM.create('div', {
+    createContainer() {
+        this.container = DOM.create('div', {
             className: 'workflow-message-container',
             style: {
                 position: 'fixed',
@@ -23,30 +26,34 @@ export function mixinMessages(ui) {
                 zIndex: '10000',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '10px'
-            }
+                gap: '10px',
+            },
         });
-        document.body.appendChild(this.messageContainer);
-    };
+        document.body.appendChild(this.container);
+    }
 
     /**
      * 显示消息提示
      * @param {string} text - 消息文本
      * @param {string} type - 消息类型 ('success', 'error', 'info', 'warning')
      */
-    ui.showMessage = function(text, type = 'info') {
+    show(text, type = 'info') {
+        if (!this.container) {
+            this.createContainer();
+        }
+
         const icons = {
             success: '✅',
             error: '❌',
             info: 'ℹ️',
-            warning: '⚠️'
+            warning: '⚠️',
         };
 
         const colors = {
             success: '#10b981',
             error: '#ef4444',
             info: '#3b82f6',
-            warning: '#f59e0b'
+            warning: '#f59e0b',
         };
 
         const messageEl = DOM.create('div', {
@@ -64,8 +71,8 @@ export function mixinMessages(ui) {
                 alignItems: 'center',
                 gap: '8px',
                 maxWidth: '320px',
-                backgroundColor: colors[type] || colors.info
-            }
+                backgroundColor: colors[type] || colors.info,
+            },
         });
 
         const iconSpan = DOM.create('span', { text: icons[type] || icons.info });
@@ -73,7 +80,7 @@ export function mixinMessages(ui) {
         messageEl.appendChild(iconSpan);
         messageEl.appendChild(textSpan);
 
-        this.messageContainer.appendChild(messageEl);
+        this.container.appendChild(messageEl);
 
         setTimeout(() => {
             DOM.setStyle(messageEl, 'animation', 'slideOut 0.3s ease-out forwards');
@@ -81,5 +88,5 @@ export function mixinMessages(ui) {
                 messageEl.remove();
             }, 300);
         }, 3000);
-    };
+    }
 }

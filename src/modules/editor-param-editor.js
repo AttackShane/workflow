@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * 工作流参数编辑器模块
  * 负责输入输出参数、合并组变量的编辑、保存逻辑
@@ -10,30 +9,40 @@ import { t } from '../i18n/i18n.js';
  * 参数编辑相关的 mixin 方法
  * @param {object} node - WorkflowNode 实例
  */
-export function mixinParamEditor(node) {
-    node.renderInputOutputParams = function(paramsList, prefix, nodeId) {
+export class WorkflowParamEditor {
+    constructor(node) {
+        this.node = node;
+    }
+    renderInputOutputParams(paramsList, prefix, nodeId) {
         if (!paramsList || paramsList.length === 0) {
             return `<p style="color: var(--text-secondary); font-size: 0.8rem; padding: 0.5rem 0;">${t('properties.noParams')}</p>`;
         }
         const isInput = prefix === 'input';
-        return paramsList.map((p, i) => {
-            const types = ['string', 'number', 'boolean', 'object', 'array'];
-            const typeOpts = types.map(t => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`).join('');
-            const requiredCheck = isInput ? `
+        return paramsList
+            .map((p, i) => {
+                const types = ['string', 'number', 'boolean', 'object', 'array'];
+                const typeOpts = types
+                    .map((t) => `<option value="${t}" ${p.type === t ? 'selected' : ''}>${t}</option>`)
+                    .join('');
+                const requiredCheck = isInput
+                    ? `
                 <div class="param-field">
                     <label class="param-label">${t('properties.required')}</label>
                     <input type="checkbox" id="${prefix}Required_${i}" ${p.required ? 'checked' : ''}>
                 </div>
-            ` : '';
+            `
+                    : '';
 
-            const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
-            const refJson = isRef ? encodeURIComponent(JSON.stringify(p.value)) : '';
-            const refBlockId = isRef ? (p.value.content?.blockID || '') : '';
-            const refName = isRef ? (p.value.content?.name || '') : '';
-            const refDisplay = isRef ? this._getRefDisplayText(refBlockId, refName) : '';
-            const literalValue = isRef ? '' : StringUtils.escapeHtml(String(p.value ?? ''));
+                const isRef =
+                    p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+                const refJson = isRef ? encodeURIComponent(JSON.stringify(p.value)) : '';
+                const refBlockId = isRef ? p.value.content?.blockID || '' : '';
+                const refName = isRef ? p.value.content?.name || '' : '';
+                const refDisplay = isRef ? this._getRefDisplayText(refBlockId, refName) : '';
+                const literalValue = isRef ? '' : StringUtils.escapeHtml(String(p.value ?? ''));
 
-            const valueFieldHtml = isInput ? `
+                const valueFieldHtml = isInput
+                    ? `
                 <div class="param-field" style="flex: 1;">
                     <label class="param-label">${t('nodes.defaultValue')}</label>
                     <div style="display: flex; align-items: center; gap: 0.25rem;">
@@ -44,18 +53,23 @@ export function mixinParamEditor(node) {
                                ${isRef ? 'disabled' : ''}>
                         <span id="${prefix}RefDisplay_${i}" 
                               style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                              onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})"
+                              onclick="workflowUI.openInputParamRefSelector('${prefix}', ${i})"
                               title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
                         <input type="hidden" id="${prefix}Ref_${i}" value="${refJson}">
                         <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})" 
+                                onclick="workflowUI.openInputParamRefSelector('${prefix}', ${i})" 
                                 title="选择引用">🔗</button>
-                        ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                onclick="workflowUI.node.clearInputParamRef('${prefix}', ${i})" 
-                                title="清除引用">×</button>` : ''}
+                        ${
+                            isRef
+                                ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                onclick="workflowUI.clearInputParamRef('${prefix}', ${i})" 
+                                title="清除引用">×</button>`
+                                : ''
+                        }
                     </div>
                 </div>
-            ` : `
+            `
+                    : `
                 <div class="param-field" style="flex: 1;">
                     <label class="param-label">${t('nodes.defaultValue')}</label>
                     <div style="display: flex; align-items: center; gap: 0.25rem;">
@@ -66,22 +80,26 @@ export function mixinParamEditor(node) {
                                ${isRef ? 'disabled' : ''}>
                         <span id="${prefix}RefDisplay_${i}" 
                               style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                              onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})"
+                              onclick="workflowUI.openInputParamRefSelector('${prefix}', ${i})"
                               title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
                         <input type="hidden" id="${prefix}Ref_${i}" value="${refJson}">
                         <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                onclick="workflowUI.node.openInputParamRefSelector('${prefix}', ${i})" 
+                                onclick="workflowUI.openInputParamRefSelector('${prefix}', ${i})" 
                                 title="选择引用">🔗</button>
-                        ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                onclick="workflowUI.node.clearInputParamRef('${prefix}', ${i})" 
-                                title="清除引用">×</button>` : ''}
+                        ${
+                            isRef
+                                ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                onclick="workflowUI.clearInputParamRef('${prefix}', ${i})" 
+                                title="清除引用">×</button>`
+                                : ''
+                        }
                     </div>
                 </div>`;
 
-            return `<div class="param-card" id="${prefix}Card_${i}">
+                return `<div class="param-card" id="${prefix}Card_${i}">
                 <div class="param-card-header">
                     <span class="param-card-title">${t('nodes.parameter', { index: i + 1 })}</span>
-                    <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeParam('${StringUtils.escapeHtml(nodeId)}', '${prefix}', ${i})">${t('nodes.remove')}</button>
+                    <button class="btn btn-danger btn-sm" onclick="workflowUI.removeParam('${StringUtils.escapeHtml(nodeId)}', '${prefix}', ${i})">${t('nodes.remove')}</button>
                 </div>
                 <div class="param-card-row">
                     <div class="param-field">
@@ -102,24 +120,25 @@ export function mixinParamEditor(node) {
                     <textarea class="param-textarea" id="${prefix}Desc_${i}" placeholder="${t('nodes.paramDescription')}" title="${StringUtils.escapeHtml(p.description || '')}">${StringUtils.escapeHtml(p.description || '')}</textarea>
                 </div>
             </div>`;
-        }).join('');
-    };
+            })
+            .join('');
+    }
 
-    node._getRefDisplayText = function(blockId, name) {
+    _getRefDisplayText(blockId, name) {
         if (!blockId) return name || 'output';
         const resolveNode = (id) => {
-            let target = this.core.nodes.find(n => n.id === id);
+            let target = this.node.core.nodes.find((n) => n.id === id);
             if (target) return target;
             const shortId = id.replace('node_', '');
-            target = this.core.nodes.find(n => n.id === shortId || n.id.replace('node_', '') === shortId);
+            target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
             return target;
         };
         const srcNode = resolveNode(blockId);
         if (!srcNode) return `${blockId} → ${name || 'output'}`;
         return `${srcNode.title || srcNode.id} → ${name || 'output'}`;
-    };
+    }
 
-    node._paramsFromNodeOutputs = function(outputsMap) {
+    _paramsFromNodeOutputs(outputsMap) {
         return Object.entries(outputsMap).map(([name, def]) => ({
             name,
             type: def.type || 'string',
@@ -127,24 +146,24 @@ export function mixinParamEditor(node) {
             required: def.required || false,
             value: def.value || '',
             valueType: def.valueType || '',
-            rawMeta: def.rawMeta || undefined
+            rawMeta: def.rawMeta || undefined,
         }));
-    };
+    }
 
-    node._paramsToNodeOutputs = function(paramsArr) {
+    _paramsToNodeOutputs(paramsArr) {
         const result = {};
-        paramsArr.forEach(p => {
+        paramsArr.forEach((p) => {
             if (p.name) {
                 const entry = {
                     type: p.type || 'string',
                     description: p.description || '',
-                    required: p.required || false
+                    required: p.required || false,
                 };
                 if (p.value && typeof p.value === 'object' && p.value.type === 'ref') {
                     entry.value = p.value;
                     entry.input = {
                         type: p.type || 'string',
-                        value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
+                        value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) },
                     };
                 }
                 if (p.valueType) {
@@ -157,19 +176,24 @@ export function mixinParamEditor(node) {
             }
         });
         return result;
-    };
+    }
 
-    node.renderMergeGroups = function(targetNode) {
+    renderMergeGroups(targetNode) {
         const mergeGroups = targetNode.parameters?.mergeGroups;
-        if (targetNode.type !== 'variable_merge' || !mergeGroups || !Array.isArray(mergeGroups) || mergeGroups.length === 0) {
+        if (
+            targetNode.type !== 'variable_merge' ||
+            !mergeGroups ||
+            !Array.isArray(mergeGroups) ||
+            mergeGroups.length === 0
+        ) {
             return '';
         }
 
         const resolveNode = (blockId) => {
-            let target = this.core.nodes.find(n => n.id === blockId);
+            let target = this.node.core.nodes.find((n) => n.id === blockId);
             if (target) return target;
             const shortId = blockId.replace('node_', '');
-            target = this.core.nodes.find(n => n.id === shortId || n.id.replace('node_', '') === shortId);
+            target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
             return target;
         };
 
@@ -192,7 +216,7 @@ export function mixinParamEditor(node) {
             html += `<div class="property-group" style="margin-bottom: 0.75rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                     <span style="font-weight: 600; color: var(--text-primary);">${StringUtils.escapeHtml(groupName)}</span>
-                    <button class="btn btn-sm" onclick="workflowUI.node.addMergeVariable('${targetNode.id}', ${gi})">+ ${t('nodes.add')}</button>
+                    <button class="btn btn-sm" onclick="workflowUI.addMergeVariable('${targetNode.id}', ${gi})">+ ${t('nodes.add')}</button>
                 </div>`;
 
             if (group.variables && Array.isArray(group.variables)) {
@@ -204,11 +228,11 @@ export function mixinParamEditor(node) {
                         html += `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.25rem 0; font-size: 0.85rem;">
                             <span style="color: var(--text-secondary); min-width: 1.5rem;">${vi + 1}.</span>
                             <button class="btn" style="flex: 1; text-align: left; padding: 0.3rem 0.5rem; min-height: 28px;" 
-                                    onclick="workflowUI.node.openVariableSelector('${targetNode.id}', ${gi}, ${vi})">
+                                    onclick="workflowUI.openVariableSelector('${targetNode.id}', ${gi}, ${vi})">
                                 ${StringUtils.escapeHtml(display)}
                             </button>
                             <button class="btn btn-danger btn-sm" style="padding: 0.2rem 0.5rem;" 
-                                    onclick="workflowUI.node.removeMergeVariable('${targetNode.id}', ${gi}, ${vi})">×</button>
+                                    onclick="workflowUI.removeMergeVariable('${targetNode.id}', ${gi}, ${vi})">×</button>
                             <span style="color: var(--text-secondary); font-size: 0.75rem; background: var(--bg-secondary); padding: 0.1rem 0.4rem; border-radius: 3px;">${StringUtils.escapeHtml(v.type || 'string')}</span>
                         </div>`;
                     });
@@ -218,83 +242,85 @@ export function mixinParamEditor(node) {
         });
 
         return html;
-    };
+    }
 
-    node.addInputParam = function(nodeId) {
+    addInputParam(nodeId) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode) return;
             if (!targetNode.inputParams) targetNode.inputParams = [];
             targetNode.inputParams.push({ name: '', type: 'string', value: '', required: false, description: '' });
-            this.renderPropertyPanel(targetNode);
+            this.node.render.renderPropertyPanel(targetNode);
         } catch (e) {}
-    };
+    }
 
-    node.addOutputParam = function(nodeId) {
+    addOutputParam(nodeId) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode) return;
             if (!targetNode.outputParams) targetNode.outputParams = [];
             targetNode.outputParams.push({ name: '', type: 'string', value: '', description: '' });
-            this.renderPropertyPanel(targetNode);
+            this.node.render.renderPropertyPanel(targetNode);
         } catch (e) {}
-    };
+    }
 
-    node.removeParam = function(nodeId, prefix, index) {
+    removeParam(nodeId, prefix, index) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode) return;
             if (prefix === 'input' && targetNode.inputParams) {
                 targetNode.inputParams.splice(index, 1);
             } else if (prefix === 'output' && targetNode.outputParams) {
                 targetNode.outputParams.splice(index, 1);
             }
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node.saveDynamicParams = function(targetNode, prefix) {
+    saveDynamicParams(targetNode, prefix) {
         const key = prefix === 'input' ? 'inputParams' : 'outputParams';
-        const params = (targetNode[key] || []).map((p, i) => {
-            const nameEl = document.getElementById(`${prefix}Name_${i}`);
-            const typeEl = document.getElementById(`${prefix}Type_${i}`);
-            const valueEl = document.getElementById(`${prefix}Value_${i}`);
-            const descEl = document.getElementById(`${prefix}Desc_${i}`);
-            const reqEl = document.getElementById(`${prefix}Required_${i}`);
-            const refEl = document.getElementById(`${prefix}Ref_${i}`);
+        const params = (targetNode[key] || [])
+            .map((p, i) => {
+                const nameEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Name_${i}`));
+                const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById(`${prefix}Type_${i}`));
+                const valueEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Value_${i}`));
+                const descEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Desc_${i}`));
+                const reqEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Required_${i}`));
+                const refEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Ref_${i}`));
 
-            let value;
-            if (refEl && refEl.value) {
-                try {
-                    value = JSON.parse(decodeURIComponent(refEl.value));
-                } catch (e) {
+                let value;
+                if (refEl && refEl.value) {
                     try {
-                        value = JSON.parse(refEl.value);
-                    } catch (e2) {
-                        value = valueEl ? valueEl.value : (p.value || '');
+                        value = JSON.parse(decodeURIComponent(refEl.value));
+                    } catch (e) {
+                        try {
+                            value = JSON.parse(refEl.value);
+                        } catch (e2) {
+                            value = valueEl ? valueEl.value : p.value || '';
+                        }
                     }
+                } else {
+                    value = valueEl ? valueEl.value : p.value || '';
                 }
-            } else {
-                value = valueEl ? valueEl.value : (p.value || '');
-            }
 
-            const valueIsRef = value && typeof value === 'object' && value.type === 'ref';
-            const result = {
-                name: nameEl ? nameEl.value.trim() : p.name,
-                type: typeEl ? typeEl.value : p.type,
-                value,
-                description: descEl ? descEl.value : (p.description || ''),
-                valueType: valueIsRef ? 'ref' : '',
-                rawMeta: valueIsRef ? (value.rawMeta || undefined) : undefined
-            };
-            if (prefix === 'input' && reqEl) {
-                result.required = reqEl.checked;
-            } else if (prefix === 'input') {
-                result.required = p.required || false;
-            }
-            return result;
-        }).filter(p => p.name);
+                const valueIsRef = value && typeof value === 'object' && value.type === 'ref';
+                const result = {
+                    name: nameEl ? nameEl.value.trim() : p.name,
+                    type: typeEl ? typeEl.value : p.type,
+                    value,
+                    description: descEl ? descEl.value : p.description || '',
+                    valueType: valueIsRef ? 'ref' : '',
+                    rawMeta: valueIsRef ? value.rawMeta || undefined : undefined,
+                };
+                if (prefix === 'input' && reqEl) {
+                    result.required = reqEl.checked;
+                } else if (prefix === 'input') {
+                    result.required = p.required || false;
+                }
+                return result;
+            })
+            .filter((p) => p.name);
         targetNode[key] = params;
         const paramKey = prefix === 'input' ? 'node_inputs' : 'node_outputs';
         targetNode.parameters = targetNode.parameters || {};
@@ -303,9 +329,9 @@ export function mixinParamEditor(node) {
         } else {
             delete targetNode.parameters[paramKey];
         }
-    };
+    }
 
-    node.saveMergeGroupVars = function(targetNode) {
+    saveMergeGroupVars(targetNode) {
         const mergeGroups = targetNode.parameters?.mergeGroups;
         if (!mergeGroups || !Array.isArray(mergeGroups)) return;
 
@@ -313,7 +339,9 @@ export function mixinParamEditor(node) {
         mergeGroups.forEach((group, gi) => {
             if (group.variables && Array.isArray(group.variables)) {
                 group.variables.forEach((v, vi) => {
-                    const selectEl = document.getElementById(`mergeVar_${gi}_${vi}`);
+                    const selectEl = /** @type {HTMLSelectElement|null} */ (
+                        document.getElementById(`mergeVar_${gi}_${vi}`)
+                    );
                     if (selectEl && selectEl.value && v.value?.content) {
                         const newName = selectEl.value;
                         if (v.value.content.name !== newName) {
@@ -333,8 +361,8 @@ export function mixinParamEditor(node) {
                         const blockId = v.value?.content?.blockID;
                         const outputName = v.value?.content?.name;
                         if (blockId && outputName) {
-                            const edge = this.core.edges.find(e =>
-                                e.target === targetNode.id && e.source === blockId
+                            const edge = this.node.core.edges.find(
+                                (e) => e.target === targetNode.id && e.source === blockId
                             );
                             if (edge) {
                                 edge.sourcePort = outputName;
@@ -344,19 +372,19 @@ export function mixinParamEditor(node) {
                 }
             });
         }
-    };
+    }
 
-    node.renderLoopVariables = function(targetNode) {
+    renderLoopVariables(targetNode) {
         const variables = targetNode.parameters?.variables;
         if (targetNode.type !== 'loop_set_variable' || !variables || !Array.isArray(variables)) {
             return '';
         }
 
         const resolveNode = (blockId) => {
-            let target = this.core.nodes.find(n => n.id === blockId);
+            let target = this.node.core.nodes.find((n) => n.id === blockId);
             if (target) return target;
             const shortId = blockId.replace('node_', '');
-            target = this.core.nodes.find(n => n.id === shortId || n.id.replace('node_', '') === shortId);
+            target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
             return target;
         };
 
@@ -378,7 +406,7 @@ export function mixinParamEditor(node) {
         let html = '<hr style="margin: 0.75rem 0; border-color: var(--border);">';
         html += `<h4 style="display: flex; justify-content: space-between; align-items: center;">
             ${t('nodes.variables') || '变量设置'}
-            <button class="btn btn-sm" onclick="workflowUI.node.addLoopVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
+            <button class="btn btn-sm" onclick="workflowUI.addLoopVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
         </h4>`;
 
         if (variables.length === 0) {
@@ -388,24 +416,24 @@ export function mixinParamEditor(node) {
                 const leftDisplay = getDisplayRef(v.left);
                 const rightIsRef = v.right?.value?.type === 'ref';
                 const rightDisplay = getDisplayRef(v.right);
-                const rightLiteral = (!rightIsRef && v.right?.value?.content !== undefined) ? v.right.value.content : '';
+                const rightLiteral = !rightIsRef && v.right?.value?.content !== undefined ? v.right.value.content : '';
                 html += `<div class="property-group" style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                         <span style="font-weight: 600; color: var(--text-primary);">${t('nodes.parameter', { index: vi + 1 }) || `变量 ${vi + 1}`}</span>
-                        <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeLoopVariable('${targetNode.id}', ${vi})">×</button>
+                        <button class="btn btn-danger btn-sm" onclick="workflowUI.removeLoopVariable('${targetNode.id}', ${vi})">×</button>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                         <div class="cond-row">
                             <span class="cond-label">${t('nodes.leftVariable') || '目标变量'}</span>
                             <div class="cond-side">
                                 <span style="flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                      onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')"
+                                      onclick="workflowUI.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')"
                                       title="${StringUtils.escapeHtml(leftDisplay)}">${StringUtils.escapeHtml(leftDisplay)}</span>
                                 <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')" 
+                                        onclick="workflowUI.openLoopVariableSelector('${targetNode.id}', ${vi}, 'left')" 
                                         title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
                                 <button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi}, 'left')" 
+                                        onclick="workflowUI.clearLoopVarRef('${targetNode.id}', ${vi}, 'left')" 
                                         title="${t('nodes.clearReference') || '清除引用'}">×</button>
                             </div>
                         </div>
@@ -419,14 +447,18 @@ export function mixinParamEditor(node) {
                                        ${rightIsRef ? 'disabled' : ''}>
                                 <span id="loopVarRightDisplay_${vi}" 
                                       style="display:${rightIsRef ? 'block' : 'none'}; flex:1; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                      onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')"
+                                      onclick="workflowUI.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')"
                                       title="${StringUtils.escapeHtml(rightDisplay)}">${StringUtils.escapeHtml(rightDisplay)}</span>
                                 <button class="btn btn-sm" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                                        onclick="workflowUI.node.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')" 
+                                        onclick="workflowUI.openLoopVariableSelector('${targetNode.id}', ${vi}, 'right')" 
                                         title="${t('nodes.selectReference') || '选择引用'}">🔗</button>
-                                ${rightIsRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
-                                        onclick="workflowUI.node.clearLoopVarRef('${targetNode.id}', ${vi}, 'right')" 
-                                        title="${t('nodes.clearReference') || '清除引用'}">×</button>` : ''}
+                                ${
+                                    rightIsRef
+                                        ? `<button class="btn btn-sm btn-danger" style="padding: 0.15rem 0.3rem; font-size: 0.7rem; flex-shrink: 0;" 
+                                        onclick="workflowUI.clearLoopVarRef('${targetNode.id}', ${vi}, 'right')" 
+                                        title="${t('nodes.clearReference') || '清除引用'}">×</button>`
+                                        : ''
+                                }
                             </div>
                         </div>
                     </div>
@@ -437,9 +469,9 @@ export function mixinParamEditor(node) {
         html += '</div>';
 
         return html;
-    };
+    }
 
-    node.saveLoopVariables = function(targetNode) {
+    saveLoopVariables(targetNode) {
         if (targetNode.type !== 'loop_set_variable') return;
         if (!Array.isArray(targetNode.parameters.variables)) {
             targetNode.parameters.variables = [];
@@ -447,7 +479,7 @@ export function mixinParamEditor(node) {
         }
 
         targetNode.parameters.variables.forEach((v, vi) => {
-            const rightInput = document.getElementById(`loopVarRight_${vi}`);
+            const rightInput = /** @type {HTMLInputElement|null} */ (document.getElementById(`loopVarRight_${vi}`));
             if (rightInput && !rightInput.disabled && !rightInput.hidden) {
                 const val = rightInput.value;
                 if (!v.right) {
@@ -457,9 +489,9 @@ export function mixinParamEditor(node) {
                 v.right.value = { type: 'literal', content: val };
             }
         });
-    };
+    }
 
-    node.renderLoopIntermediateVariables = function(targetNode) {
+    renderLoopIntermediateVariables(targetNode) {
         if (targetNode.type !== 'loop') {
             return '';
         }
@@ -474,7 +506,7 @@ export function mixinParamEditor(node) {
         let html = '<hr style="margin: 0.75rem 0; border-color: var(--border);">';
         html += `<h4 style="display: flex; justify-content: space-between; align-items: center;">
             ${t('nodes.intermediateVariables') || '中间变量'}
-            <button class="btn btn-sm" onclick="workflowUI.node.addLoopIntermediateVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
+            <button class="btn btn-sm" onclick="workflowUI.addLoopIntermediateVariable('${targetNode.id}')">+ ${t('nodes.add')}</button>
         </h4>`;
 
         if (variableParameters.length === 0) {
@@ -482,15 +514,15 @@ export function mixinParamEditor(node) {
         } else {
             variableParameters.forEach((v, vi) => {
                 const isRef = v.input?.value?.type === 'ref';
-                const refBlockId = isRef ? (v.input.value.content?.blockID || '') : '';
-                const refName = isRef ? (v.input.value.content?.name || '') : '';
+                const refBlockId = isRef ? v.input.value.content?.blockID || '' : '';
+                const refName = isRef ? v.input.value.content?.name || '' : '';
                 const refDisplay = isRef ? this._getRefDisplayText(refBlockId, refName) : '';
                 const literalValue = isRef ? '' : StringUtils.escapeHtml(String(v.input?.value?.content ?? ''));
 
                 html += `<div class="property-group" style="margin-bottom: 0.5rem; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
                         <span style="font-weight: 600; color: var(--text-primary);">${t('nodes.parameter', { index: vi + 1 }) || `变量 ${vi + 1}`}</span>
-                        <button class="btn btn-danger btn-sm" onclick="workflowUI.node.removeLoopIntermediateVariable('${targetNode.id}', ${vi})">×</button>
+                        <button class="btn btn-danger btn-sm" onclick="workflowUI.removeLoopIntermediateVariable('${targetNode.id}', ${vi})">×</button>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                         <div class="param-field">
@@ -500,7 +532,7 @@ export function mixinParamEditor(node) {
                         <div class="param-field">
                             <label class="param-label">${t('nodes.paramType')}</label>
                             <select class="param-select" id="loopVarType_${vi}">
-                                ${['string', 'number', 'boolean', 'object', 'array'].map(t => `<option value="${t}" ${(v.input?.type || 'string') === t ? 'selected' : ''}>${t}</option>`).join('')}
+                                ${['string', 'number', 'boolean', 'object', 'array'].map((t) => `<option value="${t}" ${(v.input?.type || 'string') === t ? 'selected' : ''}>${t}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -514,15 +546,19 @@ export function mixinParamEditor(node) {
                                    ${isRef ? 'disabled' : ''}>
                             <span id="loopVarRefDisplay_${vi}" 
                                   style="flex:1; display:${isRef ? 'block' : 'none'}; padding: 0.45rem 0.5rem; font-size: 0.85rem; color: var(--accent); background: var(--accent-light); border-radius: 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                  onclick="workflowUI.node.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})"
+                                  onclick="workflowUI.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})"
                                   title="${StringUtils.escapeHtml(refDisplay)}">${StringUtils.escapeHtml(refDisplay)}</span>
                             <input type="hidden" id="loopVarRef_${vi}" value="${isRef ? encodeURIComponent(JSON.stringify(v.input.value)) : ''}">
                             <button class="btn btn-sm" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                    onclick="workflowUI.node.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})" 
+                                    onclick="workflowUI.openLoopIntermediateVarSelector('${targetNode.id}', ${vi})" 
                                     title="选择引用">🔗</button>
-                            ${isRef ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
-                                    onclick="workflowUI.node.clearLoopIntermediateVarRef('${targetNode.id}', ${vi})" 
-                                    title="清除引用">×</button>` : ''}
+                            ${
+                                isRef
+                                    ? `<button class="btn btn-sm btn-danger" style="padding: 0.2rem 0.4rem; font-size: 0.75rem; flex-shrink: 0;" 
+                                    onclick="workflowUI.clearLoopIntermediateVarRef('${targetNode.id}', ${vi})" 
+                                    title="清除引用">×</button>`
+                                    : ''
+                            }
                         </div>
                     </div>
                 </div>`;
@@ -531,11 +567,11 @@ export function mixinParamEditor(node) {
 
         html += '</div>';
         return html;
-    };
+    }
 
-    node.addLoopIntermediateVariable = function(nodeId) {
+    addLoopIntermediateVariable(nodeId) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode) return;
             if (!targetNode.parameters) targetNode.parameters = {};
             if (!Array.isArray(targetNode.parameters.variableParameters)) {
@@ -545,26 +581,26 @@ export function mixinParamEditor(node) {
                 name: '',
                 input: {
                     type: 'string',
-                    value: { type: 'literal', content: '' }
-                }
+                    value: { type: 'literal', content: '' },
+                },
             });
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node.removeLoopIntermediateVariable = function(nodeId, vi) {
+    removeLoopIntermediateVariable(nodeId, vi) {
         try {
-            const targetNode = this.core.nodes.find(n => n.id === nodeId);
+            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
             targetNode.parameters.variableParameters.splice(vi, 1);
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
-    };
+    }
 
-    node.openLoopIntermediateVarSelector = function(nodeId, vi) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    openLoopIntermediateVarSelector(nodeId, vi) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
         const variable = targetNode.parameters.variableParameters[vi];
         if (!variable) return;
@@ -572,48 +608,53 @@ export function mixinParamEditor(node) {
         const currentBlockId = variable.input?.value?.content?.blockID || '';
         const currentName = variable.input?.value?.content?.name || '';
 
-        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
-            variable.input = {
-                type: variable.input?.type || 'string',
-                value: {
-                    type: 'ref',
-                    content: {
-                        source: 'block-output',
-                        blockID: blockId,
-                        name: outputPath
+        /** @type {*} */ (this)._openGenericVariableSelector(
+            nodeId,
+            currentBlockId,
+            currentName,
+            (blockId, outputPath) => {
+                variable.input = {
+                    type: variable.input?.type || 'string',
+                    value: {
+                        type: 'ref',
+                        content: {
+                            source: 'block-output',
+                            blockID: blockId,
+                            name: outputPath,
+                        },
+                        rawMeta: { type: 1 },
                     },
-                    rawMeta: { type: 1 }
-                }
-            };
-            this.renderPropertyPanel(targetNode);
-            this._scheduleAutoSave(nodeId);
-        });
-    };
+                };
+                this.node.render.renderPropertyPanel(targetNode);
+                this.node.panel._scheduleAutoSave(nodeId);
+            }
+        );
+    }
 
-    node.clearLoopIntermediateVarRef = function(nodeId, vi) {
-        const targetNode = this.core.nodes.find(n => n.id === nodeId);
+    clearLoopIntermediateVarRef(nodeId, vi) {
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
         const variable = targetNode.parameters.variableParameters[vi];
         if (!variable) return;
 
         variable.input = {
             type: variable.input?.type || 'string',
-            value: { type: 'literal', content: '' }
+            value: { type: 'literal', content: '' },
         };
-        this.renderPropertyPanel(targetNode);
-        this._scheduleAutoSave(nodeId);
-    };
+        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
+    }
 
-    node.saveLoopIntermediateVariables = function(targetNode) {
+    saveLoopIntermediateVariables(targetNode) {
         if (targetNode.type !== 'loop') return;
         const variableParameters = targetNode.parameters?.variableParameters;
         if (!Array.isArray(variableParameters)) return;
 
         variableParameters.forEach((v, vi) => {
-            const nameEl = document.getElementById(`loopVarName_${vi}`);
-            const typeEl = document.getElementById(`loopVarType_${vi}`);
-            const valueEl = document.getElementById(`loopVarValue_${vi}`);
-            const refEl = document.getElementById(`loopVarRef_${vi}`);
+            const nameEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`loopVarName_${vi}`));
+            const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById(`loopVarType_${vi}`));
+            const valueEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`loopVarValue_${vi}`));
+            const refEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`loopVarRef_${vi}`));
 
             if (nameEl) v.name = nameEl.value.trim();
             if (typeEl) v.input = v.input || {};
@@ -633,5 +674,5 @@ export function mixinParamEditor(node) {
                 v.input.value = { type: 'literal', content: valueEl.value };
             }
         });
-    };
+    }
 }

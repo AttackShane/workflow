@@ -1,8 +1,26 @@
 <!DOCTYPE html>
 <html data-i18n-lang>
 <head>
+<style>
+    html { background-color: #1a1a2e; }
+    body.preload { opacity: 0; pointer-events: none; }
+    body.preload,
+    body.preload *,
+    body.preload *::before,
+    body.preload *::after {
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
 <script>
-(function(){try{var t=localStorage.getItem('workflow-converter-theme')||'light';document.documentElement.setAttribute('data-theme',t)}catch(e){}})();
+(function(){
+    try {
+        var t = localStorage.getItem('workflow-converter-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.style.backgroundColor = t === 'dark' ? '#0a0e17' : '#f1f5f9';
+        document.documentElement.style.colorScheme = t === 'dark' ? 'dark' : 'light';
+    } catch(e) {}
+})();
 </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +31,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script type="module" src="/modules/app.js"></script>
 </head>
-<body>
+<body class="preload">
     <div class="header">
         <h1>
             <span data-i18n="editor.title">工作流编辑器</span>
@@ -173,19 +191,20 @@
     <script type="module">
         import { WorkflowCore } from '/modules/editor-core.js';
         import { WorkflowUI } from '/modules/editor-ui.js';
+        import { Storage } from '/utils/helpers.js';
         
         const core = new WorkflowCore();
         let _pendingDescription = '';
         
-        const editingWorkflow = sessionStorage.getItem('editingWorkflow');
-        const editingWorkflowId = sessionStorage.getItem('editingWorkflowId');
+        const editingWorkflow = Storage.session.get('editingWorkflow');
+        const editingWorkflowId = Storage.session.get('editingWorkflowId');
         
         const isFromCache = !editingWorkflow && editingWorkflowId;
         
         if (editingWorkflow) {
-            const workflow = JSON.parse(editingWorkflow);
-            sessionStorage.setItem('editingWorkflowId', workflow.id);
-            sessionStorage.removeItem('editingWorkflow');
+            const workflow = editingWorkflow;
+            Storage.session.set('editingWorkflowId', workflow.id);
+            Storage.session.remove('editingWorkflow');
             
             if (workflow.nodes && workflow.nodes.length > 0) {
                 core.nodes = structuredClone(workflow.nodes);
@@ -222,7 +241,7 @@
                 
                 // 从本地存储中查找工作流名称
                 try {
-                    const storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+                    const storedWorkflows = Storage.get('workflows', []);
                     const found = storedWorkflows.find(w => w.id === editingWorkflowId);
                     if (found && found.name) {
                         document.getElementById('workflowName').textContent = found.name;

@@ -3,12 +3,56 @@
  */
 import { WorkflowCore } from '../src/modules/editor-core.js';
 
+var mockStorageData;
+
+jest.mock('../src/utils/helpers.js', () => {
+    mockStorageData = {};
+    const actual = jest.requireActual('../src/utils/helpers.js');
+    return {
+        __esModule: true,
+        ...actual,
+        Storage: {
+            get: jest.fn((key, defaultValue = null) => {
+                const value = mockStorageData[key];
+                if (value === undefined) return defaultValue;
+                try {
+                    return typeof value === 'string' ? JSON.parse(value) : value;
+                } catch {
+                    return defaultValue;
+                }
+            }),
+            set: jest.fn((key, value) => {
+                mockStorageData[key] = JSON.stringify(value);
+            }),
+            remove: jest.fn((key) => {
+                delete mockStorageData[key];
+            }),
+            clear: jest.fn(() => {
+                Object.keys(mockStorageData).forEach((k) => delete mockStorageData[k]);
+            }),
+            session: {
+                get: jest.fn(),
+                set: jest.fn(),
+                remove: jest.fn(),
+            },
+        },
+    };
+});
+
 global.localStorage = {
-    _data: {},
-    getItem: function(key) { return this._data[key] || null; },
-    setItem: function(key, value) { this._data[key] = value; },
-    removeItem: function(key) { delete this._data[key]; },
-    clear: function() { this._data = {}; }
+    _data: mockStorageData,
+    getItem: function (key) {
+        return this._data[key] !== undefined ? this._data[key] : null;
+    },
+    setItem: function (key, value) {
+        this._data[key] = value;
+    },
+    removeItem: function (key) {
+        delete this._data[key];
+    },
+    clear: function () {
+        Object.keys(this._data).forEach((k) => delete this._data[k]);
+    },
 };
 
 describe('WorkflowStorage', () => {
@@ -19,11 +63,9 @@ describe('WorkflowStorage', () => {
         core = new WorkflowCore();
         core.nodes = [
             { id: 'node_100001', type: 'start', x: 100, y: 200, title: '开始' },
-            { id: 'node_100002', type: 'end', x: 400, y: 200, title: '结束' }
+            { id: 'node_100002', type: 'end', x: 400, y: 200, title: '结束' },
         ];
-        core.edges = [
-            { id: 'edge_1', source: 'node_100001', target: 'node_100002' }
-        ];
+        core.edges = [{ id: 'edge_1', source: 'node_100001', target: 'node_100002' }];
         core.nodeIdCounter = 100002;
         core.edgeIdCounter = 100001;
     });
@@ -105,11 +147,9 @@ describe('WorkflowStorage', () => {
         it('should sync counters from node IDs', () => {
             core.nodes = [
                 { id: 'node_100005', type: 'start' },
-                { id: 'node_200010', type: 'end' }
+                { id: 'node_200010', type: 'end' },
             ];
-            core.edges = [
-                { id: 'edge_50001', source: 'node_100005', target: 'node_200010' }
-            ];
+            core.edges = [{ id: 'edge_50001', source: 'node_100005', target: 'node_200010' }];
             core.nodeIdCounter = 0;
             core.edgeIdCounter = 0;
 
@@ -120,9 +160,7 @@ describe('WorkflowStorage', () => {
         });
 
         it('should keep original counter if higher', () => {
-            core.nodes = [
-                { id: 'node_100001', type: 'start' }
-            ];
+            core.nodes = [{ id: 'node_100001', type: 'start' }];
             core.edges = [];
             core.nodeIdCounter = 500000;
             core.edgeIdCounter = 500000;
@@ -134,12 +172,8 @@ describe('WorkflowStorage', () => {
         });
 
         it('should handle non-matching IDs', () => {
-            core.nodes = [
-                { id: 'custom_id', type: 'start' }
-            ];
-            core.edges = [
-                { id: 'custom_edge', source: 'custom_id', target: 'none' }
-            ];
+            core.nodes = [{ id: 'custom_id', type: 'start' }];
+            core.edges = [{ id: 'custom_edge', source: 'custom_id', target: 'none' }];
             core.nodeIdCounter = 100;
             core.edgeIdCounter = 100;
 
