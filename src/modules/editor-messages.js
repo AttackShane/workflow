@@ -64,7 +64,7 @@ export class WorkflowMessages {
                 color: 'white',
                 fontSize: '14px',
                 fontWeight: '500',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                boxShadow: 'var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15))',
                 transform: 'translateX(100%)',
                 animation: 'slideIn 0.3s ease-out forwards',
                 display: 'flex',

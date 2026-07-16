@@ -80,7 +80,7 @@ class UIController {
         if (!statusElement) return;
 
         DOM.setText(statusElement, text);
-        DOM.setStyle(statusElement, 'color', isError ? '#dc2626' : '#10b981');
+        DOM.setStyle(statusElement, 'color', isError ? 'var(--danger, #dc2626)' : 'var(--success, #10b981)');
 
         setTimeout(() => {
             DOM.setText(statusElement, '');
@@ -494,6 +494,7 @@ class UIController {
 
 const _instance = new UIController();
 export const getCurData = () => _instance.getCurData();
+export const setCurData = (data) => { _instance._curData = data; };
 export const getCurDataType = () => _instance.getCurDataType();
 // @ts-ignore
 export const msg = (...args) => _instance.msg(...args);

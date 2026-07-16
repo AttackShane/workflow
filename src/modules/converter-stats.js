@@ -1,4 +1,4 @@
-import { msg } from './converter-ui.js';
+import { msg, setCurData } from './converter-ui.js';
 import { Dialog } from './shared-dialog.js';
 import { APP_CONFIG, SELECTORS } from '../config/constants.js';
 import { DOM, Storage, StringUtils } from '../utils/helpers.js';
@@ -138,8 +138,9 @@ class StatsView {
     };
 
     updateHistoryItem = (id, name) => {
-        updateData(id, name);
+        const result = updateData(id, name);
         this.updateHistoryPanel();
+        return result;
     };
 
     exportHistory = () => {
@@ -252,7 +253,17 @@ class StatsView {
             cancelText: '取消',
         }).then((result) => {
             if (result && result.name) {
-                this.updateHistoryItem(id, result.name);
+                const updatedData = this.updateHistoryItem(id, result.name);
+                if (updatedData) {
+                    setCurData(updatedData);
+                }
+                const statsContent = document.getElementById('statsContent');
+                if (statsContent && statsContent.style.display !== 'none') {
+                    const h3 = statsContent.querySelector('h3');
+                    if (h3) {
+                        h3.textContent = result.name;
+                    }
+                }
             }
         });
     }

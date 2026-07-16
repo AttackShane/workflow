@@ -91,15 +91,33 @@ export function deleteHistoryItem(id) {
  * 更新历史记录项名称
  * @param {number} id - 记录 ID
  * @param {string} name - 新名称
- * @returns {boolean} - 是否更新成功
+ * @returns {string|false} - 更新后的数据字符串，失败返回 false
  */
 export function updateHistoryItem(id, name) {
     const history = getHistory();
     const entry = history.find(h => h.id === id);
     if (entry) {
         entry.name = name;
+        let updatedData = null;
+        try {
+            const parsed = entry.isJson
+                ? JSON.parse(entry.data)
+                : getJsyaml().load(convertLargeNumbersToStrings(entry.data));
+            if (parsed && typeof parsed === 'object') {
+                parsed.name = name;
+                if (parsed.json && typeof parsed.json === 'object') {
+                    parsed.json.name = name;
+                }
+                entry.data = entry.isJson
+                    ? JSON.stringify(parsed, null, 2)
+                    : getJsyaml().dump(parsed);
+                updatedData = entry.data;
+            }
+        } catch {
+            // 解析失败时仅更新显示名称
+        }
         Storage.set(APP_CONFIG.HISTORY.KEY, history);
-        return true;
+        return updatedData || entry.data;
     }
     return false;
 }

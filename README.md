@@ -1,4 +1,4 @@
-﻿# Coze 工作流编辑器
+# Coze 工作流编辑器
 
 一个基于原生 JavaScript ES Module 实现的工作流编辑器与转换器系统，支持三页面（工作流管理、YAML转换器、可视化编辑器），可在 YAML/JSON 工作流定义与 Coze 剪贴板格式之间双向转换。
 
@@ -202,7 +202,6 @@ workflow/
 │       └── workflow-editor.html    # 编辑器页面
 ├── dist/                  # 构建产物（三个独立 HTML 文件）
 ├── package.json
-├── PROJECT_DOC.md         # 详细项目文档
 └── README.md
 ```
 
@@ -297,6 +296,26 @@ workflow/
 - `dist/workflow_converter.html` - 工作流转换器
 - `dist/workflow_editor.html` - 工作流编辑器
 - `dist/workflow_manager.html` - 工作流管理器
+
+## 📖 技术文档
+
+项目提供了完整的技术文档体系，位于 `wiki/` 目录：
+
+| 文档 | 主题 |
+|------|------|
+| [wiki/README.md](wiki/README.md) | Wiki 入口与索引 |
+| [wiki/01-overview.md](wiki/01-overview.md) | 项目概览、目标用户、应用场景 |
+| [wiki/02-architecture.md](wiki/02-architecture.md) | 整体架构、组合模式、数据流 |
+| [wiki/03-project-structure.md](wiki/03-project-structure.md) | 目录树、模块分组、命名约定 |
+| [wiki/04-tech-stack.md](wiki/04-tech-stack.md) | 技术栈、依赖、构建、测试 |
+| [wiki/05-modules-converter.md](wiki/05-modules-converter.md) | 转换器模块详解 |
+| [wiki/06-modules-editor.md](wiki/06-modules-editor.md) | 编辑器模块详解 |
+| [wiki/07-modules-manager-shared.md](wiki/07-modules-manager-shared.md) | 管理器与共享模块 |
+| [wiki/08-key-classes.md](wiki/08-key-classes.md) | 25+ 关键类详解 |
+| [wiki/09-data-structures.md](wiki/09-data-structures.md) | 数据结构详解 |
+| [wiki/10-dependencies.md](wiki/10-dependencies.md) | 依赖关系图 |
+| [wiki/11-run-and-build.md](wiki/11-run-and-build.md) | 运行与构建 |
+| [wiki/12-development-guide.md](wiki/12-development-guide.md) | 开发指南 |
 
 ## 📄 许可证
 
