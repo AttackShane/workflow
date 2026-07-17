@@ -26,6 +26,17 @@ export class WorkflowCanvas {
         this.renderBatchSize = 50;
         this.renderThreshold = 50;
 
+        // Transform 缓存（避免频繁正则解析 CSS 字符串）
+        this._transformCache = null;
+        this._cachedTransform = null;
+
+        // 选中节点跟踪（避免 renderMinimap 每帧 DOM 查询）
+        this._selectedNodeIds = new Set();
+
+        // 父节点缓存（加速 isNodeVisible 中的 parentId 查找）
+        this._parentMapCache = null;
+        this._parentMapVersion = -1;
+
         // 网格吸附
         this.gridVisible = false;
         this.snapEnabled = false;
@@ -317,6 +328,12 @@ export class WorkflowCanvas {
 
         if (!this.core.nodes || this.core.nodes.length === 0) return;
 
+        // 同步选中状态（单次 DOM 查询，多个渲染帧间复用）
+        this._selectedNodeIds.clear();
+        document.querySelectorAll('.canvas-node.selected').forEach((el) => {
+            this._selectedNodeIds.add(/** @type {HTMLElement} */ (el).dataset.nodeId);
+        });
+
         const bounds = this.calculateNodesBounds();
         if (bounds.minX === Infinity) return;
 
@@ -335,10 +352,7 @@ export class WorkflowCanvas {
             boundsMinY: bounds.minY - padding,
         };
 
-        const selectedNodeIds = new Set();
-        document.querySelectorAll('.canvas-node.selected').forEach((el) => {
-            selectedNodeIds.add(/** @type {HTMLElement} */ (el).dataset.nodeId);
-        });
+        const selectedNodeIds = this._selectedNodeIds;
 
         const topLevelNodes = this.core.nodes.filter((n) => !n.parentId);
         topLevelNodes.forEach((node) => {
@@ -453,7 +467,19 @@ export class WorkflowCanvas {
     }
 
     /**
-     * 检查节点是否在视口内
+     * 刷新父节点缓存 Map
+     */
+    _ensureParentMap() {
+        if (this._parentMapCache && this._parentMapVersion === this.core.nodes.length) return;
+        this._parentMapCache = new Map();
+        for (const node of this.core.nodes) {
+            this._parentMapCache.set(node.id, node);
+        }
+        this._parentMapVersion = this.core.nodes.length;
+    }
+
+    /**
+     * 检查节点是否在视口内（优化版本：使用 Map 缓存 O(1) 父节点查找）
      * @param {object} node - 节点对象
      * @returns {boolean} 是否可见
      */
@@ -464,10 +490,11 @@ export class WorkflowCanvas {
         const height = node.height || 100;
 
         if (node.parentId) {
-            const parent = this.core.nodes.find((n) => n.id === node.parentId);
+            this._ensureParentMap();
+            const parent = this._parentMapCache.get(node.parentId);
             if (parent) {
                 x = (parent.x || 0) + x;
-                y = (parent.y || 0) + 56 + y;
+                y = (parent.y || 0) + APP_CONFIG.NODE.CONTAINER_OFFSET + y;
             }
         }
 
@@ -573,6 +600,9 @@ export class WorkflowCanvas {
      * @param {number} scale - 缩放比例
      */
     applyTransform(translateX, translateY, scale) {
+        this._transformCache = null;
+        this._cachedTransform = null;
+
         const transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
 
         DOM.setStyle(this.canvasContent, 'transform', transform);
@@ -1000,20 +1030,26 @@ export class WorkflowCanvas {
     }
 
     /**
-     * 获取当前变换参数
+     * 获取当前变换参数（带缓存，applyTransform 时自动失效）
      * @returns {Object} - 包含 translateX, translateY, scale 的对象
      */
     getCurrentTransform() {
-        const transform = this.canvasContent?.style.transform || '';
+        const currentTransform = this.canvasContent?.style.transform || '';
 
-        const scaleMatch = transform.match(/scale\(([\d.]+)\)/);
+        if (this._cachedTransform === currentTransform && this._transformCache) {
+            return this._transformCache;
+        }
+
+        const scaleMatch = currentTransform.match(/scale\(([\d.]+)\)/);
         const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
 
-        const translateMatch = transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
+        const translateMatch = currentTransform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
         const translateX = translateMatch ? parseFloat(translateMatch[1]) : 0;
         const translateY = translateMatch ? parseFloat(translateMatch[2]) : 0;
 
-        return { translateX, translateY, scale };
+        this._cachedTransform = currentTransform;
+        this._transformCache = { translateX, translateY, scale };
+        return this._transformCache;
     }
 
     /**
@@ -1152,6 +1188,14 @@ export class WorkflowCanvas {
     }
 
     /**
+     * 更新选中节点集合（供选择模块调用，优化 minimap 渲染）
+     * @param {Set<string>} nodeIds - 选中的节点 ID 集合
+     */
+    updateSelectedNodes(nodeIds) {
+        this._selectedNodeIds = nodeIds;
+    }
+
+    /**
      * 获取性能统计信息
      * @returns {object} 性能统计
      */
@@ -1188,6 +1232,40 @@ export class WorkflowCanvas {
         const allNodeEls = this.canvasContent.querySelectorAll('.canvas-node');
         if (allNodeEls.length === 0) return;
 
+        const bounds = this._computeExportBounds(allNodeEls);
+        if (!bounds) return;
+
+        const svgParts = [];
+        this._buildEdgeExportSvg(svgParts, bounds.offsetX, bounds.offsetY);
+
+        const renderCtx = {
+            canvasRect: this.canvas.getBoundingClientRect(),
+            panX: bounds.panX,
+            panY: bounds.panY,
+            invScale: bounds.invScale,
+            offsetX: bounds.offsetX,
+            offsetY: bounds.offsetY,
+        };
+
+        allNodeEls.forEach((el) => {
+            svgParts.push(this._renderNodeExportSvg(el, renderCtx));
+        });
+
+        const svgString = this._assembleExportSvg(svgParts, bounds, this._getExportBgColor());
+
+        if (format === 'svg') {
+            this._downloadBlob(svgString, 'workflow.svg', 'image/svg+xml');
+            return;
+        }
+
+        this._rasterizeToPng(svgString, bounds);
+    }
+
+    /**
+     * 计算导出边界框
+     * @private
+     */
+    _computeExportBounds(allNodeEls) {
         const { translateX: panX, translateY: panY, scale: canvasScale } = this.getCurrentTransform();
         const invScale = 1 / canvasScale;
         const canvasRect = this.canvas.getBoundingClientRect();
@@ -1199,10 +1277,8 @@ export class WorkflowCanvas {
 
         allNodeEls.forEach((el) => {
             const rect = el.getBoundingClientRect();
-            const screenX = rect.left - canvasRect.left;
-            const screenY = rect.top - canvasRect.top;
-            const x = (screenX - panX) * invScale;
-            const y = (screenY - panY) * invScale;
+            const x = (rect.left - canvasRect.left - panX) * invScale;
+            const y = (rect.top - canvasRect.top - panY) * invScale;
             const w = rect.width * invScale;
             const h = rect.height * invScale;
             minX = Math.min(minX, x);
@@ -1211,163 +1287,281 @@ export class WorkflowCanvas {
             maxY = Math.max(maxY, y + h);
         });
 
+        const bbox = { minX, minY, maxX, maxY };
+        this._expandBoundsWithEdges(bbox);
+        ({ minX, minY, maxX, maxY } = bbox);
+
+        if (minX === Infinity) return null;
+
+        const padding = 40;
+        const width = maxX - minX + padding * 2;
+        const height = maxY - minY + padding * 2;
+
+        return {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            width,
+            height,
+            offsetX: -minX + padding,
+            offsetY: -minY + padding,
+            panX,
+            panY,
+            invScale,
+        };
+    }
+
+    /**
+     * 用边元素的 bbox 扩展导出边界
+     * @private
+     */
+    _expandBoundsWithEdges(bbox) {
         const edgeElems = this.svgLayer.querySelectorAll(
             'path[data-edge-id], polygon[data-edge-id], text[data-edge-id]'
         );
         edgeElems.forEach((el) => {
             if (/** @type {SVGGraphicsElement} */ (el).getBBox) {
-                const bbox = /** @type {SVGGraphicsElement} */ (el).getBBox();
-                minX = Math.min(minX, bbox.x);
-                minY = Math.min(minY, bbox.y);
-                maxX = Math.max(maxX, bbox.x + bbox.width);
-                maxY = Math.max(maxY, bbox.y + bbox.height);
+                const box = /** @type {SVGGraphicsElement} */ (el).getBBox();
+                bbox.minX = Math.min(bbox.minX, box.x);
+                bbox.minY = Math.min(bbox.minY, box.y);
+                bbox.maxX = Math.max(bbox.maxX, box.x + box.width);
+                bbox.maxY = Math.max(bbox.maxY, box.y + box.height);
             }
         });
+    }
 
-        const padding = 40;
-        const width = maxX - minX + padding * 2;
-        const height = maxY - minY + padding * 2;
-        const offsetX = -minX + padding;
-        const offsetY = -minY + padding;
+    /**
+     * 构建边元素的导出 SVG
+     * @private
+     */
+    _buildEdgeExportSvg(svgParts, offsetX, offsetY) {
+        const edgeElems = this.svgLayer.querySelectorAll(
+            'path[data-edge-id], polygon[data-edge-id], text[data-edge-id]'
+        );
+        if (edgeElems.length === 0) return;
 
-        const bgColor = getComputedStyle(document.body).getPropertyValue('--bg-primary').trim() || '#1a1a2e';
-        const svgParts = [];
+        svgParts.push(`<g transform="translate(${offsetX},${offsetY})">`);
+        edgeElems.forEach((el) => {
+            svgParts.push(el.outerHTML);
+        });
+        svgParts.push('</g>');
+    }
 
-        if (edgeElems.length > 0) {
-            svgParts.push(`<g transform="translate(${offsetX},${offsetY})">`);
-            edgeElems.forEach((el) => {
-                svgParts.push(el.outerHTML);
-            });
-            svgParts.push('</g>');
+    /**
+     * 渲染单个节点为 SVG 导出片段
+     * @private
+     */
+    _renderNodeExportSvg(el, ctx) {
+        const { canvasRect, panX, panY, invScale, offsetX, offsetY } = ctx;
+        const rect = el.getBoundingClientRect();
+        const x = (rect.left - canvasRect.left - panX) * invScale + offsetX;
+        const y = (rect.top - canvasRect.top - panY) * invScale + offsetY;
+        const w = rect.width * invScale;
+        const h = rect.height * invScale;
+
+        const parts = [`<g transform="translate(${x},${y})">`];
+        this._buildNodeExportBody(el, parts, w, h);
+        this._buildNodeConnectionPoints(el, parts, rect, invScale);
+        parts.push('</g>');
+        return parts.join('\n');
+    }
+
+    /**
+     * 构建节点主体 SVG（含头部、类型标签、描述）
+     * @private
+     */
+    _buildNodeExportBody(el, parts, w, h) {
+        const isContainer = el.classList.contains('container');
+        const isLoop = el.classList.contains('loop');
+        const cs = window.getComputedStyle(el);
+
+        const nodeBg = this._rgb(cs.backgroundColor) || '#2a2a3e';
+        const nodeBorder = this._rgb(cs.borderColor) || '#444';
+        const titleColor = this._rgb(cs.color) || '#e0e0e0';
+        const headerH = isContainer ? APP_CONFIG.NODE.CONTAINER_HEADER_H : APP_CONFIG.NODE.NODE_HEADER_H;
+        const headerBg = isContainer ? (isLoop ? '#00B2B2' : '#8B5CF6') : 'rgba(255,255,255,0.05)';
+
+        const title = this._getNodeTextContent(el, '.node-title');
+        const iconText = this._getNodeTextContent(el, '.node-icon');
+        const descText = this._getNodeTextContent(el, '.node-description');
+        const typeText = this._getNodeTextContent(el, '.node-type');
+
+        if (isContainer) {
+            this._buildContainerExportSvg(
+                parts,
+                w,
+                h,
+                headerH,
+                nodeBg,
+                nodeBorder,
+                headerBg,
+                titleColor,
+                title,
+                iconText,
+                descText
+            );
+        } else {
+            this._buildRegularNodeExportSvg(
+                parts,
+                el,
+                w,
+                h,
+                headerH,
+                nodeBg,
+                nodeBorder,
+                headerBg,
+                titleColor,
+                title,
+                iconText,
+                descText,
+                typeText
+            );
         }
+    }
 
-        const renderNode = (el) => {
-            const rect = el.getBoundingClientRect();
-            const screenX = rect.left - canvasRect.left;
-            const screenY = rect.top - canvasRect.top;
-            const x = (screenX - panX) * invScale + offsetX;
-            const y = (screenY - panY) * invScale + offsetY;
-            const w = rect.width * invScale;
-            const h = rect.height * invScale;
+    /**
+     * 构建容器节点的导出 SVG
+     * @private
+     */
+    _buildContainerExportSvg(
+        parts,
+        w,
+        h,
+        headerH,
+        nodeBg,
+        nodeBorder,
+        headerBg,
+        titleColor,
+        title,
+        iconText,
+        descText
+    ) {
+        const descH = descText ? APP_CONFIG.NODE.CONTAINER_DESC_H : 0;
+        const bodyH = h - headerH - descH;
+        const cr = APP_CONFIG.NODE.SVG_CONTAINER_RX;
+        const cap = APP_CONFIG.NODE.SVG_HEADER_CAP_H;
 
-            const isContainer = el.classList.contains('container');
-            const isLoop = el.classList.contains('loop');
-            const _isBatch = el.classList.contains('batch');
+        parts.push(
+            `<rect x="0" y="0" width="${w}" height="${h}" rx="${cr}" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
+        );
+        parts.push(`<rect x="0" y="0" width="${w}" height="${headerH}" rx="${cr}" fill="${headerBg}" opacity="0.3"/>`);
+        parts.push(`<rect x="0" y="${headerH - cap}" width="${w}" height="${cap}" fill="${headerBg}" opacity="0.3"/>`);
 
-            const titleEl = el.querySelector('.node-title');
-            const title = titleEl ? titleEl.textContent : '';
-            const typeEl = el.querySelector('.node-type');
-            const typeText = typeEl ? typeEl.textContent : '';
-            const iconEl = el.querySelector('.node-icon');
-            const iconText = iconEl ? iconEl.textContent : '';
-            const descEl = el.querySelector('.node-description');
-            const descText = descEl ? descEl.textContent : '';
+        if (iconText) {
+            parts.push(
+                `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
+            );
+        }
+        parts.push(
+            `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="13" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
+        );
 
-            const cs = window.getComputedStyle(el);
-            const nodeBg = this._rgb(cs.backgroundColor) || '#2a2a3e';
-            const nodeBorder = this._rgb(cs.borderColor) || '#444';
-            const titleColor = this._rgb(cs.color) || '#e0e0e0';
-            const headerH = isContainer ? 36 : 32;
-            const headerBg = isContainer ? (isLoop ? '#00B2B2' : '#8B5CF6') : 'rgba(255,255,255,0.05)';
+        if (descText) {
+            parts.push(
+                `<text x="10" y="${headerH + descH - 4}" font-size="11" fill="#888" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
+            );
+        }
+        if (bodyH > 0) {
+            parts.push(
+                `<rect x="0" y="${headerH + descH}" width="${w}" height="${bodyH}" rx="0" fill="rgba(0,0,0,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,4"/>`
+            );
+        }
+    }
 
-            const parts = [`<g transform="translate(${x},${y})">`];
+    /**
+     * 构建普通节点的导出 SVG
+     * @private
+     */
+    _buildRegularNodeExportSvg(
+        parts,
+        el,
+        w,
+        h,
+        headerH,
+        nodeBg,
+        nodeBorder,
+        headerBg,
+        titleColor,
+        title,
+        iconText,
+        descText,
+        typeText
+    ) {
+        const nr = APP_CONFIG.NODE.SVG_NODE_RX;
 
-            if (isContainer) {
-                const descH = descText ? 20 : 0;
-                const bodyH = h - headerH - descH;
+        parts.push(
+            `<rect x="0" y="0" width="${w}" height="${h}" rx="${nr}" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
+        );
+        parts.push(`<rect x="0" y="0" width="${w}" height="${headerH}" rx="${nr}" fill="${headerBg}"/>`);
+        parts.push(`<rect x="0" y="${headerH - nr}" width="${w}" height="${nr}" fill="${headerBg}"/>`);
 
-                parts.push(
-                    `<rect x="0" y="0" width="${w}" height="${h}" rx="12" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
-                );
-                parts.push(
-                    `<rect x="0" y="0" width="${w}" height="${headerH}" rx="12" fill="${headerBg}" opacity="0.3"/>`
-                );
-                parts.push(
-                    `<rect x="0" y="${headerH - 12}" width="${w}" height="12" fill="${headerBg}" opacity="0.3"/>`
-                );
-                if (iconText) {
-                    parts.push(
-                        `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
-                    );
-                }
-                parts.push(
-                    `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="13" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
-                );
-                if (descText) {
-                    parts.push(
-                        `<text x="10" y="${headerH + descH - 4}" font-size="11" fill="#888" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
-                    );
-                }
-                if (bodyH > 0) {
-                    parts.push(
-                        `<rect x="0" y="${headerH + descH}" width="${w}" height="${bodyH}" rx="0" fill="rgba(0,0,0,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1" stroke-dasharray="4,4"/>`
-                    );
-                }
-            } else {
-                parts.push(
-                    `<rect x="0" y="0" width="${w}" height="${h}" rx="8" fill="${nodeBg}" stroke="${nodeBorder}" stroke-width="1"/>`
-                );
-                parts.push(`<rect x="0" y="0" width="${w}" height="${headerH}" rx="8" fill="${headerBg}"/>`);
-                parts.push(`<rect x="0" y="${headerH - 8}" width="${w}" height="8" fill="${headerBg}"/>`);
+        if (iconText) {
+            parts.push(
+                `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
+            );
+        }
+        parts.push(
+            `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="12" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
+        );
 
-                if (iconText) {
-                    parts.push(
-                        `<text x="10" y="${headerH / 2 + 5}" font-size="14" dominant-baseline="middle">${this._escapeXml(iconText)}</text>`
-                    );
-                }
-                parts.push(
-                    `<text x="${iconText ? 30 : 10}" y="${headerH / 2 + 5}" font-size="12" fill="${titleColor}" font-weight="600" font-family="system-ui, -apple-system, sans-serif" dominant-baseline="middle">${this._escapeXml(title)}</text>`
-                );
+        if (typeText) {
+            this._buildTypeBadgeExport(parts, el, w, headerH, typeText);
+        }
+        if (descText) {
+            parts.push(
+                `<text x="10" y="${headerH + 16}" font-size="10" fill="#666" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
+            );
+        }
+    }
 
-                if (typeText) {
-                    const typeTextEl = el.querySelector('.node-type');
-                    const typeBg = typeTextEl
-                        ? this._rgb(window.getComputedStyle(typeTextEl).backgroundColor) || 'rgba(255,255,255,0.1)'
-                        : 'rgba(255,255,255,0.1)';
-                    const typeColor = typeTextEl
-                        ? this._rgb(window.getComputedStyle(typeTextEl).color) || '#94a3b8'
-                        : '#94a3b8';
-                    const typeW = typeText.length * 7 + 12;
-                    const typeH = 16;
-                    const typeX = w - typeW - 6;
-                    const typeY = (headerH - typeH) / 2;
-                    parts.push(
-                        `<rect x="${typeX}" y="${typeY}" width="${typeW}" height="${typeH}" rx="4" fill="${typeBg}"/>`
-                    );
-                    parts.push(
-                        `<text x="${typeX + typeW / 2}" y="${headerH / 2 + 5}" font-size="10" fill="${typeColor}" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="middle">${this._escapeXml(typeText)}</text>`
-                    );
-                }
-                if (descText) {
-                    parts.push(
-                        `<text x="10" y="${headerH + 16}" font-size="10" fill="#666" font-family="system-ui, -apple-system, sans-serif">${this._escapeXml(descText)}</text>`
-                    );
-                }
-            }
+    /**
+     * 构建节点类型标签的导出 SVG
+     * @private
+     */
+    _buildTypeBadgeExport(parts, el, w, headerH, typeText) {
+        const typeTextEl = el.querySelector('.node-type');
+        const typeBg = typeTextEl
+            ? this._rgb(window.getComputedStyle(typeTextEl).backgroundColor) || 'rgba(255,255,255,0.1)'
+            : 'rgba(255,255,255,0.1)';
+        const typeColor = typeTextEl ? this._rgb(window.getComputedStyle(typeTextEl).color) || '#94a3b8' : '#94a3b8';
+        const typeW = typeText.length * 7 + 12;
+        const typeH = 16;
+        const typeX = w - typeW - 6;
+        const typeY = (headerH - typeH) / 2;
 
-            const points = el.querySelectorAll('.connection-point');
-            points.forEach((pt) => {
-                const pr = pt.getBoundingClientRect();
-                const cx = (pr.left - rect.left) * invScale;
-                const cy = (pr.top - rect.top) * invScale;
-                const r = (pr.width / 2) * invScale;
-                const isInput = pt.classList.contains('input');
-                const isOutput = pt.classList.contains('output');
-                parts.push(
-                    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${isInput ? '#4CAF50' : isOutput ? '#2196F3' : '#FF9800'}" stroke="#fff" stroke-width="1.5"/>`
-                );
-            });
+        parts.push(`<rect x="${typeX}" y="${typeY}" width="${typeW}" height="${typeH}" rx="4" fill="${typeBg}"/>`);
+        parts.push(
+            `<text x="${typeX + typeW / 2}" y="${headerH / 2 + 5}" font-size="10" fill="${typeColor}" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="middle">${this._escapeXml(typeText)}</text>`
+        );
+    }
 
-            parts.push('</g>');
-            return parts.join('\n');
-        };
-
-        // 所有节点平铺到顶层，每个节点用 getBoundingClientRect 独立计算绝对位置
-        allNodeEls.forEach((el) => {
-            svgParts.push(renderNode(el));
+    /**
+     * 构建节点连接点的导出 SVG
+     * @private
+     */
+    _buildNodeConnectionPoints(el, parts, nodeRect, invScale) {
+        const points = el.querySelectorAll('.connection-point');
+        points.forEach((pt) => {
+            const pr = pt.getBoundingClientRect();
+            const cx = (pr.left - nodeRect.left) * invScale;
+            const cy = (pr.top - nodeRect.top) * invScale;
+            const r = (pr.width / 2) * invScale;
+            const fill = pt.classList.contains('input')
+                ? '#4CAF50'
+                : pt.classList.contains('output')
+                  ? '#2196F3'
+                  : '#FF9800';
+            parts.push(`<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" stroke="#fff" stroke-width="1.5"/>`);
         });
+    }
 
-        const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    /**
+     * 组装修出 SVG 字符串
+     * @private
+     */
+    _assembleExportSvg(svgParts, bounds, bgColor) {
+        return `<svg xmlns="http://www.w3.org/2000/svg" width="${bounds.width}" height="${bounds.height}" viewBox="0 0 ${bounds.width} ${bounds.height}">
             <defs>
                 <style>
                     .workflow-edge { fill: #64748b; stroke: #64748b; stroke-width: 2.5; }
@@ -1377,20 +1571,21 @@ export class WorkflowCanvas {
             <rect width="100%" height="100%" fill="${bgColor}"/>
             ${svgParts.join('\n')}
         </svg>`;
+    }
 
-        if (format === 'svg') {
-            this._downloadBlob(svgString, 'workflow.svg', 'image/svg+xml');
-            return;
-        }
-
+    /**
+     * 将 SVG 字符串光栅化为 PNG 并下载
+     * @private
+     */
+    _rasterizeToPng(svgString, bounds) {
         const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(svgBlob);
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const scale = 2;
-            canvas.width = width * scale;
-            canvas.height = height * scale;
+            canvas.width = bounds.width * scale;
+            canvas.height = bounds.height * scale;
             const ctx = canvas.getContext('2d');
             ctx.scale(scale, scale);
             ctx.drawImage(img, 0, 0);
@@ -1406,6 +1601,23 @@ export class WorkflowCanvas {
             this._downloadBlob(svgString, 'workflow.svg', 'image/svg+xml');
         };
         img.src = url;
+    }
+
+    /**
+     * 获取导出背景色（读取 CSS 变量）
+     * @private
+     */
+    _getExportBgColor() {
+        return getComputedStyle(document.body).getPropertyValue('--bg-primary').trim() || '#1a1a2e';
+    }
+
+    /**
+     * 安全提取节点元素的文本内容
+     * @private
+     */
+    _getNodeTextContent(el, selector) {
+        const child = el.querySelector(selector);
+        return child ? child.textContent : '';
     }
 
     _rgb(color) {

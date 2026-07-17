@@ -500,6 +500,25 @@ export class WorkflowClipboardPaste {
                 });
             });
 
+            // 清除旧的选择状态，避免粘贴后旧边仍显示为选中
+            this.clipboard.ui.selection.deselectAll();
+
+            // 选中新粘贴的顶层节点
+            const newPastedIds = Object.values(idMap);
+            const pastedTopNodes = newPastedIds.filter((id) => {
+                const node = this.clipboard.core.nodes.find((n) => n.id === id);
+                return node && !node.parentId;
+            });
+            pastedTopNodes.forEach((nodeId) => {
+                const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+                if (nodeEl) nodeEl.classList.add('selected');
+            });
+            if (pastedTopNodes.length > 0) {
+                this.clipboard.ui.isMultiSelectMode = pastedTopNodes.length > 1;
+                this.clipboard.core.selectedNode = pastedTopNodes[0];
+                this.clipboard.core.selectedEdge = null;
+            }
+
             let message;
             if (edgeCount > 0 && skippedEdges > 0) {
                 message =
@@ -525,15 +544,10 @@ export class WorkflowClipboardPaste {
         const newNodeId = `node_${Date.now()}`;
         const offset = 50;
 
-        let x = node.x + offset;
-        let y = node.y + offset;
-
-        const { translateX, scale } = this.clipboard.ui.canvas.getCurrentTransform();
-        if (translateX !== 0 || scale !== 1) {
-            const { canvasX, canvasY } = this.clipboard.ui.canvas.screenToCanvas(node.x, node.y);
-            x = canvasX + offset;
-            y = canvasY + offset;
-        }
+        // node.x / node.y 已经是从剪贴板数据中读取的 canvas 坐标
+        // 不需要 screenToCanvas 转换，直接加偏移即可
+        const x = node.x + offset;
+        const y = node.y + offset;
 
         const newNode = {
             ...node,

@@ -65,6 +65,7 @@ export class WorkflowSelection {
         this.ui.clearPropertyPanel();
         this.ui.edge.update();
         this.ui.align.updateAlignToolbar();
+        this.ui.canvas._selectedNodeIds = new Set();
         this.ui.canvas.renderMinimap();
     }
 
@@ -160,7 +161,7 @@ export class WorkflowSelection {
     }
 
     /**
-     * 删除选中项
+     * 删除选中项（批量操作，统一触发一次渲染）
      */
     deleteSelected() {
         const selectedNodes = document.querySelectorAll('.canvas-node.selected');
@@ -170,16 +171,18 @@ export class WorkflowSelection {
             return;
         }
 
-        selectedEdges.forEach((edgeEl) => {
-            const edgeId = edgeEl.getAttribute('data-edge-id');
-            this.ui.edge.delete(edgeId, false, false);
-        });
+        this.core.batchChanges(() => {
+            selectedEdges.forEach((edgeEl) => {
+                const edgeId = edgeEl.getAttribute('data-edge-id');
+                this.ui.edge.delete(edgeId, false, false);
+            });
 
-        selectedNodes.forEach((nodeEl) => {
-            const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
-            const nodeData = this.core.nodes.find((n) => n.id === nodeId);
-            if (nodeData && nodeData.locked) return;
-            this.ui.node.render.delete(nodeId, false, false);
+            selectedNodes.forEach((nodeEl) => {
+                const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
+                const nodeData = this.core.nodes.find((n) => n.id === nodeId);
+                if (nodeData && nodeData.locked) return;
+                this.ui.node.render.delete(nodeId, false, false);
+            });
         });
 
         this.core.selectedNode = null;
@@ -190,10 +193,15 @@ export class WorkflowSelection {
 
     /**
      * 复制选中节点（Ctrl+D）
+     * 深拷贝节点数据并重映射内部 blockID 引用
      */
     duplicateSelected() {
         const selectedEls = document.querySelectorAll('.canvas-node.selected');
         if (selectedEls.length === 0) return;
+
+        // 第一遍：构建旧ID → 新ID 映射，生成克隆节点
+        const idMap = {};
+        const newNodes = [];
 
         selectedEls.forEach((el) => {
             const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
@@ -201,6 +209,8 @@ export class WorkflowSelection {
             if (!node) return;
 
             const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            idMap[nodeId] = newId;
+
             const newNode = {
                 ...deepClone(node),
                 id: newId,
@@ -208,7 +218,12 @@ export class WorkflowSelection {
                 x: node.x + 30,
                 y: node.y + 30,
             };
+            newNodes.push({ el, newNode });
+        });
 
+        // 第二遍：重映射 blockID 引用，加入核心数据并渲染
+        newNodes.forEach(({ el, newNode }) => {
+            this._remapBlockIdsForNode(newNode, idMap);
             this.core.addNode(newNode);
             const newEl = this.ui.node.render.createElement(newNode);
             this.ui.canvas.canvasContent.appendChild(newEl);
@@ -217,5 +232,55 @@ export class WorkflowSelection {
 
         this.core.saveHistory('messages.duplicateNodes');
         this.ui.showMessage(t('messages.duplicatedNodes', { count: selectedEls.length }), 'success');
+    }
+
+    /**
+     * 重映射节点内部 blockID 引用（用于复制/克隆场景）
+     * @param {object} node - 节点数据
+     * @param {Record<string, string>} idMap - 旧ID → 新ID 映射
+     */
+    _remapBlockIdsForNode(node, idMap) {
+        // inputParams 中的 ref blockID
+        if (node.inputParams && Array.isArray(node.inputParams)) {
+            node.inputParams.forEach((param) => {
+                if (param.valueType === 'ref' && param.value?.content?.blockID) {
+                    const newId = idMap[String(param.value.content.blockID)];
+                    if (newId) param.value.content.blockID = newId;
+                }
+            });
+        }
+
+        const p = node.parameters;
+        if (!p) return;
+
+        // 辅助：重映射含 type === 'ref' 的对象
+        const remapValueObj = (obj) => {
+            if (obj?.value?.type === 'ref' && obj.value.content?.blockID) {
+                const newId = idMap[String(obj.value.content.blockID)];
+                if (newId) obj.value.content.blockID = newId;
+            }
+        };
+
+        // _contentRaw
+        if (p._contentRaw && typeof p._contentRaw === 'object') {
+            remapValueObj(p._contentRaw);
+        }
+
+        // dynamic_option
+        if (p.dynamic_option && typeof p.dynamic_option === 'object') {
+            remapValueObj(p.dynamic_option);
+        }
+
+        // loop_set_variable variables
+        if (node.type === 'loop_set_variable' && Array.isArray(p.variables)) {
+            p.variables.forEach((v) => {
+                ['left', 'right'].forEach((side) => {
+                    if (v[side]?.value?.content?.blockID) {
+                        const newId = idMap[String(v[side].value.content.blockID)];
+                        if (newId) v[side].value.content.blockID = newId;
+                    }
+                });
+            });
+        }
     }
 }

@@ -3,6 +3,7 @@
  * 负责节点 DOM 元素创建、canvas 交互（拖拽、点击、选择、删除）
  */
 import { StringUtils } from '../utils/helpers.js';
+import { APP_CONFIG } from '../config/constants.js';
 import { t } from '../i18n/i18n.js';
 import { WorkflowContainerRender } from './editor-container-render.js';
 import { WorkflowNodeDrag } from './editor-node-drag.js';
@@ -158,13 +159,13 @@ export class WorkflowNodeRender {
                 e.stopPropagation();
                 if (this.node.ui.connectingFrom && this.node.ui.connectingFrom !== nodeData.id) {
                     const targetPortId = /** @type {HTMLElement} */ (point).dataset.portId || '';
-                    const edge = this.node.core.createEdge(
+                    const result = this.node.core.createEdge(
                         this.node.ui.connectingFrom,
                         nodeData.id,
                         this.node.ui.connectingFromPort,
                         targetPortId
                     );
-                    if (edge) {
+                    if (result && !result.error) {
                         this.node.core.saveHistory('messages.createConnection');
                     }
                     this.node.ui.cancelConnection();
@@ -274,7 +275,12 @@ export class WorkflowNodeRender {
             const cInfo = this.node.core.nodeTypeInfo[c.type] || {};
             const cw = c.width || cInfo.containerMinWidth || 300;
             const ch = c.height || cInfo.containerMinHeight || 200;
-            if (canvasX >= cx && canvasX <= cx + cw && canvasY >= cy + 58 && canvasY <= cy + ch) {
+            if (
+                canvasX >= cx &&
+                canvasX <= cx + cw &&
+                canvasY >= cy + APP_CONFIG.NODE.CONTAINER_BODY_OFFSET &&
+                canvasY <= cy + ch
+            ) {
                 targetContainer = c;
                 break;
             }
@@ -283,7 +289,10 @@ export class WorkflowNodeRender {
         if (targetContainer) {
             nodeData.parentId = targetContainer.id;
             nodeData.x = Math.max(5, Math.round(canvasX - 100 - targetContainer.x));
-            nodeData.y = Math.max(5, Math.round(canvasY - 50 - targetContainer.y - 58));
+            nodeData.y = Math.max(
+                5,
+                Math.round(canvasY - 50 - targetContainer.y - APP_CONFIG.NODE.CONTAINER_BODY_OFFSET)
+            );
             this.container.renderContainerChildren(targetContainer.id);
         } else {
             this.node.ui.canvas.canvasContent.appendChild(el);

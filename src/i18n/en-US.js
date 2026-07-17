@@ -35,7 +35,7 @@ export const enUS = {
         reset: 'Reset',
         workflowEditor: '🛠️ Workflow Editor',
         workflowManager: '📋 Workflow Manager',
-        paramName: 'Param Name'
+        paramName: 'Param Name',
     },
     converter: {
         title: '🔧 Workflow Converter',
@@ -93,7 +93,7 @@ export const enUS = {
         importDataError: 'Imported data format is incorrect',
         importFileError: 'Import failed: Invalid JSON file',
         clearHistorySuccess: 'History cleared',
-        unnamed: 'Unnamed'
+        unnamed: 'Unnamed',
     },
     editor: {
         title: '🛠️ Workflow Editor',
@@ -202,7 +202,7 @@ export const enUS = {
         edgeCount: 'Edge Count',
         startNode: 'Start Node',
         endNode: 'End Node',
-        selectNodeViewProp: 'Select a node to view properties'
+        selectNodeViewProp: 'Select a node to view properties',
     },
     nodeTypes: {
         start: 'Start',
@@ -311,8 +311,8 @@ export const enUS = {
             video_extract_audio: 'Extract audio from video',
             video_extract_frame: 'Extract frames from video',
             memory_write: 'Write memory to memory store',
-            memory_read: 'Retrieve memory from memory store'
-        }
+            memory_read: 'Retrieve memory from memory store',
+        },
     },
     manager: {
         title: '📋 Workflow Manager',
@@ -416,14 +416,14 @@ export const enUS = {
         versionChangeTitle: 'Title: "{old}" → "{new}"',
         versionChangeType: 'Type: {old} → {new}',
         versionChangePosition: 'Position: ({x1},{y1}) → ({x2},{y2})',
-        versionChangeParams: 'Parameters changed'
+        versionChangeParams: 'Parameters changed',
     },
     history: {
         undoSuccess: 'Undo successful',
         undoFail: 'Cannot undo',
         redoSuccess: 'Redo successful',
         redoFail: 'Cannot redo',
-        jumpTo: 'Jump to: {action}'
+        jumpTo: 'Jump to: {action}',
     },
     properties: {
         title: 'Properties',
@@ -449,7 +449,7 @@ export const enUS = {
         parameterType: 'Parameter Type',
         required: 'Required',
         defaultValue: 'Default Value',
-        noParams: 'No parameters'
+        noParams: 'No parameters',
     },
     settings: {
         title: 'Settings',
@@ -469,17 +469,17 @@ export const enUS = {
         saveSettings: 'Save Settings',
         languageOptions: {
             'zh-CN': '中文',
-            'en-US': 'English'
+            'en-US': 'English',
         },
         themeOptions: {
             light: 'Light',
             dark: 'Dark',
-            system: 'System'
+            system: 'System',
         },
         fontOptions: {
-            'system': 'System Font',
-            'monospace': 'Monospace'
-        }
+            system: 'System Font',
+            monospace: 'Monospace',
+        },
     },
     nodeParams: {
         inputVariables: 'Input Variables',
@@ -541,7 +541,7 @@ export const enUS = {
         isHtml: 'HTML Format',
         payload: 'Payload',
         secret: 'Secret',
-        schema: 'Schema'
+        schema: 'Schema',
     },
     messages: {
         unknownNode: 'Unknown Node',
@@ -608,8 +608,8 @@ export const enUS = {
             save: 'Save',
             search: 'Search/Auto Layout',
             lock: 'Lock/Unlock',
-            escape: 'Cancel/Exit'
-        }
+            escape: 'Cancel/Exit',
+        },
     },
     nodes: {
         node: 'Node',
@@ -644,7 +644,7 @@ export const enUS = {
         rightValue: 'New Value',
         intermediateVariables: 'Intermediate Variables',
         selectReference: 'Select Reference',
-        clearReference: 'Clear Reference'
+        clearReference: 'Clear Reference',
     },
     actions: {
         addNode: 'Add node: {type}',
@@ -652,12 +652,15 @@ export const enUS = {
         deleteConnection: 'Delete connection',
         createConnection: 'Create connection',
         connectionCreated: 'Connection created',
+        containerInternalOnly: 'Container internal port only accepts child nodes',
+        containerExternalOnly: 'Container external port only accepts outside nodes',
         nodeSaved: 'Node saved',
         pasteSuccess: 'Pasted: {nodeCount} nodes',
         pasteSuccessWithEdges: 'Pasted: {nodeCount} nodes, {edgeCount} edges',
         pasteSkipped: '({skipped} duplicate edges skipped)',
         pasteFailed: 'Paste failed: {message}',
-        pasteInvalidData: 'Paste failed: Invalid data format'
+        pasteInvalidData: 'Paste failed: Invalid data format',
+        pasteEmpty: 'Clipboard is empty, nothing to paste',
     },
     edge: {
         connectionEdge: '🔗 Connection Edge',
@@ -666,7 +669,7 @@ export const enUS = {
         sourcePort: 'Source Port',
         targetPort: 'Target Port',
         unknown: 'Unknown',
-        deleteConnection: 'Delete Connection'
+        deleteConnection: 'Delete Connection',
     },
     modelNames: {
         'GLM-4.7': 'GLM-4.7',
@@ -675,13 +678,13 @@ export const enUS = {
         '豆包·2.0·mini': 'Doubao 2.0 Mini',
         '豆包·1.8·深度思考': 'Doubao 1.8 Deep Thinking',
         '豆包·1.6·思考深度调节': 'Doubao 1.6 Thinking Depth',
-        'DeepSeek-V3.2': 'DeepSeek-V3.2'
+        'DeepSeek-V3.2': 'DeepSeek-V3.2',
     },
     templates: {
         categories: {
             basic: 'Basic',
             common: 'Common',
-            advanced: 'Advanced'
+            advanced: 'Advanced',
         },
         tpl_welcome: {
             name: 'Welcome Message',
@@ -689,8 +692,8 @@ export const enUS = {
             nodes: {
                 start: { title: 'Start', desc: 'Workflow starting point' },
                 llm: { title: 'Generate Welcome', desc: 'Generate a friendly welcome message' },
-                end: { title: 'End', desc: 'Workflow end point' }
-            }
+                end: { title: 'End', desc: 'Workflow end point' },
+            },
         },
         tpl_chatbot: {
             name: 'Smart Chatbot',
@@ -701,8 +704,8 @@ export const enUS = {
                 branch: { title: 'Intent Branch', desc: 'Branch based on intent' },
                 knowledge: { title: 'Knowledge Search', desc: 'Retrieve matching answers from knowledge base' },
                 chat: { title: 'Chat Reply', desc: 'Generate casual reply' },
-                end: { title: 'Reply User', desc: 'Output final reply' }
-            }
+                end: { title: 'Reply User', desc: 'Output final reply' },
+            },
         },
         tpl_image_gen: {
             name: 'Image Generation',
@@ -711,8 +714,8 @@ export const enUS = {
                 start: { title: 'Start', desc: 'Receive input' },
                 text: { title: 'Image Description', desc: 'Generate or receive image description text' },
                 image: { title: 'Generate Image', desc: 'Generate image from description' },
-                end: { title: 'Output Image', desc: 'Output generated image' }
-            }
+                end: { title: 'Output Image', desc: 'Output generated image' },
+            },
         },
         tpl_data_process: {
             name: 'Data Processing',
@@ -722,8 +725,8 @@ export const enUS = {
                 http: { title: 'Fetch Data', desc: 'Get data from API' },
                 code: { title: 'Clean Data', desc: 'Clean and transform data format' },
                 llm: { title: 'Data Analysis', desc: 'LLM analyzes processing results' },
-                end: { title: 'Output Report', desc: 'Output analysis report' }
-            }
+                end: { title: 'Output Report', desc: 'Output analysis report' },
+            },
         },
         tpl_loop: {
             name: 'Loop Processing',
@@ -733,8 +736,8 @@ export const enUS = {
                 loop: { title: 'Loop Processing', desc: 'Process data one by one' },
                 process: { title: 'Process Item', desc: 'LLM processes each item' },
                 format: { title: 'Format Result', desc: 'Format single processing result' },
-                end: { title: 'Aggregate Output', desc: 'Output aggregated results' }
-            }
+                end: { title: 'Aggregate Output', desc: 'Output aggregated results' },
+            },
         },
         tpl_batch: {
             name: 'Batch Processing',
@@ -744,8 +747,8 @@ export const enUS = {
                 batch: { title: 'Batch Process', desc: 'Process data in batches' },
                 api: { title: 'Call API', desc: 'Call external API for each batch' },
                 analysis: { title: 'Result Analysis', desc: 'Analyze processing results per batch' },
-                end: { title: 'Aggregate Output', desc: 'Output all results' }
-            }
-        }
-    }
+                end: { title: 'Aggregate Output', desc: 'Output all results' },
+            },
+        },
+    },
 };

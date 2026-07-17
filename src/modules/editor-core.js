@@ -3,6 +3,12 @@
  *
  * 负责管理工作流的节点、边、历史记录和验证逻辑
  * 节点类型定义由 editor-node-types.js 提供
+ * @typedef {import('../types/workflow.js').WorkflowNode WorkflowNode}
+ * @typedef {import('../types/workflow.js').WorkflowEdge WorkflowEdge}
+ * @typedef {import('../types/workflow.js').HistoryState HistoryState}
+ * @typedef {import('../types/workflow.js').NodeTypeInfo NodeTypeInfo}
+ * @typedef {import('../types/workflow.js').WorkflowData WorkflowData}
+ * @typedef {import('../types/workflow.js').ChangeCallback ChangeCallback}
  */
 import { REV_TYPE_MAP, resolveNodeType } from '../utils/types.js';
 import { t } from '../i18n/i18n.js';
@@ -10,6 +16,7 @@ import { Logger } from '../utils/logger.js';
 import { deepClone } from '../utils/helpers.js';
 import { WorkflowStorage } from './editor-storage.js';
 import { WorkflowSerializer } from './shared-serializer.js';
+import { WorkflowContainer } from './editor-container.js';
 import { getNodeTypeInfo } from './editor-node-types.js';
 
 export class WorkflowCore {
@@ -17,9 +24,9 @@ export class WorkflowCore {
      * 构造函数
      */
     constructor() {
-        /** @type {Array} 节点数组 */
+        /** @type {WorkflowNode[]} 节点数组 */
         this.nodes = [];
-        /** @type {Array} 边数组 */
+        /** @type {WorkflowEdge[]} 边数组 */
         this.edges = [];
         /** @type {number} 节点ID计数器 */
         this.nodeIdCounter = 100000;
@@ -30,19 +37,25 @@ export class WorkflowCore {
         /** @type {string|null} 当前选中的边ID */
         this.selectedEdge = null;
 
-        /** @type {Array} 历史记录数组 */
+        /** @type {HistoryState[]} 历史记录数组 */
         this.history = [];
         /** @type {number} 当前历史记录索引 */
         this.historyIndex = -1;
         /** @type {number} 最大历史记录数量 */
         this.maxHistory = 50;
+        /** @type {number} 操作合并时间窗口（毫秒），相同操作在此窗口内自动合并 */
+        this._historyMergeWindow = 1500;
+        /** @type {string|null} 上一次保存历史的操作键，用于合并判断 */
+        this._lastHistoryAction = null;
+        /** @type {number} 上一次保存历史的时间戳 */
+        this._lastHistoryTime = 0;
 
-        /** @type {Function|null} 数据变更回调 */
+        /** @type {ChangeCallback|null} 数据变更回调 */
         this._onChange = null;
         /** @type {boolean} 是否批量操作中 */
         this._batchMode = false;
 
-        /** @type {Object} 节点类型信息缓存 */
+        /** @type {Object.<string, NodeTypeInfo>} 节点类型信息缓存 */
         this._nodeTypeInfo = getNodeTypeInfo();
         this._nodeTypeInfoHandler = () => {
             this._nodeTypeInfo = getNodeTypeInfo();
@@ -53,11 +66,12 @@ export class WorkflowCore {
 
         this.storage = new WorkflowStorage(this);
         this.serializer = new WorkflowSerializer(this);
+        this.container = new WorkflowContainer(this);
     }
 
     /**
      * 设置数据变更回调
-     * @param {Function} fn - 回调函数 (action, data) => void
+     * @param {ChangeCallback} fn - 回调函数 (action, data) => void
      */
     set onChange(fn) {
         this._onChange = fn;
@@ -76,7 +90,7 @@ export class WorkflowCore {
 
     /**
      * 批量操作：在回调中批量修改数据，完成后统一触发一次刷新
-     * @param {Function} fn - 批量操作函数
+     * @param {() => void} fn - 批量操作函数
      */
     batchChanges(fn) {
         this._batchMode = true;
@@ -92,16 +106,16 @@ export class WorkflowCore {
 
     /**
      * 获取节点类型配置信息（动态翻译，语言切换时自动刷新缓存）
-     * @returns {Object} 包含每种节点的标题、图标、描述、输入输出属性和参数定义
+     * @returns {Object.<string, NodeTypeInfo>} 包含每种节点的标题、图标、描述、输入输出属性和参数定义
      */
     get nodeTypeInfo() {
         return this._nodeTypeInfo;
     }
 
     /**
-     * 创建新节点
+     * 获取节点默认参数值
      * @param {string} type - 节点类型
-     * @returns {object} 创建的节点对象
+     * @returns {Object.<string, *>} 默认参数键值对
      */
     _getDefaultParameters(type) {
         const info = this.nodeTypeInfo[type];
@@ -115,6 +129,14 @@ export class WorkflowCore {
         return defaults;
     }
 
+    /**
+     * 创建新节点
+     * @param {string} type - 节点类型
+     * @param {number} x - X 坐标
+     * @param {number} y - Y 坐标
+     * @param {Partial<WorkflowNode>} [data] - 初始数据（可选）
+     * @returns {WorkflowNode} 创建的节点对象
+     */
     createNode(type, x, y, data = null) {
         const info = this.nodeTypeInfo[type] || {
             title: t('messages.unknownNode'),
@@ -145,8 +167,8 @@ export class WorkflowCore {
 
     /**
      * 添加节点到工作流
-     * @param {object} nodeData - 节点数据对象
-     * @returns {object} 添加的节点对象
+     * @param {WorkflowNode} nodeData - 节点数据对象
+     * @returns {WorkflowNode} 添加的节点对象
      */
     addNode(nodeData) {
         this.nodes.push(nodeData);
@@ -155,7 +177,7 @@ export class WorkflowCore {
     }
 
     /**
-     * 删除节点及相关边
+     * 删除节点及相关边（含递归删除容器子节点）
      * @param {string} nodeId - 节点ID
      */
     deleteNode(nodeId) {
@@ -179,24 +201,23 @@ export class WorkflowCore {
     }
 
     /**
-     * 获取指定节点的所有子节点
+     * 获取指定节点的所有直接子节点
      * @param {string} parentId - 父节点ID
-     * @returns {Array} 子节点数组
+     * @returns {WorkflowNode[]} 子节点数组
+     * @deprecated 请使用 this.container.getChildren(parentId)
      */
     getChildNodes(parentId) {
-        return this.nodes.filter((n) => n.parentId === parentId);
+        return this.container.getChildren(parentId);
     }
 
     /**
      * 检查节点是否为容器节点
      * @param {string} nodeId - 节点ID
-     * @returns {boolean}
+     * @returns {boolean} 是否为容器节点
+     * @deprecated 请使用 this.container.isContainer(nodeId)
      */
     isContainerNode(nodeId) {
-        const node = this.nodes.find((n) => n.id === nodeId);
-        if (!node) return false;
-        const info = this.nodeTypeInfo[node.type];
-        return info?.hasContainer === true;
+        return this.container.isContainer(nodeId);
     }
 
     /**
@@ -230,26 +251,14 @@ export class WorkflowCore {
      * 创建新边
      * @param {string} sourceId - 源节点ID
      * @param {string} targetId - 目标节点ID
-     * @param {string} sourcePort - 源端口ID（可选，用于分支节点）
-     * @param {string} targetPort - 目标端口ID（可选）
-     * @returns {object|null} 创建的边对象，如果已存在则返回null
+     * @param {string} [sourcePort] - 源端口标识（分支节点、容器节点使用）
+     * @param {string} [targetPort] - 目标端口标识（容器节点使用）
+     * @returns {WorkflowEdge|null} 创建的边对象，如果已存在或校验失败则返回null
      */
     createEdge(sourceId, targetId, sourcePort = '', targetPort = '') {
-        // 容器端口校验：外部端口只能连外部节点，内部端口只能连容器内子节点
-        const sourceIsContainer = this.isContainerNode(sourceId);
-        const targetIsContainer = this.isContainerNode(targetId);
-        const sourceIsChild = !!this.nodes.find((n) => n.id === sourceId)?.parentId;
-        const targetIsChild = !!this.nodes.find((n) => n.id === targetId)?.parentId;
-
-        if (sourceIsContainer) {
-            const isInternalPort = sourcePort === 'container_start';
-            if (isInternalPort && !targetIsChild) return null;
-            if (!isInternalPort && targetIsChild) return null;
-        }
-        if (targetIsContainer) {
-            const isInternalPort = targetPort === 'container_end';
-            if (isInternalPort && !sourceIsChild) return null;
-            if (!isInternalPort && sourceIsChild) return null;
+        const validation = this.container.validateContainerPorts(sourceId, targetId, sourcePort, targetPort);
+        if (!validation.valid) {
+            return { error: validation.reason };
         }
 
         const edge = {
@@ -269,8 +278,8 @@ export class WorkflowCore {
 
     /**
      * 添加边到工作流
-     * @param {object} edgeData - 边数据对象
-     * @returns {object|null} 添加的边对象，如果已存在则返回null
+     * @param {WorkflowEdge} edgeData - 边数据对象
+     * @returns {WorkflowEdge|null} 添加的边对象，如果已存在则返回null
      */
     addEdge(edgeData) {
         const existingEdge = this.edges.find(
@@ -302,11 +311,34 @@ export class WorkflowCore {
     }
 
     /**
-     * 保存当前状态到历史记录
-     * @param {string} [actionKey='messages.defaultAction'] - i18n 键
-     * @param {object} [actionParams={}] - i18n 插值参数
+     * 保存当前状态到历史记录（全量快照）
+     * 支持操作合并：相同操作在时间窗口内自动合并为一条历史
+     * @param {string} [actionKey='messages.defaultAction'] - i18n 操作名称键
+     * @param {Object.<string, *>} [actionParams] - i18n 插值参数
+     * @param {boolean} [force=false] - 强制保存，不进行合并
      */
-    saveHistory(actionKey = 'messages.defaultAction', actionParams = {}) {
+    saveHistory(actionKey = 'messages.defaultAction', actionParams = {}, force = false) {
+        const now = Date.now();
+        const canMerge =
+            !force &&
+            this.historyIndex >= 0 &&
+            actionKey === this._lastHistoryAction &&
+            now - this._lastHistoryTime < this._historyMergeWindow;
+
+        if (canMerge) {
+            const currentState = this.history[this.historyIndex];
+            currentState.nodes = deepClone(this.nodes);
+            currentState.edges = deepClone(this.edges);
+            currentState.selectedNode = this.selectedNode;
+            currentState.selectedEdge = this.selectedEdge;
+            currentState.timestamp = now;
+            currentState.actionParams = { ...currentState.actionParams, ...actionParams };
+            this._lastHistoryTime = now;
+            this._emitChange('history');
+            return;
+        }
+
+        /** @type {HistoryState} */
         const state = {
             nodes: deepClone(this.nodes),
             edges: deepClone(this.edges),
@@ -314,24 +346,42 @@ export class WorkflowCore {
             selectedEdge: this.selectedEdge,
             actionKey: actionKey,
             actionParams: actionParams,
-            timestamp: Date.now(),
+            timestamp: now,
         };
 
         this.historyIndex++;
         this.history[this.historyIndex] = state;
         this.history.length = this.historyIndex + 1;
 
-        if (this.history.length > this.maxHistory) {
+        const dynamicMax = this._getDynamicMaxHistory();
+        if (this.history.length > dynamicMax) {
             this.history.shift();
             this.historyIndex--;
         }
+
+        this._lastHistoryAction = actionKey;
+        this._lastHistoryTime = now;
         this._emitChange('history');
     }
 
     /**
-     * 重置历史记录
-     * @param {string} [actionKey='messages.initAction'] - i18n 键
-     * @param {object} [actionParams={}] - i18n 插值参数
+     * 根据节点数动态计算最大历史记录数
+     * 节点越多，历史记录越少，避免内存占用过大
+     * @returns {number} 动态最大历史记录数
+     */
+    _getDynamicMaxHistory() {
+        const nodeCount = this.nodes.length;
+        if (nodeCount <= 20) return this.maxHistory;
+        if (nodeCount <= 50) return 30;
+        if (nodeCount <= 100) return 20;
+        if (nodeCount <= 200) return 10;
+        return 5;
+    }
+
+    /**
+     * 重置历史记录（清空并保存初始状态）
+     * @param {string} [actionKey='messages.initAction'] - i18n 操作名称键
+     * @param {Object.<string, *>} [actionParams] - i18n 插值参数
      */
     resetHistory(actionKey = 'messages.initAction', actionParams = {}) {
         this.history = [];
@@ -422,6 +472,7 @@ export class WorkflowCore {
         this.selectedNode = null;
         this.selectedEdge = null;
         this._emitChange('clearAll');
+        this.saveHistory('messages.clearCanvasTitle');
     }
 
     /**
@@ -449,7 +500,7 @@ export class WorkflowCore {
 
     /**
      * 验证工作流的有效性
-     * @returns {object} 验证结果 { valid, message, errors }
+     * @returns {{ valid: boolean, message: string, errors: string[] }} 验证结果
      */
     validate() {
         const errors = [];
@@ -537,7 +588,7 @@ export class WorkflowCore {
 
     /**
      * 导入工作流数据（转发到 serializer 模块）
-     * @param {object} workflow
+     * @param {WorkflowData} workflow - 工作流数据
      */
     importWorkflow(workflow) {
         return this.serializer.importWorkflow(workflow);
@@ -545,8 +596,8 @@ export class WorkflowCore {
 
     /**
      * 导出工作流数据（转发到 serializer 模块）
-     * @param {object} options
-     * @returns {object}
+     * @param {Object} [options] - 导出选项
+     * @returns {WorkflowData} 工作流数据
      */
     exportWorkflow(options) {
         return this.serializer.exportWorkflow(options);

@@ -6,6 +6,7 @@ export default {
     },
     moduleFileExtensions: ['js', 'mjs'],
     testMatch: ['**/tests/**/*.test.js'],
+    testPathIgnorePatterns: ['/node_modules/', '/src/example/'],
     coverageThreshold: {
         // 纯逻辑/工具类 — 80%
         'src/modules/converter.js': { lines: 80 },

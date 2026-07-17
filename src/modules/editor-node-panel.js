@@ -235,6 +235,16 @@ export class WorkflowNodePanel {
             return;
         }
 
+        // 切换节点前保存当前节点的动态参数
+        if (this.node.ui._currentPanelNodeId && this.node.ui._currentPanelNodeId !== targetNode.id) {
+            const prevNode = this.node.core.nodes.find((n) => n.id === this.node.ui._currentPanelNodeId);
+            if (prevNode) {
+                this.node.paramEditor.saveDynamicParams(prevNode, 'input');
+                this.node.paramEditor.saveDynamicParams(prevNode, 'output');
+            }
+        }
+        this.node.ui._currentPanelNodeId = targetNode.id;
+
         if (targetNode.outputParams === undefined) {
             targetNode.outputParams = [];
             if (targetNode.parameters?.node_outputs && typeof targetNode.parameters.node_outputs === 'object') {
@@ -264,6 +274,20 @@ export class WorkflowNodePanel {
                     targetNode.parameters.node_inputs
                 );
             }
+        } else if (targetNode.parameters?.node_inputs && typeof targetNode.parameters.node_inputs === 'object') {
+            // 同步 node_inputs 中的引用信息到 inputParams
+            targetNode.inputParams.forEach((p) => {
+                const isRef =
+                    p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+                if (!isRef && p.name && targetNode.parameters.node_inputs[p.name]?.input?.value?.type === 'ref') {
+                    const od = targetNode.parameters.node_inputs[p.name];
+                    p.value = { type: 'ref', content: od.input.value.content };
+                    p.valueType = 'ref';
+                    if (od.input.value.rawMeta) {
+                        p.rawMeta = od.input.value.rawMeta;
+                    }
+                }
+            });
         }
 
         const info = this.node.core.nodeTypeInfo[targetNode.type] || {};
@@ -811,6 +835,8 @@ export class WorkflowNodePanel {
     _autoSavePropertyPanel(nodeId) {
         const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
         if (!targetNode) return;
+        this.node.paramEditor.saveDynamicParams(targetNode, 'input');
+        this.node.paramEditor.saveDynamicParams(targetNode, 'output');
         this.saveNodeDetail(nodeId, true);
     }
     _handleAction(e) {

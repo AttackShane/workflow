@@ -41,9 +41,13 @@ export class WorkflowSearch {
         const searchScope = /** @type {HTMLSelectElement|null} */ (DOM.get('nodeSearchScope'));
         if (!searchInput) return;
 
+        let debounceTimer = null;
         const triggerSearch = () => {
-            const term = searchInput.value.trim().toLowerCase();
-            this.performSearch(term, searchScope?.value || 'all');
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                const term = searchInput.value.trim().toLowerCase();
+                this.performSearch(term, searchScope?.value || 'all');
+            }, 300);
         };
 
         DOM.on(searchInput, 'input', triggerSearch);

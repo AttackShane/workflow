@@ -962,7 +962,8 @@ describe('WorkflowClipboard', () => {
             expect(clipboard.copiedNode).toBeDefined();
 
             await clipboard.paste();
-            expect(core.nodes.length).toBe(2);
+            // 新行为：非 JSON 剪贴板文本应报错而非静默回退
+            expect(core.nodes.length).toBe(1);
         });
 
         it('should handle clipboard read error', async () => {

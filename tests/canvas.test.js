@@ -80,6 +80,16 @@ jest.mock('../src/i18n/i18n.js', () => ({
 jest.mock('../src/config/constants.js', () => ({
     APP_CONFIG: {
         ZOOM: { MIN_SCALE: 0.25, MAX_SCALE: 3, ZOOM_FACTOR: 0.1 },
+        NODE: {
+            NODE_HEADER_H: 32,
+            CONTAINER_HEADER_H: 36,
+            CONTAINER_DESC_H: 20,
+            CONTAINER_OFFSET: 56,
+            CONTAINER_BODY_OFFSET: 58,
+            SVG_CONTAINER_RX: 12,
+            SVG_NODE_RX: 8,
+            SVG_HEADER_CAP_H: 12,
+        },
     },
     SELECTORS: {
         EDITOR: {

@@ -139,15 +139,24 @@ export class WorkflowParamEditor {
     }
 
     _paramsFromNodeOutputs(outputsMap) {
-        return Object.entries(outputsMap).map(([name, def]) => ({
-            name,
-            type: def.type || 'string',
-            description: def.description || '',
-            required: def.required || false,
-            value: def.value || '',
-            valueType: def.valueType || '',
-            rawMeta: def.rawMeta || undefined,
-        }));
+        return Object.entries(outputsMap).map(([name, def]) => {
+            const directRef = def.value && typeof def.value === 'object' && def.value.type === 'ref';
+            const inputRef =
+                !directRef && def.input?.value && typeof def.input.value === 'object' && def.input.value.type === 'ref';
+            return {
+                name,
+                type: def.type || 'string',
+                description: def.description || '',
+                required: def.required || false,
+                value: directRef ? def.value : inputRef ? def.input.value : def.value || '',
+                valueType: directRef || inputRef ? 'ref' : def.valueType || '',
+                rawMeta: directRef
+                    ? def.rawMeta || undefined
+                    : inputRef
+                      ? def.input.value.rawMeta || undefined
+                      : undefined,
+            };
+        });
     }
 
     _paramsToNodeOutputs(paramsArr) {
@@ -245,87 +254,88 @@ export class WorkflowParamEditor {
     }
 
     addInputParam(nodeId) {
-        try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
-            if (!targetNode) return;
-            if (!targetNode.inputParams) targetNode.inputParams = [];
-            targetNode.inputParams.push({ name: '', type: 'string', value: '', required: false, description: '' });
-            this.node.render.renderPropertyPanel(targetNode);
-        } catch (e) {}
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        if (!targetNode) return;
+        if (!targetNode.inputParams) targetNode.inputParams = [];
+        this.saveDynamicParams(targetNode, 'input');
+        this.saveDynamicParams(targetNode, 'output');
+        targetNode.inputParams.push({ name: '', type: 'string', value: '', required: false, description: '' });
+        this.node.panel.renderPropertyPanel(targetNode);
     }
 
     addOutputParam(nodeId) {
-        try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
-            if (!targetNode) return;
-            if (!targetNode.outputParams) targetNode.outputParams = [];
-            targetNode.outputParams.push({ name: '', type: 'string', value: '', description: '' });
-            this.node.render.renderPropertyPanel(targetNode);
-        } catch (e) {}
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        if (!targetNode) return;
+        if (!targetNode.outputParams) targetNode.outputParams = [];
+        this.saveDynamicParams(targetNode, 'input');
+        this.saveDynamicParams(targetNode, 'output');
+        targetNode.outputParams.push({ name: '', type: 'string', value: '', description: '' });
+        this.node.panel.renderPropertyPanel(targetNode);
     }
 
     removeParam(nodeId, prefix, index) {
-        try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
-            if (!targetNode) return;
-            if (prefix === 'input' && targetNode.inputParams) {
-                targetNode.inputParams.splice(index, 1);
-            } else if (prefix === 'output' && targetNode.outputParams) {
-                targetNode.outputParams.splice(index, 1);
-            }
-            this.node.render.renderPropertyPanel(targetNode);
-            this.node.panel._scheduleAutoSave(nodeId);
-        } catch (e) {}
+        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        if (!targetNode) return;
+        this.saveDynamicParams(targetNode, 'input');
+        this.saveDynamicParams(targetNode, 'output');
+        if (prefix === 'input' && targetNode.inputParams) {
+            targetNode.inputParams.splice(index, 1);
+        } else if (prefix === 'output' && targetNode.outputParams) {
+            targetNode.outputParams.splice(index, 1);
+        }
+        this.saveDynamicParams(targetNode, 'input');
+        this.saveDynamicParams(targetNode, 'output');
+        this.node.panel.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
     }
 
     saveDynamicParams(targetNode, prefix) {
         const key = prefix === 'input' ? 'inputParams' : 'outputParams';
-        const params = (targetNode[key] || [])
-            .map((p, i) => {
-                const nameEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Name_${i}`));
-                const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById(`${prefix}Type_${i}`));
-                const valueEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Value_${i}`));
-                const descEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Desc_${i}`));
-                const reqEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Required_${i}`));
-                const refEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Ref_${i}`));
+        const params = (targetNode[key] || []).map((p, i) => {
+            const nameEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Name_${i}`));
+            const typeEl = /** @type {HTMLSelectElement|null} */ (document.getElementById(`${prefix}Type_${i}`));
+            const valueEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Value_${i}`));
+            const descEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Desc_${i}`));
+            const reqEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Required_${i}`));
+            const refEl = /** @type {HTMLInputElement|null} */ (document.getElementById(`${prefix}Ref_${i}`));
 
-                let value;
-                if (refEl && refEl.value) {
+            let value;
+            if (refEl && refEl.value) {
+                try {
+                    value = JSON.parse(decodeURIComponent(refEl.value));
+                } catch (e) {
                     try {
-                        value = JSON.parse(decodeURIComponent(refEl.value));
-                    } catch (e) {
-                        try {
-                            value = JSON.parse(refEl.value);
-                        } catch (e2) {
-                            value = valueEl ? valueEl.value : p.value || '';
-                        }
+                        value = JSON.parse(refEl.value);
+                    } catch (e2) {
+                        value = valueEl ? valueEl.value : p.value || '';
                     }
-                } else {
-                    value = valueEl ? valueEl.value : p.value || '';
                 }
+            } else {
+                value = valueEl ? valueEl.value : p.value || '';
+            }
 
-                const valueIsRef = value && typeof value === 'object' && value.type === 'ref';
-                const result = {
-                    name: nameEl ? nameEl.value.trim() : p.name,
-                    type: typeEl ? typeEl.value : p.type,
-                    value,
-                    description: descEl ? descEl.value : p.description || '',
-                    valueType: valueIsRef ? 'ref' : '',
-                    rawMeta: valueIsRef ? value.rawMeta || undefined : undefined,
-                };
-                if (prefix === 'input' && reqEl) {
-                    result.required = reqEl.checked;
-                } else if (prefix === 'input') {
-                    result.required = p.required || false;
-                }
-                return result;
-            })
-            .filter((p) => p.name);
+            const valueIsRef = value && typeof value === 'object' && value.type === 'ref';
+            const result = {
+                name: nameEl ? nameEl.value.trim() : p.name,
+                type: typeEl ? typeEl.value : p.type,
+                value,
+                description: descEl ? descEl.value : p.description || '',
+                valueType: valueIsRef ? 'ref' : '',
+                rawMeta: valueIsRef ? value.rawMeta || undefined : undefined,
+            };
+            if (prefix === 'input' && reqEl) {
+                result.required = reqEl.checked;
+            } else if (prefix === 'input') {
+                result.required = p.required || false;
+            }
+            return result;
+        });
         targetNode[key] = params;
         const paramKey = prefix === 'input' ? 'node_inputs' : 'node_outputs';
         targetNode.parameters = targetNode.parameters || {};
-        if (params.length > 0) {
-            targetNode.parameters[paramKey] = this._paramsToNodeOutputs(params);
+        const namedParams = params.filter((p) => p.name);
+        if (namedParams.length > 0) {
+            targetNode.parameters[paramKey] = this._paramsToNodeOutputs(namedParams);
         } else {
             delete targetNode.parameters[paramKey];
         }
@@ -584,7 +594,7 @@ export class WorkflowParamEditor {
                     value: { type: 'literal', content: '' },
                 },
             });
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }
@@ -594,7 +604,7 @@ export class WorkflowParamEditor {
             const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
             targetNode.parameters.variableParameters.splice(vi, 1);
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }
@@ -625,7 +635,7 @@ export class WorkflowParamEditor {
                         rawMeta: { type: 1 },
                     },
                 };
-                this.node.render.renderPropertyPanel(targetNode);
+                this.node.panel.renderPropertyPanel(targetNode);
                 this.node.panel._scheduleAutoSave(nodeId);
             }
         );

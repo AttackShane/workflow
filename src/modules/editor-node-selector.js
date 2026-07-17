@@ -122,7 +122,7 @@ export class WorkflowNodeSelector {
                 edge.sourcePort = outputPath;
             }
 
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         });
     }
@@ -141,7 +141,7 @@ export class WorkflowNodeSelector {
                     rawMeta: { type: 1 },
                 },
             });
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }
@@ -153,7 +153,7 @@ export class WorkflowNodeSelector {
             const group = targetNode.parameters.mergeGroups[gi];
             if (!group || !group.variables) return;
             group.variables.splice(vi, 1);
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }

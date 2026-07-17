@@ -35,7 +35,7 @@ export const zhCN = {
         reset: '重置',
         workflowEditor: '🛠️ 工作流编辑器',
         workflowManager: '📋 工作流管理',
-        paramName: '参数名'
+        paramName: '参数名',
     },
     converter: {
         title: '🔧 工作流转换器',
@@ -93,7 +93,7 @@ export const zhCN = {
         importDataError: '导入的数据格式不正确',
         importFileError: '导入失败：无效的 JSON 文件',
         clearHistorySuccess: '历史记录已清空',
-        unnamed: '未命名'
+        unnamed: '未命名',
     },
     editor: {
         title: '🛠️ 工作流编辑器',
@@ -202,7 +202,7 @@ export const zhCN = {
         edgeCount: '连接数量',
         startNode: '开始节点',
         endNode: '结束节点',
-        selectNodeViewProp: '选择节点查看属性'
+        selectNodeViewProp: '选择节点查看属性',
     },
     nodeTypes: {
         start: '开始',
@@ -311,15 +311,15 @@ export const zhCN = {
             video_extract_audio: '从视频中提取音频',
             video_extract_frame: '从视频中抽取帧图片',
             memory_write: '写入记忆到记忆库',
-            memory_read: '从记忆库检索记忆'
-        }
+            memory_read: '从记忆库检索记忆',
+        },
     },
     history: {
         undoSuccess: '撤销成功',
         undoFail: '无法撤销',
         redoSuccess: '重做成功',
         redoFail: '无法重做',
-        jumpTo: '跳转到: {action}'
+        jumpTo: '跳转到: {action}',
     },
     properties: {
         title: '属性',
@@ -345,7 +345,7 @@ export const zhCN = {
         parameterType: '参数类型',
         required: '必填',
         defaultValue: '默认值',
-        noParams: '暂无参数'
+        noParams: '暂无参数',
     },
     settings: {
         title: '设置',
@@ -365,17 +365,17 @@ export const zhCN = {
         saveSettings: '保存设置',
         languageOptions: {
             'zh-CN': '中文',
-            'en-US': 'English'
+            'en-US': 'English',
         },
         themeOptions: {
             light: '浅色',
             dark: '深色',
-            system: '跟随系统'
+            system: '跟随系统',
         },
         fontOptions: {
-            'system': '系统字体',
-            'monospace': '等宽字体'
-        }
+            system: '系统字体',
+            monospace: '等宽字体',
+        },
     },
     nodeParams: {
         inputVariables: '输入变量',
@@ -437,7 +437,7 @@ export const zhCN = {
         isHtml: 'HTML格式',
         payload: '发送数据',
         secret: '签名密钥',
-        schema: '校验Schema'
+        schema: '校验Schema',
     },
     messages: {
         unknownNode: '未知节点',
@@ -504,8 +504,8 @@ export const zhCN = {
             save: '保存',
             search: '搜索/自动布局',
             lock: '锁定/解锁',
-            escape: '取消/退出'
-        }
+            escape: '取消/退出',
+        },
     },
     manager: {
         title: '📋 工作流管理',
@@ -609,7 +609,7 @@ export const zhCN = {
         versionChangeTitle: '标题: "{old}" → "{new}"',
         versionChangeType: '类型: {old} → {new}',
         versionChangePosition: '位置: ({x1},{y1}) → ({x2},{y2})',
-        versionChangeParams: '参数已变更'
+        versionChangeParams: '参数已变更',
     },
     nodes: {
         node: '节点',
@@ -644,7 +644,7 @@ export const zhCN = {
         rightValue: '新值',
         intermediateVariables: '中间变量',
         selectReference: '选择引用',
-        clearReference: '清除引用'
+        clearReference: '清除引用',
     },
     actions: {
         addNode: '添加节点: {type}',
@@ -652,12 +652,15 @@ export const zhCN = {
         deleteConnection: '删除连接',
         createConnection: '创建连接',
         connectionCreated: '连接已创建',
+        containerInternalOnly: '容器内部端口仅允许连接容器内子节点',
+        containerExternalOnly: '容器外部端口仅允许连接容器外节点',
         nodeSaved: '节点已保存',
         pasteSuccess: '粘贴成功：{nodeCount} 个节点',
         pasteSuccessWithEdges: '粘贴成功：{nodeCount} 个节点，{edgeCount} 条连接',
         pasteSkipped: '（跳过 {skipped} 条重复连接）',
         pasteFailed: '粘贴失败：{message}',
-        pasteInvalidData: '粘贴失败：数据格式无效'
+        pasteInvalidData: '粘贴失败：数据格式无效',
+        pasteEmpty: '剪贴板为空，无可粘贴内容',
     },
     edge: {
         connectionEdge: '🔗 连接边',
@@ -666,7 +669,7 @@ export const zhCN = {
         sourcePort: '源端口',
         targetPort: '目标端口',
         unknown: '未知',
-        deleteConnection: '删除连接'
+        deleteConnection: '删除连接',
     },
     modelNames: {
         'GLM-4.7': 'GLM-4.7',
@@ -675,13 +678,13 @@ export const zhCN = {
         '豆包·2.0·mini': '豆包·2.0·mini',
         '豆包·1.8·深度思考': '豆包·1.8·深度思考',
         '豆包·1.6·思考深度调节': '豆包·1.6·思考深度调节',
-        'DeepSeek-V3.2': 'DeepSeek-V3.2'
+        'DeepSeek-V3.2': 'DeepSeek-V3.2',
     },
     templates: {
         categories: {
             basic: '入门',
             common: '常用',
-            advanced: '进阶'
+            advanced: '进阶',
         },
         tpl_welcome: {
             name: '欢迎消息',
@@ -689,8 +692,8 @@ export const zhCN = {
             nodes: {
                 start: { title: '开始', desc: '工作流起点' },
                 llm: { title: '生成欢迎语', desc: '生成友好的欢迎消息' },
-                end: { title: '结束', desc: '工作流终点' }
-            }
+                end: { title: '结束', desc: '工作流终点' },
+            },
         },
         tpl_chatbot: {
             name: '智能客服',
@@ -701,8 +704,8 @@ export const zhCN = {
                 branch: { title: '意图分支', desc: '根据意图分流' },
                 knowledge: { title: '知识库检索', desc: '从知识库检索匹配的答案' },
                 chat: { title: '闲聊回复', desc: '生成闲聊回复' },
-                end: { title: '回复用户', desc: '输出最终回复' }
-            }
+                end: { title: '回复用户', desc: '输出最终回复' },
+            },
         },
         tpl_image_gen: {
             name: '图片生成',
@@ -711,8 +714,8 @@ export const zhCN = {
                 start: { title: '开始', desc: '接收输入' },
                 text: { title: '图片描述', desc: '生成或接收图片描述文本' },
                 image: { title: '生成图片', desc: '根据描述生成图片' },
-                end: { title: '输出图片', desc: '输出生成的图片' }
-            }
+                end: { title: '输出图片', desc: '输出生成的图片' },
+            },
         },
         tpl_data_process: {
             name: '数据处理',
@@ -722,8 +725,8 @@ export const zhCN = {
                 http: { title: '获取数据', desc: '从API获取数据' },
                 code: { title: '数据清洗', desc: '清洗和转换数据格式' },
                 llm: { title: '数据分析', desc: 'LLM分析处理结果' },
-                end: { title: '输出报告', desc: '输出分析报告' }
-            }
+                end: { title: '输出报告', desc: '输出分析报告' },
+            },
         },
         tpl_loop: {
             name: '循环处理',
@@ -733,8 +736,8 @@ export const zhCN = {
                 loop: { title: '循环处理', desc: '逐条处理数据' },
                 process: { title: '处理单条', desc: '大模型处理每条数据' },
                 format: { title: '结果格式化', desc: '格式化单条处理结果' },
-                end: { title: '汇总输出', desc: '输出汇总结果' }
-            }
+                end: { title: '汇总输出', desc: '输出汇总结果' },
+            },
         },
         tpl_batch: {
             name: '批处理',
@@ -744,8 +747,8 @@ export const zhCN = {
                 batch: { title: '批处理', desc: '分批处理数据' },
                 api: { title: '调用API', desc: '对每批数据调用外部API' },
                 analysis: { title: '结果分析', desc: '分析每批处理结果' },
-                end: { title: '汇总输出', desc: '输出全部结果' }
-            }
-        }
-    }
+                end: { title: '汇总输出', desc: '输出全部结果' },
+            },
+        },
+    },
 };

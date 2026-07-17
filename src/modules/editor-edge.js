@@ -1,4 +1,5 @@
 import { StringUtils } from '../utils/helpers.js';
+import { APP_CONFIG } from '../config/constants.js';
 import { t } from '../i18n/i18n.js';
 
 export class WorkflowEdge {
@@ -33,7 +34,7 @@ export class WorkflowEdge {
                 const parent = this.core.nodes.find((n) => n.id === node.parentId);
                 if (parent) {
                     absX = (parent.x || 0) + absX;
-                    absY = (parent.y || 0) + 56 + absY;
+                    absY = (parent.y || 0) + APP_CONFIG.NODE.CONTAINER_OFFSET + absY;
                 }
             }
             return { x: absX, y: absY };
@@ -406,9 +407,13 @@ export class WorkflowEdge {
                         // 检查是否已存在相同的边
                         const exists = this.core.edges.some((ed) => ed.source === sourceId && ed.target === targetId);
                         if (!exists) {
-                            this.core.createEdge(sourceId, targetId, this.ui.connectingFromPort);
-                            this.core.saveHistory('actions.createConnection');
-                            this.ui.showMessage(t('actions.connectionCreated'), 'success');
+                            const result = this.core.createEdge(sourceId, targetId, this.ui.connectingFromPort);
+                            if (result && !result.error) {
+                                this.core.saveHistory('actions.createConnection');
+                                this.ui.showMessage(t('actions.connectionCreated'), 'success');
+                            } else if (result?.error) {
+                                this.ui.showMessage(result.error, 'error');
+                            }
                         }
                     }
                 }

@@ -4,6 +4,8 @@
  * 支持容器节点嵌套布局，自动调整容器尺寸
  */
 
+import { APP_CONFIG } from '../config/constants.js';
+
 /**
  * 自动优化布局
  * @param {import('./editor-core').WorkflowCore} core - 工作流核心实例
@@ -20,8 +22,8 @@ export function autoOptimizeLayout(core, canvas) {
     const PADDING = 20;
     const CONTAINER_H_GAP = 60;
     const CONTAINER_V_GAP = 40;
-    const HEADER_H = 36;
-    const DESC_H = 20;
+    const HEADER_H = APP_CONFIG.NODE.CONTAINER_HEADER_H;
+    const DESC_H = APP_CONFIG.NODE.CONTAINER_DESC_H;
     const BORDER = 4;
     const CONN_POINT_Y = 30;
 

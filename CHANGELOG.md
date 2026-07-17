@@ -1,5 +1,39 @@
 ﻿# Changelog
 
+## v1.5.0 - 2026-07-16
+
+### 代码质量优化
+
+- **消除 shared-serializer.js 重复代码**：将 `convertClipboardToInternal()` 和 `loadFromClipboard()` 中 ~550 行重复的 Coze 格式解析逻辑提取为 6 个共享函数（`_parseCozeInputs`、`_parseCozeOutputs`、`_buildNodeFromCoze`、`_processCozeNodeTree`、`_remapBlockIDs`、`_processEdges`）
+- **拆分 editor-clipboard.js 超长 copy() 方法**：将 500 行的 `copy()` 方法按职责拆分为 `_buildBaseCozeNode`、`_serializeNodeParameters`、`_classifyEdges`、`_assembleContainerNodes` 等 17 个子方法
+- **拆分 editor-node-drag.js 超长 onMouseDown() 方法**：将 490 行方法拆分为选择处理、拖拽准备、拖拽过程、拖拽结束四个阶段的独立方法
+- **重构 editor-canvas.js exportAsImage() 方法**：将 225 行手动 SVG 拼接拆分为 `_computeExportBounds`、`_buildEdgeExportSvg`、`_renderNodeExportSvg`、`_buildNodeExportBody`、`_assembleExportSvg`、`_rasterizeToPng` 等子方法
+- **消除 manager.js 内联 HTML**：`createWorkflowCard()`、`renderTemplateGrid()`、`renderVersionCompareModal()` 中的 `innerHTML` 模板字面量全部转为 DOM API 创建元素
+
+### 性能优化
+
+- **getCurrentTransform() 添加缓存**：`applyTransform()` 时自动失效缓存，避免每次调用重复正则解析 CSS transform 字符串
+- **renderMinimap() 优化**：使用 `_selectedNodeIds` Set 跟踪选中节点，避免每帧全量 DOM 查询
+- **isNodeVisible() 优化**：使用 `_parentMapCache` Map 替代 O(n) 的 `Array.find` 查找父节点
+- **搜索输入添加 300ms 防抖**：避免每次按键触发完整渲染
+
+### Bug 修复
+
+- **zip 导入全选复制到 Coze 平台数据丢失**（三处修复）：
+  - **icon 全部丢失为 ""**：`_buildNodeFromCoze` 未从 `cozeNode.data.nodeMeta` 提取 icon 和 mainColor，序列化回 Coze 时 `node.icon` 为空
+  - **outputs schema 丢失**：`_parseCozeOutputs` 只处理 `Array.isArray(schema)` 存为 properties，对象类型 schema（如 `{"type": "string"}`）被丢弃
+  - **comment 节点 note 内容被清空**：import 路径下 `parameters.content` 未被正确填充，`_serializeComment` 从空 content 重建 note 导致多段落丢失 → 修复：`_parseCozeInputs` 新增 `_noteRaw` 保留原始 Slate JSON，`_serializeComment` 优先使用
+
+### 技术债务修复
+
+- **容器高度常量提取**：在 `APP_CONFIG.NODE` 中统一定义 36/32/20/56/58/12/8 等尺寸常量，替换 6 个文件中的 ~25 处魔法数字
+- **Dialog 按钮 hover 效果改为 CSS**：移除 JavaScript `mouseenter`/`mouseleave` 事件监听器，改用 `.dialog-btn-*` CSS 类 + `:hover` 伪类
+
+### 测试
+
+- **canvas.test.js mock 更新**：补充 `APP_CONFIG.NODE` mock 对象以适配新增常量
+- 全量测试：25 套件 / 1127 用例全部通过
+
 ## v1.4.4 - 2026-07-08
 
 ### Bug 修复

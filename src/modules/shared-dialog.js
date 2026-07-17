@@ -13,6 +13,8 @@ export class Dialog {
     static #init() {
         if (this.#overlay) return;
 
+        this.#ensureStylesheet();
+
         this.#overlay = document.createElement('div');
         this.#overlay.className = 'dialog-overlay';
         this.#overlay.setAttribute('role', 'dialog');
@@ -162,67 +164,64 @@ export class Dialog {
         }
     }
 
+    static #ensureStylesheet() {
+        if (document.getElementById('dialog-btn-styles')) return;
+        const styleEl = document.createElement('style');
+        styleEl.id = 'dialog-btn-styles';
+        styleEl.textContent = `
+            .dialog-btn {
+                padding: 10px 24px;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                min-width: 80px;
+            }
+            .dialog-btn-primary {
+                background: linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(92, 98, 255, 0.3);
+            }
+            .dialog-btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(92, 98, 255, 0.4);
+            }
+            .dialog-btn-danger {
+                background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            }
+            .dialog-btn-danger:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+            }
+            .dialog-btn-success {
+                background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                color: #fff;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+            .dialog-btn-success:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+            }
+            .dialog-btn-secondary {
+                background: var(--bg-secondary, #f3f4f6);
+                color: var(--text-primary, #374151);
+            }
+            .dialog-btn-secondary:hover {
+                background: var(--bg-tertiary, #e5e7eb);
+            }
+        `;
+        document.head.appendChild(styleEl);
+    }
+
     static #createButton(text, style = 'primary', onClick) {
         const btn = document.createElement('button');
         btn.textContent = text;
-        btn.style.cssText = `
-            padding: 10px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 80px;
-        `;
-
-        if (style === 'primary') {
-            btn.style.background = 'linear-gradient(135deg, #5C62FF 0%, #7C3AED 100%)';
-            btn.style.color = '#fff';
-            btn.style.boxShadow = '0 4px 12px rgba(92, 98, 255, 0.3)';
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'translateY(-1px)';
-                btn.style.boxShadow = '0 6px 16px rgba(92, 98, 255, 0.4)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 4px 12px rgba(92, 98, 255, 0.3)';
-            });
-        } else if (style === 'danger') {
-            btn.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
-            btn.style.color = '#fff';
-            btn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'translateY(-1px)';
-                btn.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
-            });
-        } else if (style === 'success') {
-            btn.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-            btn.style.color = '#fff';
-            btn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
-            btn.addEventListener('mouseenter', () => {
-                btn.style.transform = 'translateY(-1px)';
-                btn.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.transform = 'translateY(0)';
-                btn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
-            });
-        } else {
-            btn.style.background = 'var(--bg-secondary, #f3f4f6)';
-            btn.style.color = 'var(--text-primary, #374151)';
-            btn.addEventListener('mouseenter', () => {
-                btn.style.background = 'var(--bg-tertiary, #e5e7eb)';
-            });
-            btn.addEventListener('mouseleave', () => {
-                btn.style.background = 'var(--bg-secondary, #f3f4f6)';
-            });
-        }
-
+        btn.className = 'dialog-btn';
+        btn.classList.add('dialog-btn-' + style);
         btn.addEventListener('click', onClick);
         return btn;
     }

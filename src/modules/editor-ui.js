@@ -32,6 +32,7 @@ export class WorkflowUI {
         this._lastSavedVersion = 0;
         this._confirmingExit = false;
         this.currentDescription = '';
+        this._currentPanelNodeId = null;
 
         this.messages = new WorkflowMessages(this);
         this.search = new WorkflowSearch(this);
@@ -83,6 +84,7 @@ export class WorkflowUI {
     _initEventBindings() {
         this.core.onChange = (action) => {
             this._changeVersion++;
+            this.core._clipboardData = null;
             if (
                 action === 'undo' ||
                 action === 'redo' ||
@@ -360,6 +362,14 @@ export class WorkflowUI {
     }
 
     showSummaryPanel() {
+        if (this._currentPanelNodeId) {
+            const prevNode = this.core.nodes.find((n) => n.id === this._currentPanelNodeId);
+            if (prevNode && this.node && this.node.paramEditor) {
+                this.node.paramEditor.saveDynamicParams(prevNode, 'input');
+                this.node.paramEditor.saveDynamicParams(prevNode, 'output');
+            }
+            this._currentPanelNodeId = null;
+        }
         const summary = DOM.get('workflowSummary');
         const detail = DOM.get('nodeDetail');
         const hint = DOM.get('propertyHint');
@@ -690,24 +700,36 @@ export class WorkflowUI {
             const menuEl = document.getElementById(menu);
             if (!toggleEl || !menuEl) return;
 
+            const groupEl = toggleEl.closest('.dropdown-group') || toggleEl.closest('.dropdown');
+
             toggleEl.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isOpen = menuEl.classList.contains('show');
-                document.querySelectorAll('.dropdown-menu').forEach((m) => m.classList.remove('show'));
+                document.querySelectorAll('.dropdown-menu').forEach((m) => {
+                    m.classList.remove('show');
+                    const parentGroup = m.closest('.dropdown-group') || m.closest('.dropdown');
+                    if (parentGroup) parentGroup.classList.remove('open');
+                });
                 if (!isOpen) {
                     menuEl.classList.add('show');
+                    if (groupEl) groupEl.classList.add('open');
                 }
             });
 
             menuEl.querySelectorAll('.dropdown-item').forEach((item) => {
                 item.addEventListener('click', () => {
                     menuEl.classList.remove('show');
+                    if (groupEl) groupEl.classList.remove('open');
                 });
             });
         });
 
         document.addEventListener('click', () => {
-            document.querySelectorAll('.dropdown-menu').forEach((m) => m.classList.remove('show'));
+            document.querySelectorAll('.dropdown-menu').forEach((m) => {
+                m.classList.remove('show');
+                const parentGroup = m.closest('.dropdown-group') || m.closest('.dropdown');
+                if (parentGroup) parentGroup.classList.remove('open');
+            });
         });
     }
 
@@ -725,5 +747,75 @@ export class WorkflowUI {
      */
     exportWorkflow() {
         return this.share.exportWorkflow();
+    }
+
+    removeParam(nodeId, prefix, index) {
+        if (!this.node || !this.node.paramEditor) return;
+        this.node.paramEditor.removeParam(nodeId, prefix, index);
+    }
+
+    openInputParamRefSelector(prefix, index) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.openInputParamRefSelector(prefix, index);
+    }
+
+    clearInputParamRef(nodeId, prefix, index) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.clearInputParamRef(nodeId, prefix, index);
+    }
+
+    addMergeVariable(nodeId, gi) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.addMergeVariable(nodeId, gi);
+    }
+
+    removeMergeVariable(nodeId, gi, vi) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.removeMergeVariable(nodeId, gi, vi);
+    }
+
+    openVariableSelector(nodeId, gi, vi) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.openVariableSelector(nodeId, gi, vi);
+    }
+
+    addLoopVariable(nodeId) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.addLoopVariable(nodeId);
+    }
+
+    removeLoopVariable(nodeId, vi) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.removeLoopVariable(nodeId, vi);
+    }
+
+    openLoopVariableSelector(nodeId, vi, side) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.openLoopVariableSelector(nodeId, vi, side);
+    }
+
+    clearLoopVarRef(nodeId, vi, side) {
+        if (!this.node || !this.node.selector) return;
+        this.node.selector.clearLoopVarRef(nodeId, vi, side);
+    }
+
+    addLoopIntermediateVariable(nodeId) {
+        if (!this.node || !this.node.paramEditor) return;
+        this.node.paramEditor.addLoopIntermediateVariable(nodeId);
+    }
+
+    removeLoopIntermediateVariable(nodeId, vi) {
+        if (!this.node || !this.node.paramEditor) return;
+        this.node.paramEditor.removeLoopIntermediateVariable(nodeId, vi);
+    }
+
+    openLoopIntermediateVarSelector(nodeId, vi) {
+        if (!this.node || !this.node.paramEditor) return;
+        this.node.paramEditor.openLoopIntermediateVarSelector(nodeId, vi);
+    }
+
+    clearLoopIntermediateVarRef(nodeId, vi) {
+        if (!this.node || !this.node.paramEditor) return;
+        this.node.paramEditor.clearLoopIntermediateVarRef(nodeId, vi);
     }
 }

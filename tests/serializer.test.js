@@ -24,10 +24,8 @@ describe('WorkflowSerializer', () => {
 
         it('should import workflow with nodes', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'start', title: '开始', position: { x: 100, y: 200 } }
-                ],
-                edges: []
+                nodes: [{ id: '1', type: 'start', title: '开始', position: { x: 100, y: 200 } }],
+                edges: [],
             };
 
             core.importWorkflow(workflow);
@@ -43,10 +41,8 @@ describe('WorkflowSerializer', () => {
 
         it('should import workflow with numeric type resolution', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: '1', position: { x: 0, y: 0 } }
-                ],
-                edges: []
+                nodes: [{ id: '1', type: '1', position: { x: 0, y: 0 } }],
+                edges: [],
             };
 
             core.importWorkflow(workflow);
@@ -57,11 +53,9 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     { id: '1', type: 'start', position: { x: 0, y: 0 } },
-                    { id: '2', type: 'end', position: { x: 300, y: 0 } }
+                    { id: '2', type: 'end', position: { x: 300, y: 0 } },
                 ],
-                edges: [
-                    { source_node: '1', target_node: '2' }
-                ]
+                edges: [{ source_node: '1', target_node: '2' }],
             };
 
             core.importWorkflow(workflow);
@@ -74,10 +68,8 @@ describe('WorkflowSerializer', () => {
 
         it('should handle nodes with missing position', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'code' }
-                ],
-                edges: []
+                nodes: [{ id: '1', type: 'code' }],
+                edges: [],
             };
 
             core.importWorkflow(workflow);
@@ -87,10 +79,8 @@ describe('WorkflowSerializer', () => {
 
         it('should handle nodes with icon', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'plugin', icon: 'custom_icon', position: { x: 0, y: 0 } }
-                ],
-                edges: []
+                nodes: [{ id: '1', type: 'plugin', icon: 'custom_icon', position: { x: 0, y: 0 } }],
+                edges: [],
             };
 
             core.importWorkflow(workflow);
@@ -99,10 +89,8 @@ describe('WorkflowSerializer', () => {
 
         it('should handle nodes with parentId', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'loop', position: { x: 0, y: 0 }, parentId: 'parent_1' }
-                ],
-                edges: []
+                nodes: [{ id: '1', type: 'loop', position: { x: 0, y: 0 }, parentId: 'parent_1' }],
+                edges: [],
             };
 
             core.importWorkflow(workflow);
@@ -113,11 +101,9 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     { id: '1', type: 'start', position: { x: 0, y: 0 } },
-                    { id: '2', type: 'if', position: { x: 300, y: 0 } }
+                    { id: '2', type: 'if', position: { x: 300, y: 0 } },
                 ],
-                edges: [
-                    { source_node: '1', target_node: '2', source_port: 'branch_0' }
-                ]
+                edges: [{ source_node: '1', target_node: '2', source_port: 'branch_0' }],
             };
 
             core.importWorkflow(workflow);
@@ -130,20 +116,20 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     {
-                        id: '1', type: 'loop', position: { x: 0, y: 0 },
-                        nodes: [
-                            { id: '2', type: 'code', position: { x: 50, y: 50 } }
-                        ]
-                    }
+                        id: '1',
+                        type: 'loop',
+                        position: { x: 0, y: 0 },
+                        nodes: [{ id: '2', type: 'code', position: { x: 50, y: 50 } }],
+                    },
                 ],
-                edges: []
+                edges: [],
             };
 
             core.importWorkflow(workflow);
 
             expect(core.nodes).toHaveLength(2);
-            const parentNode = core.nodes.find(n => n.id === 'node_1');
-            const childNode = core.nodes.find(n => n.id === 'node_2');
+            const parentNode = core.nodes.find((n) => n.id === 'node_1');
+            const childNode = core.nodes.find((n) => n.id === 'node_2');
             expect(parentNode).toBeDefined();
             expect(childNode).toBeDefined();
             expect(childNode.parentId).toBe('node_1');
@@ -153,18 +139,18 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     {
-                        id: '1', type: 'loop', position: { x: 0, y: 0 },
-                        nodes: [
-                            { id: '2', type: 'code', position: { x: 50, y: 50 }, icon: 'child_icon' }
-                        ]
-                    }
+                        id: '1',
+                        type: 'loop',
+                        position: { x: 0, y: 0 },
+                        nodes: [{ id: '2', type: 'code', position: { x: 50, y: 50 }, icon: 'child_icon' }],
+                    },
                 ],
-                edges: []
+                edges: [],
             };
 
             core.importWorkflow(workflow);
 
-            const childNode = core.nodes.find(n => n.id === 'node_2');
+            const childNode = core.nodes.find((n) => n.id === 'node_2');
             expect(childNode.icon).toBe('child_icon');
         });
 
@@ -172,19 +158,19 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     {
-                        id: '1', type: '21', position: { x: 0, y: 0 },
-                        nodes: [
-                            { id: '2', type: '5', position: { x: 50, y: 50 } }
-                        ]
-                    }
+                        id: '1',
+                        type: '21',
+                        position: { x: 0, y: 0 },
+                        nodes: [{ id: '2', type: '5', position: { x: 50, y: 50 } }],
+                    },
                 ],
-                edges: []
+                edges: [],
             };
 
             core.importWorkflow(workflow);
 
-            const parentNode = core.nodes.find(n => n.id === 'node_1');
-            const childNode = core.nodes.find(n => n.id === 'node_2');
+            const parentNode = core.nodes.find((n) => n.id === 'node_1');
+            const childNode = core.nodes.find((n) => n.id === 'node_2');
             expect(parentNode.type).toBe('loop');
             expect(childNode.type).toBe('code');
         });
@@ -193,55 +179,57 @@ describe('WorkflowSerializer', () => {
             const workflow = {
                 nodes: [
                     {
-                        id: '1', type: 'loop', position: { x: 0, y: 0 },
+                        id: '1',
+                        type: 'loop',
+                        position: { x: 0, y: 0 },
                         nodes: [
                             { id: '2', type: 'code', position: { x: 50, y: 50 } },
                             {
-                                id: '3', type: 'loop_set_variable', position: { x: 100, y: 100 },
+                                id: '3',
+                                type: 'loop_set_variable',
+                                position: { x: 100, y: 100 },
                                 parameters: {
                                     variables: [
                                         {
                                             left: { value: { content: { blockID: '2' } } },
-                                            right: { value: { content: { blockID: '2' } } }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
+                                            right: { value: { content: { blockID: '2' } } },
+                                        },
+                                    ],
+                                },
+                            },
+                        ],
                     },
                     {
-                        id: '4', type: 'loop_set_variable', position: { x: 200, y: 0 },
+                        id: '4',
+                        type: 'loop_set_variable',
+                        position: { x: 200, y: 0 },
                         parameters: {
                             variables: [
                                 {
                                     left: { value: { content: { blockID: '1' } } },
-                                    right: { value: { content: { blockID: '1' } } }
-                                }
-                            ]
-                        }
-                    }
+                                    right: { value: { content: { blockID: '1' } } },
+                                },
+                            ],
+                        },
+                    },
                 ],
-                edges: []
+                edges: [],
             };
 
             core.importWorkflow(workflow);
 
-            const node3 = core.nodes.find(n => n.id === 'node_3');
+            const node3 = core.nodes.find((n) => n.id === 'node_3');
             expect(node3.parameters.variables[0].left.value.content.blockID).toBe('2');
             expect(node3.parameters.variables[0].right.value.content.blockID).toBe('2');
 
-            const node4 = core.nodes.find(n => n.id === 'node_4');
+            const node4 = core.nodes.find((n) => n.id === 'node_4');
             expect(node4.parameters.variables[0].left.value.content.blockID).toBe('1');
         });
 
         it('should handle edge with source_node not found', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'start', position: { x: 0, y: 0 } }
-                ],
-                edges: [
-                    { source_node: '999', target_node: '1' }
-                ]
+                nodes: [{ id: '1', type: 'start', position: { x: 0, y: 0 } }],
+                edges: [{ source_node: '999', target_node: '1' }],
             };
 
             core.importWorkflow(workflow);
@@ -250,12 +238,8 @@ describe('WorkflowSerializer', () => {
 
         it('should handle edge with target_node not found', () => {
             const workflow = {
-                nodes: [
-                    { id: '1', type: 'start', position: { x: 0, y: 0 } }
-                ],
-                edges: [
-                    { source_node: '1', target_node: '999' }
-                ]
+                nodes: [{ id: '1', type: 'start', position: { x: 0, y: 0 } }],
+                edges: [{ source_node: '1', target_node: '999' }],
             };
 
             core.importWorkflow(workflow);
@@ -267,11 +251,9 @@ describe('WorkflowSerializer', () => {
         beforeEach(() => {
             core.nodes = [
                 { id: 'node_100001', type: 'start', x: 100, y: 200, title: '开始', description: '启动节点' },
-                { id: 'node_100002', type: 'end', x: 400, y: 200, title: '结束' }
+                { id: 'node_100002', type: 'end', x: 400, y: 200, title: '结束' },
             ];
-            core.edges = [
-                { id: 'edge_1', source: 'node_100001', target: 'node_100002' }
-            ];
+            core.edges = [{ id: 'edge_1', source: 'node_100001', target: 'node_100002' }];
         });
 
         it('should export workflow with default options', () => {
@@ -289,7 +271,7 @@ describe('WorkflowSerializer', () => {
             const result = core.exportWorkflow({
                 name: 'custom_name',
                 id: 'custom_id',
-                description: 'custom desc'
+                description: 'custom desc',
             });
 
             expect(result.name).toBe('custom_name');
@@ -309,9 +291,7 @@ describe('WorkflowSerializer', () => {
         });
 
         it('should handle edges with sourcePort', () => {
-            core.edges = [
-                { id: 'edge_1', source: 'node_100001', target: 'node_100002', sourcePort: 'branch_0' }
-            ];
+            core.edges = [{ id: 'edge_1', source: 'node_100001', target: 'node_100002', sourcePort: 'branch_0' }];
 
             const result = core.exportWorkflow();
             expect(result.edges[0].source_port).toBe('branch_0');
@@ -319,8 +299,12 @@ describe('WorkflowSerializer', () => {
 
         it('should filter out child nodes (with parentId)', () => {
             core.nodes.push({
-                id: 'node_100003', type: 'code', x: 100, y: 300,
-                parentId: 'node_100001', title: '子节点'
+                id: 'node_100003',
+                type: 'code',
+                x: 100,
+                y: 300,
+                parentId: 'node_100001',
+                title: '子节点',
             });
 
             const result = core.exportWorkflow();
@@ -336,13 +320,22 @@ describe('WorkflowSerializer', () => {
         it('should export nested child nodes as blocks', () => {
             core.nodes = [
                 {
-                    id: 'node_1', type: 'loop', x: 0, y: 0, title: 'Loop',
-                    parameters: { loopCount: 3 }
+                    id: 'node_1',
+                    type: 'loop',
+                    x: 0,
+                    y: 0,
+                    title: 'Loop',
+                    parameters: { loopCount: 3 },
                 },
                 {
-                    id: 'node_2', type: 'code', x: 50, y: 50, title: 'Child',
-                    parentId: 'node_1', parameters: { code: 'print(1)' }
-                }
+                    id: 'node_2',
+                    type: 'code',
+                    x: 50,
+                    y: 50,
+                    title: 'Child',
+                    parentId: 'node_1',
+                    parameters: { code: 'print(1)' },
+                },
             ];
             core.edges = [];
 
@@ -358,9 +351,14 @@ describe('WorkflowSerializer', () => {
             core.nodes = [
                 { id: 'node_1', type: 'loop', x: 0, y: 0, title: 'Loop' },
                 {
-                    id: 'node_2', type: 'code', x: 50, y: 50, title: 'Child',
-                    parentId: 'node_1', icon: 'child_icon'
-                }
+                    id: 'node_2',
+                    type: 'code',
+                    x: 50,
+                    y: 50,
+                    title: 'Child',
+                    parentId: 'node_1',
+                    icon: 'child_icon',
+                },
             ];
             core.edges = [];
 
@@ -397,12 +395,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Test Node', description: 'A test' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -426,12 +424,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Unknown' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -450,13 +448,19 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
                                 outputs: [
-                                    { name: 'text', type: 'string', defaultValue: 'hello', description: 'Output text', required: false }
-                                ]
-                            }
-                        }
+                                    {
+                                        name: 'text',
+                                        type: 'string',
+                                        defaultValue: 'hello',
+                                        description: 'Output text',
+                                        required: false,
+                                    },
+                                ],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -477,13 +481,13 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'Plugin' },
                                 inputs: {},
                                 outputs: [
-                                    { name: 'data', type: 'object', schema: [{ name: 'field1', type: 'string' }] }
-                                ]
-                            }
-                        }
+                                    { name: 'data', type: 'object', schema: [{ name: 'field1', type: 'string' }] },
+                                ],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -503,15 +507,15 @@ describe('WorkflowSerializer', () => {
                                 inputs: {
                                     llmParam: [
                                         { name: 'modelName', input: { value: { content: 'gpt-4' } } },
-                                        { name: 'temperature', input: { value: { content: 0.7 } } }
-                                    ]
+                                        { name: 'temperature', input: { value: { content: 0.7 } } },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -531,16 +535,14 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {
-                                    llmParam: [
-                                        { name: 'modleName', input: { value: { content: 'gpt-4' } } }
-                                    ]
+                                    llmParam: [{ name: 'modleName', input: { value: { content: 'gpt-4' } } }],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -560,15 +562,15 @@ describe('WorkflowSerializer', () => {
                                 inputs: {
                                     llmParam: {
                                         modelName: { name: 'modelName', input: { value: { content: 'gpt-4' } } },
-                                        temperature: 0.5
-                                    }
+                                        temperature: 0.5,
+                                    },
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -587,12 +589,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Code' },
                                 inputs: { code: 'print("hello")' },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -611,14 +613,14 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'HTTP' },
                                 inputs: {
                                     url: 'https://api.example.com',
-                                    method: 'POST'
+                                    method: 'POST',
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -638,14 +640,14 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'HTTP' },
                                 inputs: {
                                     headers: { 'Content-Type': 'application/json' },
-                                    body: '{"key":"value"}'
+                                    body: '{"key":"value"}',
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -664,14 +666,14 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {
-                                    content: { value: { type: 'literal', content: 'Hello World' } }
+                                    content: { value: { type: 'literal', content: 'Hello World' } },
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -689,14 +691,14 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {
-                                    content: { value: { type: 'ref', content: { blockID: '2' } } }
+                                    content: { value: { type: 'ref', content: { blockID: '2' } } },
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -715,14 +717,14 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {
-                                    content: 'direct content'
+                                    content: 'direct content',
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -740,16 +742,14 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Set Variable' },
                                 inputs: {
-                                    inputParameters: [
-                                        { name: 'var1', type: 'string', value: 'test' }
-                                    ]
+                                    inputParameters: [{ name: 'var1', type: 'string', value: 'test' }],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -768,7 +768,7 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Loop' },
                                 inputs: {},
-                                outputs: []
+                                outputs: [],
                             },
                             blocks: [
                                 {
@@ -778,14 +778,14 @@ describe('WorkflowSerializer', () => {
                                     data: {
                                         nodeMeta: { title: 'Inner Code' },
                                         inputs: { code: 'print(1)' },
-                                        outputs: []
-                                    }
-                                }
-                            ]
-                        }
+                                        outputs: [],
+                                    },
+                                },
+                            ],
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -805,19 +805,17 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '1',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
                             type: '2',
                             meta: { position: { x: 300, y: 0 } },
-                            data: { nodeMeta: { title: 'End' }, inputs: {}, outputs: [] }
-                        }
+                            data: { nodeMeta: { title: 'End' }, inputs: {}, outputs: [] },
+                        },
                     ],
-                    edges: [
-                        { sourceNodeID: 1, targetNodeID: 2 }
-                    ]
-                }
+                    edges: [{ sourceNodeID: 1, targetNodeID: 2 }],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -835,12 +833,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -860,12 +858,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -884,12 +882,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: {},
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -907,18 +905,21 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Plugin' },
                                 inputs: {
-                                    inputParameters: [{ name: 'param1', value: 'val1' }]
+                                    inputParameters: [{ name: 'param1', value: 'val1' }],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
-            expect(core.nodes[0].parameters.inputParameters).toBeUndefined();
+            expect(core.nodes[0].parameters.inputParameters).toEqual([{ name: 'param1', value: 'val1' }]);
+            expect(core.nodes[0].inputParams).toBeDefined();
+            expect(core.nodes[0].inputParams.length).toBe(1);
+            expect(core.nodes[0].inputParams[0].name).toBe('param1');
         });
 
         it('should handle other input keys', () => {
@@ -934,20 +935,22 @@ describe('WorkflowSerializer', () => {
                                 inputs: {
                                     customKey: 'customValue',
                                     schemaType: 'should_skip',
-                                    inputParameters: 'should_skip'
+                                    inputParameters: 'should_skip',
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
             expect(core.nodes[0].parameters.customKey).toBe('customValue');
             expect(core.nodes[0].parameters.schemaType).toBeUndefined();
-            expect(core.nodes[0].parameters.inputParameters).toBeUndefined();
+            // inputParameters 非数组值仍被存储但不转换
+            expect(core.nodes[0].parameters.inputParameters).toBe('should_skip');
+            expect(core.nodes[0].inputParams).toBeUndefined();
         });
 
         it('should handle variable_merge node with mergeGroups', () => {
@@ -961,8 +964,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Merge' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -971,18 +974,16 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM1' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: [
-                        { sourceNodeID: 2, targetNodeID: 1, sourcePortID: 'output_0' }
-                    ]
-                }
+                    edges: [{ sourceNodeID: 2, targetNodeID: 1, sourcePortID: 'output_0' }],
+                },
             };
 
             core.loadFromClipboard(data);
-            expect(core.nodes.some(n => n.type === 'variable_merge')).toBe(true);
+            expect(core.nodes.some((n) => n.type === 'variable_merge')).toBe(true);
         });
 
         it('should handle inputParams with ref blockID remapping', () => {
@@ -996,8 +997,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM1' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -1006,24 +1007,24 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM2' },
                                 inputs: {},
-                                outputs: []
+                                outputs: [],
                             },
                             inputParams: [
                                 {
                                     valueType: 'ref',
-                                    value: { content: { blockID: '1' } }
-                                }
-                            ]
-                        }
+                                    value: { content: { blockID: '1' } },
+                                },
+                            ],
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
 
-            const node2 = core.nodes.find(n => n.title === 'LLM2');
-            const mappedId = core.nodes.find(n => n.title === 'LLM1').id;
+            const node2 = core.nodes.find((n) => n.title === 'LLM2');
+            const mappedId = core.nodes.find((n) => n.title === 'LLM1').id;
             expect(node2.inputParams[0].value.content.blockID).toBe(mappedId);
         });
 
@@ -1038,8 +1039,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM1' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -1048,20 +1049,20 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM2' },
                                 inputs: {
-                                    content: { value: { type: 'ref', content: { blockID: '1' } } }
+                                    content: { value: { type: 'ref', content: { blockID: '1' } } },
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
 
-            const node2 = core.nodes.find(n => n.title === 'LLM2');
-            const mappedId = core.nodes.find(n => n.title === 'LLM1').id;
+            const node2 = core.nodes.find((n) => n.title === 'LLM2');
+            const mappedId = core.nodes.find((n) => n.title === 'LLM1').id;
             expect(node2.parameters._contentRaw.value.content.blockID).toBe(mappedId);
         });
 
@@ -1076,8 +1077,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM1' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -1086,20 +1087,20 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Plugin' },
                                 inputs: {
-                                    dynamic_option: { value: { type: 'ref', content: { blockID: '1' } } }
+                                    dynamic_option: { value: { type: 'ref', content: { blockID: '1' } } },
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
 
-            const node2 = core.nodes.find(n => n.title === 'Plugin');
-            const mappedId = core.nodes.find(n => n.title === 'LLM1').id;
+            const node2 = core.nodes.find((n) => n.title === 'Plugin');
+            const mappedId = core.nodes.find((n) => n.title === 'LLM1').id;
             expect(node2.parameters.dynamic_option.value.content.blockID).toBe(mappedId);
         });
 
@@ -1114,8 +1115,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM1' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -1124,19 +1125,17 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Merge' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: [
-                        { sourceNodeID: 1, targetNodeID: 2, sourcePortID: 'output_0' }
-                    ]
-                }
+                    edges: [{ sourceNodeID: 1, targetNodeID: 2, sourcePortID: 'output_0' }],
+                },
             };
 
             core.loadFromClipboard(data);
 
-            expect(core.nodes.some(n => n.type === 'variable_merge')).toBe(true);
+            expect(core.nodes.some((n) => n.type === 'variable_merge')).toBe(true);
         });
 
         it('should handle loop_set_variable with blockID remapping inside loadFromClipboard', () => {
@@ -1150,8 +1149,8 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
-                                outputs: []
-                            }
+                                outputs: [],
+                            },
                         },
                         {
                             id: 2,
@@ -1163,22 +1162,22 @@ describe('WorkflowSerializer', () => {
                                     inputParameters: [
                                         {
                                             left: { value: { content: { blockID: '1' } } },
-                                            right: { value: { content: { blockID: '1' } } }
-                                        }
-                                    ]
+                                            right: { value: { content: { blockID: '1' } } },
+                                        },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
 
-            const setVarNode = core.nodes.find(n => n.title === 'SetVar');
-            const mappedId = core.nodes.find(n => n.title === 'LLM').id;
+            const setVarNode = core.nodes.find((n) => n.title === 'SetVar');
+            const mappedId = core.nodes.find((n) => n.title === 'LLM').id;
             expect(setVarNode.parameters.variables[0].left.value.content.blockID).toBe(mappedId);
             expect(setVarNode.parameters.variables[0].right.value.content.blockID).toBe(mappedId);
         });
@@ -1191,14 +1190,14 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '1',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] }
-                        }
+                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] },
+                        },
                     ],
                     edges: [
                         { sourceNodeID: 999, targetNodeID: 1 },
-                        { sourceNodeID: 1, targetNodeID: 999 }
-                    ]
-                }
+                        { sourceNodeID: 1, targetNodeID: 999 },
+                    ],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1213,11 +1212,11 @@ describe('WorkflowSerializer', () => {
                             id: 'abc',
                             type: '1',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] }
-                        }
+                            data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1232,19 +1231,19 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '3',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM1' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM1' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
                             type: '3',
                             meta: { position: { x: 100, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 3,
                             type: '5',
                             meta: { position: { x: 200, y: 0 } },
-                            data: { nodeMeta: { title: 'Code' }, inputs: { code: 'test' }, outputs: [] }
+                            data: { nodeMeta: { title: 'Code' }, inputs: { code: 'test' }, outputs: [] },
                         },
                         {
                             id: 4,
@@ -1253,24 +1252,22 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Merge' },
                                 inputs: {
-                                    mergeGroups: [
-                                        { name: 'group1', variables: [{}] }
-                                    ]
+                                    mergeGroups: [{ name: 'group1', variables: [{}] }],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
                     edges: [
                         { sourceNodeID: 1, targetNodeID: 4, sourcePortID: 'output' },
                         { sourceNodeID: 2, targetNodeID: 4, sourcePortID: 'output' },
-                        { sourceNodeID: 3, targetNodeID: 4, sourcePortID: 'output' }
-                    ]
-                }
+                        { sourceNodeID: 3, targetNodeID: 4, sourcePortID: 'output' },
+                    ],
+                },
             };
 
             core.loadFromClipboard(data);
-            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
+            const mergeNode = core.nodes.find((n) => n.type === 'variable_merge');
             expect(mergeNode).toBeDefined();
         });
 
@@ -1288,20 +1285,20 @@ describe('WorkflowSerializer', () => {
                                     mergeGroups: [
                                         {
                                             name: 'g1',
-                                            variables: [{ value: { type: 'ref', content: { blockID: 999 } } }]
-                                        }
-                                    ]
+                                            variables: [{ value: { type: 'ref', content: { blockID: 999 } } }],
+                                        },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
-            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
+            const mergeNode = core.nodes.find((n) => n.type === 'variable_merge');
             expect(mergeNode).toBeDefined();
         });
 
@@ -1313,13 +1310,13 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '3',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
                             type: '3',
                             meta: { position: { x: 100, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM2' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 3,
@@ -1328,19 +1325,17 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'Merge' },
                                 inputs: {
-                                    mergeGroups: [
-                                        { name: 'g', variables: [{}, {}] }
-                                    ]
+                                    mergeGroups: [{ name: 'g', variables: [{}, {}] }],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
                     edges: [
                         { sourceNodeID: 1, targetNodeID: 3, sourcePortID: 'default' },
-                        { sourceNodeID: 2, targetNodeID: 3, sourcePortID: 'output' }
-                    ]
-                }
+                        { sourceNodeID: 2, targetNodeID: 3, sourcePortID: 'output' },
+                    ],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1355,7 +1350,7 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '3',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
@@ -1367,23 +1362,21 @@ describe('WorkflowSerializer', () => {
                                     mergeGroups: [
                                         {
                                             name: 'g',
-                                            variables: [
-                                                { value: { type: 'ref', content: { blockID: 1 } } }
-                                            ]
-                                        }
-                                    ]
+                                            variables: [{ value: { type: 'ref', content: { blockID: 1 } } }],
+                                        },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
-            const mergeNode = core.nodes.find(n => n.type === 'variable_merge');
-            const mappedId = core.nodes.find(n => n.title === 'LLM').id;
+            const mergeNode = core.nodes.find((n) => n.type === 'variable_merge');
+            const mappedId = core.nodes.find((n) => n.title === 'LLM').id;
             expect(mergeNode.parameters.mergeGroups[0].variables[0].value.content.blockID).toBe(mappedId);
         });
 
@@ -1399,14 +1392,12 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'LLM' },
                                 outputs: [],
                                 inputs: {},
-                                inputParams: [
-                                    { valueType: 'ref', value: { content: { blockID: 999 } } }
-                                ]
-                            }
-                        }
+                                inputParams: [{ valueType: 'ref', value: { content: { blockID: 999 } } }],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1426,13 +1417,13 @@ describe('WorkflowSerializer', () => {
                                 outputs: [],
                                 inputs: {
                                     content: { value: { type: 'ref', content: { blockID: 999 } } },
-                                    dynamic_option: { value: { type: 'ref', content: { blockID: 999 } } }
-                                }
-                            }
-                        }
+                                    dynamic_option: { value: { type: 'ref', content: { blockID: 999 } } },
+                                },
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1447,7 +1438,7 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '3',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
@@ -1457,15 +1448,19 @@ describe('WorkflowSerializer', () => {
                                 nodeMeta: { title: 'SetVar' },
                                 inputs: {
                                     inputParameters: [
-                                        { name: 'v1', left: { value: { content: 'fixed' } }, right: { value: { content: 'fixed' } } }
-                                    ]
+                                        {
+                                            name: 'v1',
+                                            left: { value: { content: 'fixed' } },
+                                            right: { value: { content: 'fixed' } },
+                                        },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1480,7 +1475,7 @@ describe('WorkflowSerializer', () => {
                             id: 1,
                             type: '3',
                             meta: { position: { x: 0, y: 0 } },
-                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] }
+                            data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] },
                         },
                         {
                             id: 2,
@@ -1493,21 +1488,21 @@ describe('WorkflowSerializer', () => {
                                         {
                                             name: 'v1',
                                             left: { value: { content: { blockID: '1' } } },
-                                            right: { value: { content: { blockID: '1' } } }
-                                        }
-                                    ]
+                                            right: { value: { content: { blockID: '1' } } },
+                                        },
+                                    ],
                                 },
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
-            const setVar = core.nodes.find(n => n.type === 'loop_set_variable');
-            const llmId = core.nodes.find(n => n.title === 'LLM').id;
+            const setVar = core.nodes.find((n) => n.type === 'loop_set_variable');
+            const llmId = core.nodes.find((n) => n.title === 'LLM').id;
             expect(setVar.parameters.variables[0].left.value.content.blockID).toBe(llmId);
             expect(setVar.parameters.variables[0].right.value.content.blockID).toBe(llmId);
         });
@@ -1523,12 +1518,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1549,12 +1544,12 @@ describe('WorkflowSerializer', () => {
                             data: {
                                 nodeMeta: { title: 'LLM' },
                                 inputs: {},
-                                outputs: []
-                            }
-                        }
+                                outputs: [],
+                            },
+                        },
                     ],
-                    edges: []
-                }
+                    edges: [],
+                },
             };
 
             core.loadFromClipboard(data);
@@ -1569,24 +1564,26 @@ describe('WorkflowSerializer', () => {
                 nodes: [
                     { id: 1, type: 'loop', position: { x: 0, y: 0 } },
                     {
-                        id: 2, type: 'loop_set_variable', position: { x: 100, y: 0 },
+                        id: 2,
+                        type: 'loop_set_variable',
+                        position: { x: 100, y: 0 },
                         parameters: {
                             variables: [
                                 {
                                     left: { value: { content: { blockID: '1' } } },
-                                    right: { value: { content: { blockID: '1' } } }
-                                }
-                            ]
-                        }
-                    }
+                                    right: { value: { content: { blockID: '1' } } },
+                                },
+                            ],
+                        },
+                    },
                 ],
-                edges: []
+                edges: [],
             };
 
             core.importWorkflow(workflow);
 
-            const node2 = core.nodes.find(n => n.id === 'node_2');
-            const node1 = core.nodes.find(n => n.id === 'node_1');
+            const node2 = core.nodes.find((n) => n.id === 'node_2');
+            const node1 = core.nodes.find((n) => n.id === 'node_1');
             expect(node2.parameters.variables[0].left.value.content.blockID).toBe(node1.id);
             expect(node2.parameters.variables[0].right.value.content.blockID).toBe(node1.id);
         });

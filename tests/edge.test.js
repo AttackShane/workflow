@@ -933,6 +933,7 @@ describe('WorkflowEdge', () => {
 
         it('should handle mouseup and create edge when target is input port', () => {
             core.createEdge.mockClear();
+            core.createEdge.mockReturnValue({ id: 'edge_1', source: 'n1', target: 'n2' });
 
             const nodeEl = document.createElement('div');
             nodeEl.classList.add('canvas-node');

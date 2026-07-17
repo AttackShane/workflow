@@ -3,6 +3,8 @@
  * 负责容器节点（loop、batch）的子节点管理、自动布局和大小调整
  */
 
+import { APP_CONFIG } from '../config/constants.js';
+
 /**
  * 容器渲染相关的 mixin 方法
  * @param {object} node - WorkflowNode 实例
@@ -18,10 +20,10 @@ export class WorkflowContainerRender {
             n._elMap = new Map();
         }
         if (!n.CONTAINER_HEADER_H) {
-            n.CONTAINER_HEADER_H = 36;
+            n.CONTAINER_HEADER_H = APP_CONFIG.NODE.CONTAINER_HEADER_H;
         }
         if (!n.CONTAINER_DESC_H) {
-            n.CONTAINER_DESC_H = 20;
+            n.CONTAINER_DESC_H = APP_CONFIG.NODE.CONTAINER_DESC_H;
         }
         if (!n.CONTAINER_BORDER) {
             n.CONTAINER_BORDER = 1;

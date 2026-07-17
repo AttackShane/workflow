@@ -287,7 +287,7 @@ export class WorkflowManager {
         if (!workflow) return;
         const versions = this.getWorkflowVersions(workflowId);
         if (versions.length === 0) {
-            alert(t('manager.versionCompareNoHistory'));
+            Dialog.alert(t('manager.versionCompareNoHistory'));
             return;
         }
         this.renderVersionCompareModal(workflow, versions);
@@ -301,46 +301,71 @@ export class WorkflowManager {
         overlay.className = 'modal-overlay';
         overlay.id = 'versionCompareOverlay';
 
-        const versionOptions = versions
-            .map((v, i) => {
-                const d = new Date(v.timestamp);
-                const ts = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
-                const nodeCount = v.nodes ? v.nodes.length : 0;
-                return `<option value="${i}">${t('manager.versionOption', { index: i + 1, time: ts, count: nodeCount })}</option>`;
-            })
-            .join('');
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.maxWidth = '800px';
 
-        overlay.innerHTML = `
-            <div class="modal" style="max-width: 800px;">
-                <div class="modal-header">
-                    <h2>📊 ${t('manager.versionCompareTitle', { name: StringUtils.escapeHtml(workflow.name) })}</h2>
-                    <button class="modal-close" id="versionCompareClose">×</button>
-                </div>
-                <div class="modal-body" style="max-height: 65vh;">
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-end;">
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem;color:var(--text-secondary);">${t('manager.versionAOld')}</label>
-                            <select id="versionA" style="width:100%;padding:0.5rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">${versionOptions}</select>
-                        </div>
-                        <div style="flex:1;">
-                            <label style="font-size:0.8rem;color:var(--text-secondary);">${t('manager.versionBNew')}</label>
-                            <select id="versionB" style="width:100%;padding:0.5rem;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);">${versionOptions}</select>
-                        </div>
-                        <button class="btn btn-primary" id="btnCompareRun">${t('manager.versionCompareRun')}</button>
-                    </div>
-                    <div id="versionCompareResult" style="font-size:0.85rem;"></div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-primary" id="btnVersionCompareClose">${t('manager.versionCompareClose')}</button>
-                </div>
-            </div>`;
+        // Header
+        const header = document.createElement('div');
+        header.className = 'modal-header';
 
+        const title = document.createElement('h2');
+        title.textContent = '\uD83D\uDCCA ' + t('manager.versionCompareTitle', { name: workflow.name });
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'modal-close';
+        closeBtn.id = 'versionCompareClose';
+        closeBtn.textContent = '\u00D7';
+
+        header.append(title, closeBtn);
+        modal.appendChild(header);
+
+        // Body
+        const body = document.createElement('div');
+        body.className = 'modal-body';
+        body.style.maxHeight = '65vh';
+
+        const selectorsRow = document.createElement('div');
+        Object.assign(selectorsRow.style, {
+            display: 'flex',
+            gap: '1rem',
+            marginBottom: '1rem',
+            alignItems: 'flex-end',
+        });
+
+        const selectA = this._createVersionSelect('versionA', t('manager.versionAOld'), versions);
+        const selectB = this._createVersionSelect('versionB', t('manager.versionBNew'), versions);
+
+        const compareBtn = document.createElement('button');
+        compareBtn.className = 'btn btn-primary';
+        compareBtn.id = 'btnCompareRun';
+        compareBtn.textContent = t('manager.versionCompareRun');
+
+        selectorsRow.append(selectA.wrapper, selectB.wrapper, compareBtn);
+
+        const resultDiv = document.createElement('div');
+        resultDiv.id = 'versionCompareResult';
+        resultDiv.style.fontSize = '0.85rem';
+
+        body.append(selectorsRow, resultDiv);
+        modal.appendChild(body);
+
+        // Footer
+        const footer = document.createElement('div');
+        footer.className = 'modal-footer';
+
+        const closeBtn2 = document.createElement('button');
+        closeBtn2.className = 'btn btn-primary';
+        closeBtn2.id = 'btnVersionCompareClose';
+        closeBtn2.textContent = t('manager.versionCompareClose');
+
+        footer.appendChild(closeBtn2);
+        modal.appendChild(footer);
+
+        overlay.appendChild(modal);
         document.body.appendChild(overlay);
         overlay.style.display = 'flex';
 
-        const closeBtn = overlay.querySelector('#versionCompareClose');
-        const closeBtn2 = overlay.querySelector('#btnVersionCompareClose');
-        const compareBtn = overlay.querySelector('#btnCompareRun');
         const closeFn = () => {
             overlay.style.display = 'none';
             overlay.remove();
@@ -355,7 +380,6 @@ export class WorkflowManager {
         compareBtn.addEventListener('click', () => {
             const idxA = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionA')).value);
             const idxB = parseInt(/** @type {HTMLSelectElement} */ (overlay.querySelector('#versionB')).value);
-            const resultDiv = overlay.querySelector('#versionCompareResult');
             if (idxA === idxB) {
                 resultDiv.innerHTML =
                     '<p style="color:var(--text-secondary);text-align:center;">' +
@@ -372,6 +396,43 @@ export class WorkflowManager {
                 Math.max(0, versions.length - 2)
             );
         }
+    }
+
+    /**
+     * 创建版本对比的选择器组件
+     * @private
+     */
+    _createVersionSelect(id, labelText, versions) {
+        const wrapper = document.createElement('div');
+        wrapper.style.flex = '1';
+
+        const label = document.createElement('label');
+        label.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);';
+        label.textContent = labelText;
+
+        const select = document.createElement('select');
+        select.id = id;
+        Object.assign(select.style, {
+            width: '100%',
+            padding: '0.5rem',
+            borderRadius: '6px',
+            border: '1px solid var(--border)',
+            background: 'var(--bg-primary)',
+            color: 'var(--text-primary)',
+        });
+
+        versions.forEach((v, i) => {
+            const d = new Date(v.timestamp);
+            const ts = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
+            const nodeCount = v.nodes ? v.nodes.length : 0;
+            const option = document.createElement('option');
+            option.value = String(i);
+            option.textContent = t('manager.versionOption', { index: i + 1, time: ts, count: nodeCount });
+            select.appendChild(option);
+        });
+
+        wrapper.append(label, select);
+        return { wrapper, select };
     }
 
     _generateVersionDiff(versionA, versionB) {
@@ -604,6 +665,7 @@ export class WorkflowManager {
                 updatedAt: Date.now(),
             };
             this.workflows.push(newWorkflow);
+            this.saveWorkflowVersion(newWorkflow.id, newWorkflow);
             this.saveWorkflows();
             this.renderWorkflowList();
         });
@@ -725,6 +787,8 @@ export class WorkflowManager {
             description,
             nodes,
             edges,
+            clipData,
+            _touched: false,
         };
     }
 
@@ -759,11 +823,13 @@ export class WorkflowManager {
                 description: zipResult.description,
                 nodes: zipResult.nodes,
                 edges: zipResult.edges,
+                _clipboardData: zipResult.clipData,
                 createdAt: Date.now(),
                 updatedAt: Date.now(),
             };
 
             this.workflows.push(newWorkflow);
+            this.saveWorkflowVersion(newWorkflow.id, newWorkflow);
             this.saveWorkflows();
             this.renderWorkflowList();
             this.closeImportModal();
@@ -953,6 +1019,10 @@ export class WorkflowManager {
     }
 
     openWorkflowEditor(workflow) {
+        // 如果有缓存的原始 Coze 剪贴板数据，单独存储（避免 workflow 对象过大导致 sessionStorage 截断）
+        if (workflow._clipboardData) {
+            Storage.session.set('_rawCozeClipboard', workflow._clipboardData);
+        }
         Storage.session.set('editingWorkflow', workflow);
         goToEditor();
     }
@@ -1127,30 +1197,76 @@ export class WorkflowManager {
         card.dataset.workflowId = workflow.id;
 
         const nodeCount = workflow.nodes?.length || 0;
-        const _edgeCount = workflow.edges?.length || 0;
         const updatedTime = this.formatDate(workflow.updatedAt);
+        const safeName = StringUtils.escapeHtml(workflow.name);
+        const safeDesc = StringUtils.escapeHtml(workflow.description) || t('manager.noDescription');
 
-        card.innerHTML = `
-            <div class="workflow-card-header">
-                <span class="drag-handle" draggable="true" title="${t('manager.dragHandle')}">⠿</span>
-                <input type="checkbox" class="workflow-checkbox" data-id="${StringUtils.escapeHtml(workflow.id)}" style="display: none;">
-                <h3 class="workflow-card-title">${StringUtils.escapeHtml(workflow.name)}</h3>
-                <div class="workflow-card-actions">
-                    <button class="action-btn duplicate-btn" title="${t('manager.duplicateWorkflowTip')}">📋</button>
-                    <button class="action-btn edit-btn" title="${t('manager.editTooltip')}">✏️</button>
-                    <button class="action-btn export-btn" title="${t('manager.exportTooltip')}">📥</button>
-                    <button class="action-btn version-btn" title="${t('manager.versionCompare')}">📊</button>
-                    <button class="action-btn delete-btn" title="${t('manager.deleteTooltip')}">🗑️</button>
-                </div>
-            </div>
-            <p class="workflow-card-description">${StringUtils.escapeHtml(workflow.description) || t('manager.noDescription')}</p>
-            <div class="workflow-card-meta">
-                <span class="node-count">${t('manager.nodesCount', { count: nodeCount })}</span>
-                <span>${updatedTime}</span>
-            </div>
-        `;
+        // Header
+        const header = document.createElement('div');
+        header.className = 'workflow-card-header';
+
+        const dragHandle = document.createElement('span');
+        dragHandle.className = 'drag-handle';
+        dragHandle.draggable = true;
+        dragHandle.title = t('manager.dragHandle');
+        dragHandle.textContent = '\u283F';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'workflow-checkbox';
+        checkbox.dataset.id = workflow.id;
+        checkbox.style.display = 'none';
+
+        const title = document.createElement('h3');
+        title.className = 'workflow-card-title';
+        title.textContent = safeName;
+
+        const actions = document.createElement('div');
+        actions.className = 'workflow-card-actions';
+        actions.append(
+            this._createActionBtn('\uD83D\uDCCB', 'duplicate-btn', t('manager.duplicateWorkflowTip')),
+            this._createActionBtn('\u270F\uFE0F', 'edit-btn', t('manager.editTooltip')),
+            this._createActionBtn('\uD83D\uDCE5', 'export-btn', t('manager.exportTooltip')),
+            this._createActionBtn('\uD83D\uDCCA', 'version-btn', t('manager.versionCompare')),
+            this._createActionBtn('\uD83D\uDDD1\uFE0F', 'delete-btn', t('manager.deleteTooltip'))
+        );
+
+        header.append(dragHandle, checkbox, title, actions);
+        card.appendChild(header);
+
+        // Description
+        const desc = document.createElement('p');
+        desc.className = 'workflow-card-description';
+        desc.textContent = safeDesc;
+        card.appendChild(desc);
+
+        // Meta
+        const meta = document.createElement('div');
+        meta.className = 'workflow-card-meta';
+
+        const nodeCountSpan = document.createElement('span');
+        nodeCountSpan.className = 'node-count';
+        nodeCountSpan.textContent = t('manager.nodesCount', { count: nodeCount });
+
+        const timeSpan = document.createElement('span');
+        timeSpan.textContent = updatedTime;
+
+        meta.append(nodeCountSpan, timeSpan);
+        card.appendChild(meta);
 
         return card;
+    }
+
+    /**
+     * 创建操作按钮
+     * @private
+     */
+    _createActionBtn(icon, className, title) {
+        const btn = document.createElement('button');
+        btn.className = 'action-btn ' + className;
+        btn.title = title;
+        btn.textContent = icon;
+        return btn;
     }
 
     formatDate(timestamp) {
@@ -1198,12 +1314,24 @@ export class WorkflowManager {
                 const card = document.createElement('div');
                 card.className = 'template-card';
                 card.dataset.templateId = tpl.id;
-                card.innerHTML = `
-                    <div class="template-card-icon">${tpl.icon}</div>
-                    <div class="template-card-name">${StringUtils.escapeHtml(resolved.name)}</div>
-                    <div class="template-card-desc">${StringUtils.escapeHtml(resolved.description)}</div>
-                    <div class="template-card-nodes">${t('manager.nodesCount', { count: tpl.nodes.length })}</div>
-                `;
+
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'template-card-icon';
+                iconDiv.textContent = tpl.icon;
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'template-card-name';
+                nameDiv.textContent = resolved.name;
+
+                const descDiv = document.createElement('div');
+                descDiv.className = 'template-card-desc';
+                descDiv.textContent = resolved.description;
+
+                const nodesDiv = document.createElement('div');
+                nodesDiv.className = 'template-card-nodes';
+                nodesDiv.textContent = t('manager.nodesCount', { count: tpl.nodes.length });
+
+                card.append(iconDiv, nameDiv, descDiv, nodesDiv);
                 grid.appendChild(card);
             });
 
@@ -1236,6 +1364,7 @@ export class WorkflowManager {
         };
 
         this.workflows.push(newWorkflow);
+        this.saveWorkflowVersion(newWorkflow.id, newWorkflow);
         this.saveWorkflows();
         this.renderWorkflowList();
         this.closeTemplateModal();
@@ -1244,5 +1373,8 @@ export class WorkflowManager {
     }
 }
 
+// NOTE: window.workflowManager 是构建管线必需的全局引用（src/scripts/build.js 行564 使用），
+// 该文件同时支持 ES Module（开发时）和 <script> 标签（构建后）两种加载方式。
+// 在开发模式下，app.js 动态导入此模块。
 // @ts-ignore
 window.workflowManager = new WorkflowManager();
