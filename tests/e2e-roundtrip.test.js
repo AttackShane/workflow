@@ -10,7 +10,7 @@
  *   Coze2 → convertClipboardToInternal → internal2
  *   比较 internal1 vs internal2
  */
-import { convertClipboardToInternal, convertInternalToClipboardNode } from '../src/modules/shared-serializer.js';
+import { convertClipboardToInternal, convertInternalToClipboardNode } from '../src/modules/shared/shared-serializer.js';
 
 // ====================================================================
 // 测试数据：构造完整的 Coze 剪贴板格式工作流

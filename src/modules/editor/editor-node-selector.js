@@ -1,0 +1,600 @@
+/**
+ * 工作流节点变量选择器模块
+ * 负责变量引用选择器、合并变量选择器等
+ */
+import { StringUtils } from '../../utils/helpers.js';
+
+/**
+ * 变量选择器相关的 mixin 方法
+ * @param {import("./editor-node.js").WorkflowNode} node - WorkflowNode 实例
+ */
+export class WorkflowNodeSelector {
+    constructor(node) {
+        this.node = node;
+    }
+    openInputParamRefSelector(prefix, index) {
+        const selectedNode = this.node.core.selectedNode;
+        if (!selectedNode) return;
+        const targetNode = this.node.core.getNode(selectedNode);
+        if (!targetNode) return;
+
+        const refEl = document.getElementById(`${prefix}Ref_${index}`);
+        let currentBlockId = '';
+        let currentName = '';
+
+        if (refEl && /** @type {HTMLInputElement} */ (refEl).value) {
+            try {
+                const ref = JSON.parse(decodeURIComponent(/** @type {HTMLInputElement} */ (refEl).value));
+                currentBlockId = ref.content?.blockID || '';
+                currentName = ref.content?.name || '';
+            } catch (e) {
+                try {
+                    const ref = JSON.parse(/** @type {HTMLInputElement} */ (refEl).value);
+                    currentBlockId = ref.content?.blockID || '';
+                    currentName = ref.content?.name || '';
+                } catch (e2) {}
+            }
+        }
+
+        this._openGenericVariableSelector(selectedNode, currentBlockId, currentName, (blockId, outputPath) => {
+            const valueEl = document.getElementById(`${prefix}Value_${index}`);
+            const refDisplayEl = document.getElementById(`${prefix}RefDisplay_${index}`);
+            const refHiddenEl = document.getElementById(`${prefix}Ref_${index}`);
+
+            const refObj = {
+                type: 'ref',
+                content: {
+                    source: 'block-output',
+                    blockID: blockId,
+                    name: outputPath,
+                },
+                rawMeta: { type: 1 },
+            };
+
+            if (refHiddenEl) {
+                /** @type {HTMLInputElement} */ (refHiddenEl).value = encodeURIComponent(JSON.stringify(refObj));
+            }
+            if (valueEl) {
+                valueEl.style.display = 'none';
+                /** @type {HTMLInputElement} */ (valueEl).disabled = true;
+            }
+            if (refDisplayEl) {
+                const display = this.node.paramEditor._getRefDisplayText(blockId, outputPath);
+                refDisplayEl.textContent = display;
+                refDisplayEl.style.display = 'block';
+                refDisplayEl.title = display;
+            }
+
+            const paramsKey = prefix === 'input' ? 'inputParams' : 'outputParams';
+            if (targetNode[paramsKey] && targetNode[paramsKey][index]) {
+                targetNode[paramsKey][index].value = refObj;
+                targetNode[paramsKey][index].valueType = 'ref';
+                targetNode[paramsKey][index].rawMeta = { type: 1 };
+            }
+        });
+    }
+
+    clearInputParamRef(prefix, index) {
+        const selectedNode = this.node.core.selectedNode;
+        const targetNode = selectedNode ? this.node.core.getNode(selectedNode) : null;
+        const valueEl = document.getElementById(`${prefix}Value_${index}`);
+        const refDisplayEl = document.getElementById(`${prefix}RefDisplay_${index}`);
+        const refHiddenEl = document.getElementById(`${prefix}Ref_${index}`);
+
+        if (refHiddenEl) /** @type {HTMLInputElement} */ (refHiddenEl).value = '';
+        if (valueEl) {
+            valueEl.style.display = '';
+            /** @type {HTMLInputElement} */ (valueEl).disabled = false;
+            /** @type {HTMLInputElement} */ (valueEl).value = '';
+        }
+        if (refDisplayEl) {
+            refDisplayEl.style.display = 'none';
+            refDisplayEl.textContent = '';
+        }
+
+        if (targetNode) {
+            const paramsKey = prefix === 'input' ? 'inputParams' : 'outputParams';
+            if (targetNode[paramsKey] && targetNode[paramsKey][index]) {
+                targetNode[paramsKey][index].value = '';
+                targetNode[paramsKey][index].valueType = '';
+                targetNode[paramsKey][index].rawMeta = undefined;
+            }
+        }
+    }
+
+    openVariableSelector(nodeId, gi, vi) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters?.mergeGroups) return;
+        const group = targetNode.parameters.mergeGroups[gi];
+        if (!group || !group.variables) return;
+        const variable = group.variables[vi];
+        if (!variable) return;
+
+        const currentBlockId = variable.value?.content?.blockID || '';
+        const currentName = variable.value?.content?.name || '';
+
+        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
+            variable.value.content.blockID = blockId;
+            variable.value.content.name = outputPath;
+
+            const edge = this.node.core.edges.find((e) => e.target === targetNode.id && e.source === blockId);
+            if (edge) {
+                edge.sourcePort = outputPath;
+            }
+
+            this.node.panel.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        });
+    }
+
+    addMergeVariable(nodeId, gi) {
+        try {
+            const targetNode = this.node.core.getNode(nodeId);
+            if (!targetNode || !targetNode.parameters?.mergeGroups) return;
+            const group = targetNode.parameters.mergeGroups[gi];
+            if (!group || !group.variables) return;
+            group.variables.push({
+                type: 'string',
+                value: {
+                    type: 'ref',
+                    content: { source: 'block-output', blockID: '', name: 'output' },
+                    rawMeta: { type: 1 },
+                },
+            });
+            this.node.panel.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        } catch (e) {}
+    }
+
+    removeMergeVariable(nodeId, gi, vi) {
+        try {
+            const targetNode = this.node.core.getNode(nodeId);
+            if (!targetNode || !targetNode.parameters?.mergeGroups) return;
+            const group = targetNode.parameters.mergeGroups[gi];
+            if (!group || !group.variables) return;
+            group.variables.splice(vi, 1);
+            this.node.panel.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        } catch (e) {}
+    }
+
+    _getUpstreamNodeIds(targetNodeId) {
+        const visited = new Set();
+        const result = new Set();
+        const queue = [targetNodeId];
+
+        const targetNode = this.node.core.getNode(targetNodeId);
+        const info = targetNode ? this.node.core.nodeTypeInfo[targetNode.type] : null;
+        // 容器节点：其输出变量可以引用容器内所有子孙节点的输出
+        if (info && info.hasContainer) {
+            const collectChildren = (parentId) => {
+                this.node.core.nodes.forEach((child) => {
+                    if (child.parentId === parentId && !visited.has(child.id)) {
+                        result.add(child.id);
+                        visited.add(child.id);
+                        queue.push(child.id);
+                        collectChildren(child.id);
+                    }
+                });
+            };
+            collectChildren(targetNodeId);
+        }
+
+        while (queue.length > 0) {
+            const currentId = queue.shift();
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+            // 容器内子节点，其父容器也是上游节点（提供中间变量等）
+            const currentNode = this.node.core.getNode(currentId);
+            if (currentNode && currentNode.parentId && !visited.has(currentNode.parentId)) {
+                result.add(currentNode.parentId);
+                queue.push(currentNode.parentId);
+            }
+            this.node.core.edges.forEach((edge) => {
+                if (edge.target === currentId && !visited.has(edge.source)) {
+                    result.add(edge.source);
+                    queue.push(edge.source);
+                }
+            });
+        }
+        return result;
+    }
+
+    _openGenericVariableSelector(excludeNodeId, currentBlockId, currentName, onConfirm) {
+        const buildOutputTree = (outputs) => {
+            const tree = [];
+            if (!outputs || typeof outputs !== 'object') return tree;
+            Object.entries(outputs).forEach(([name, meta]) => {
+                const treeNode = {
+                    name,
+                    type: meta.type || 'string',
+                    description: meta.description || '',
+                    children: [],
+                };
+                if (meta.properties && typeof meta.properties === 'object') {
+                    if (Array.isArray(meta.properties)) {
+                        treeNode.children = meta.properties.map((prop) => ({
+                            name: prop.name || prop,
+                            type: prop.type || 'string',
+                            description: prop.description || '',
+                            children: [],
+                        }));
+                    } else {
+                        treeNode.children = buildOutputTree(meta.properties);
+                    }
+                }
+                tree.push(treeNode);
+            });
+            return tree;
+        };
+
+        const renderTreeNode = (treeNode, path, depth) => {
+            const fullPath = path ? `${path}.${treeNode.name}` : treeNode.name;
+            const indent = '&nbsp;&nbsp;'.repeat(depth);
+            const isSelected = fullPath === currentName;
+            const typeLabel = treeNode.type
+                ? ` <span style="color:var(--text-secondary);font-size:0.75rem;">(${treeNode.type})</span>`
+                : '';
+            if (treeNode.children.length > 0) {
+                const childHtml = treeNode.children.map((c) => renderTreeNode(c, fullPath, depth + 1)).join('');
+                return `<div class="tree-branch">
+                    <div class="tree-item tree-folder ${isSelected ? 'tree-selected' : ''}" 
+                         data-path="${StringUtils.escapeHtml(fullPath)}" 
+                         style="padding-left:${depth * 16 + 8}px;">
+                        <span class="tree-toggle">▶</span> ${indent}${StringUtils.escapeHtml(treeNode.name)}${typeLabel}
+                    </div>
+                    <div class="tree-children" style="display:none;">${childHtml}</div>
+                </div>`;
+            } else {
+                return `<div class="tree-item tree-leaf ${isSelected ? 'tree-selected' : ''}" 
+                         data-path="${StringUtils.escapeHtml(fullPath)}" 
+                         style="padding-left:${depth * 16 + 8}px;">
+                    ${indent}${StringUtils.escapeHtml(treeNode.name)}${typeLabel}
+                </div>`;
+            }
+        };
+
+        const upstreamIds = this._getUpstreamNodeIds(excludeNodeId);
+        const excludeNode = this.node.core.getNode(excludeNodeId);
+        const availableNodes = this.node.core.nodes.filter((n) => {
+            if (n.id === excludeNodeId) return false;
+            if (!upstreamIds.has(n.id)) return false;
+            const outputs = n.parameters?.node_outputs;
+            if (outputs && typeof outputs === 'object' && Object.keys(outputs).length > 0) return true;
+            const outParams = n.outputParams || n.parameters?.outputParams;
+            if (outParams && Array.isArray(outParams) && outParams.length > 0) return true;
+            // 容器节点的中间变量（variableParameters）仅容器内子节点可以引用
+            const info = this.node.core.nodeTypeInfo[n.type];
+            if (
+                info?.hasContainer &&
+                n.parameters?.variableParameters &&
+                Array.isArray(n.parameters.variableParameters) &&
+                n.parameters.variableParameters.length > 0
+            ) {
+                // 只有当前节点是该容器的直接或间接子节点时，才能看到中间变量
+                let nodeInContainer = excludeNode;
+                while (nodeInContainer && nodeInContainer.parentId) {
+                    if (nodeInContainer.parentId === n.id) return true;
+                    nodeInContainer = this.node.core.getNode(nodeInContainer.parentId);
+                }
+            }
+            return false;
+        });
+
+        const modal = document.createElement('div');
+        modal.className = 'variable-selector-modal';
+        modal.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;
+            z-index: 1001; font-family: -apple-system, sans-serif;
+        `;
+
+        modal.innerHTML = `
+            <div style="background: var(--bg-primary, #1e293b); border-radius: 12px; width: 700px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+                <div style="padding: 1rem; border-bottom: 1px solid var(--border, #334155); display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin:0; color: var(--text-primary); font-size: 1rem;">选择变量引用</h3>
+                    <button onclick="this.closest('.variable-selector-modal').remove()" style="background:none;border:none;color:var(--text-secondary);font-size:1.5rem;cursor:pointer;">&times;</button>
+                </div>
+                <div style="display: flex; flex: 1; overflow: hidden;">
+                    <div style="width: 240px; border-right: 1px solid var(--border); overflow-y: auto; padding: 0.5rem;">
+                        <input type="text" id="varNodeSearch" placeholder="搜索节点..." style="width:100%;padding:0.4rem;margin-bottom:0.5rem;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);">
+                        <div id="varNodeList">
+                            ${availableNodes
+                                .map((n) => {
+                                    const nId = n.id;
+                                    const nTitle = n.title || n.id;
+                                    const isCur = nId === currentBlockId;
+                                    return `<div class="var-node-item ${isCur ? 'var-node-active' : ''}" 
+                                    data-node-id="${StringUtils.escapeHtml(nId)}">
+                                    <span class="var-node-title">${StringUtils.escapeHtml(nTitle)}</span>
+                                    <span class="var-node-type">${StringUtils.escapeHtml(n.type)}</span>
+                                </div>`;
+                                })
+                                .join('')}
+                            ${availableNodes.length === 0 ? '<p style="color:var(--text-secondary);font-size:0.8rem;padding:0.5rem;">没有可用的上游节点</p>' : ''}
+                        </div>
+                    </div>
+                    <div style="flex:1; overflow-y: auto; padding: 0.5rem;">
+                        <div style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:0.5rem;">选择输出参数</div>
+                        <div id="varOutputTree" style="font-size:0.85rem; color: var(--text-primary);">
+                            <p style="color:var(--text-secondary);">请先选择左侧节点</p>
+                        </div>
+                    </div>
+                </div>
+                <div style="padding: 0.75rem; border-top: 1px solid var(--border); display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="this.closest('.variable-selector-modal').remove()">取消</button>
+                    <button class="btn btn-primary" id="varConfirmBtn">确定</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        let selectedNodeId = currentBlockId;
+        let selectedPath = currentName;
+
+        const nodeItems = modal.querySelectorAll('.var-node-item');
+        const searchInput = modal.querySelector('#varNodeSearch');
+        const outputTree = modal.querySelector('#varOutputTree');
+
+        const updateOutputTree = (nId) => {
+            const targetNode = this.node.core.getNode(nId);
+            if (!targetNode) {
+                outputTree.innerHTML = '<p style="color:var(--text-secondary);">该节点无输出参数</p>';
+                return;
+            }
+            const outputs = targetNode.parameters?.node_outputs || {};
+            let tree = buildOutputTree(outputs);
+            if (tree.length === 0) {
+                const outParams = targetNode.outputParams || targetNode.parameters?.outputParams;
+                if (outParams && Array.isArray(outParams) && outParams.length > 0) {
+                    tree = outParams.map((p) => ({
+                        name: p.name || p,
+                        type: p.type || 'string',
+                        description: p.description || '',
+                        children: [],
+                    }));
+                }
+            }
+            // 容器节点的中间变量（variableParameters）仅容器内子节点可以引用
+            const info = this.node.core.nodeTypeInfo[targetNode.type];
+            if (
+                info?.hasContainer &&
+                targetNode.parameters?.variableParameters &&
+                Array.isArray(targetNode.parameters.variableParameters)
+            ) {
+                // 只有当前要进行引用的节点是该容器的直接或间接子节点时，才能看到中间变量
+                let current = this.node.core.getNode(excludeNodeId);
+                let inThisContainer = false;
+                while (current && current.parentId) {
+                    if (current.parentId === nId) {
+                        inThisContainer = true;
+                        break;
+                    }
+                    current = this.node.core.getNode(current.parentId);
+                }
+                if (inThisContainer) {
+                    for (const vp of targetNode.parameters.variableParameters) {
+                        if (vp && vp.name) {
+                            tree.push({
+                                name: vp.name,
+                                type: vp.type || 'string',
+                                description: vp.description || '',
+                                children: [],
+                            });
+                        }
+                    }
+                }
+            }
+            if (tree.length === 0) {
+                outputTree.innerHTML = '<p style="color:var(--text-secondary);">该节点无输出参数</p>';
+                return;
+            }
+            outputTree.innerHTML = tree.map((t) => renderTreeNode(t, '', 0)).join('');
+
+            outputTree.querySelectorAll('.tree-folder').forEach((folder) => {
+                folder.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const branch = folder.closest('.tree-branch');
+                    const children = branch.querySelector('.tree-children');
+                    const toggle = folder.querySelector('.tree-toggle');
+                    if (children) {
+                        const isOpen = /** @type {HTMLElement} */ (children).style.display !== 'none';
+                        /** @type {HTMLElement} */ (children).style.display = isOpen ? 'none' : 'block';
+                        toggle.textContent = isOpen ? '▶' : '▼';
+                    }
+                });
+            });
+
+            outputTree.querySelectorAll('.tree-leaf, .tree-folder').forEach((item) => {
+                item.addEventListener('click', (_e) => {
+                    const path = /** @type {HTMLElement} */ (item).dataset.path;
+                    if (path) {
+                        selectedPath = path;
+                        outputTree
+                            .querySelectorAll('.tree-selected')
+                            .forEach((el) => el.classList.remove('tree-selected'));
+                        item.classList.add('tree-selected');
+                    }
+                });
+            });
+        };
+
+        const selectNode = (nId) => {
+            selectedNodeId = nId;
+            nodeItems.forEach((item) => {
+                item.classList.toggle('var-node-active', /** @type {HTMLElement} */ (item).dataset.nodeId === nId);
+            });
+            updateOutputTree(nId);
+        };
+
+        nodeItems.forEach((item) => {
+            item.addEventListener('click', () => selectNode(/** @type {HTMLElement} */ (item).dataset.nodeId));
+        });
+
+        searchInput.addEventListener('input', () => {
+            const q = /** @type {HTMLInputElement} */ (searchInput).value.toLowerCase();
+            nodeItems.forEach((item) => {
+                const text = item.textContent.toLowerCase();
+                /** @type {HTMLElement} */ (item).style.display = text.includes(q) ? '' : 'none';
+            });
+        });
+
+        if (currentBlockId) {
+            updateOutputTree(currentBlockId);
+        }
+
+        modal.querySelector('#varConfirmBtn').addEventListener('click', () => {
+            if (!selectedNodeId) {
+                this.node.ui.showMessage('请选择一个节点', 'error');
+                return;
+            }
+            if (!selectedPath) {
+                this.node.ui.showMessage('请选择一个输出参数', 'error');
+                return;
+            }
+            onConfirm(selectedNodeId, selectedPath);
+            modal.remove();
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+    }
+
+    addLoopVariable(nodeId) {
+        try {
+            const targetNode = this.node.core.getNode(nodeId);
+            if (!targetNode) return;
+            if (!targetNode.parameters) targetNode.parameters = {};
+            if (!Array.isArray(targetNode.parameters.variables)) {
+                targetNode.parameters.variables = [];
+            }
+            targetNode.parameters.variables.push({
+                left: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: { source: 'block-output', blockID: '', name: 'output' },
+                        rawMeta: { type: 1 },
+                    },
+                },
+                right: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: { source: 'block-output', blockID: '', name: 'output' },
+                        rawMeta: { type: 1 },
+                    },
+                },
+            });
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        } catch (e) {}
+    }
+
+    removeLoopVariable(nodeId, vi) {
+        try {
+            const targetNode = this.node.core.getNode(nodeId);
+            if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+            targetNode.parameters.variables.splice(vi, 1);
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        } catch (e) {}
+    }
+    openLoopVariableSelector(nodeId, vi, side) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+        const variable = targetNode.parameters.variables[vi];
+        if (!variable) return;
+
+        const ref = variable[side];
+        const currentBlockId = ref?.value?.content?.blockID || '';
+        const currentName = ref?.value?.content?.name || '';
+
+        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
+            if (!ref.value.content) {
+                ref.value.content = {};
+            }
+            ref.value.content.blockID = blockId;
+            ref.value.content.name = outputPath;
+
+            const edge = this.node.core.edges.find((e) => e.target === targetNode.id && e.source === blockId);
+            if (edge) {
+                edge.sourcePort = outputPath;
+            }
+
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        });
+    }
+
+    clearLoopVarRef(nodeId, vi, side) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
+        const variable = targetNode.parameters.variables[vi];
+        if (!variable) return;
+
+        const clearSide = side || 'right';
+        variable[clearSide] = {
+            type: 'string',
+            value: { type: 'literal', content: '' },
+        };
+        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
+    }
+
+    openConditionRefSelector(nodeId, branchIndex, condIndex, side) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters?.branches) return;
+        const branches = targetNode.parameters.branches;
+        if (!Array.isArray(branches) || !branches[branchIndex]) return;
+        const branch = branches[branchIndex];
+        const conditions = branch.condition?.conditions;
+        if (!Array.isArray(conditions) || !conditions[condIndex]) return;
+        const cond = conditions[condIndex];
+
+        const ref = cond[side];
+        const currentBlockId = ref?.input?.value?.content?.blockID || '';
+        const currentName = ref?.input?.value?.content?.name || '';
+
+        this._openGenericVariableSelector(nodeId, currentBlockId, currentName, (blockId, outputPath) => {
+            cond[side] = {
+                input: {
+                    type: 'string',
+                    value: {
+                        type: 'ref',
+                        content: {
+                            source: 'block-output',
+                            blockID: blockId,
+                            name: outputPath,
+                        },
+                        rawMeta: { type: 1 },
+                    },
+                },
+            };
+            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel._scheduleAutoSave(nodeId);
+        });
+    }
+
+    clearConditionRef(nodeId, branchIndex, condIndex, side) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters?.branches) return;
+        const branches = targetNode.parameters.branches;
+        if (!Array.isArray(branches) || !branches[branchIndex]) return;
+        const branch = branches[branchIndex];
+        const conditions = branch.condition?.conditions;
+        if (!Array.isArray(conditions) || !conditions[condIndex]) return;
+        const cond = conditions[condIndex];
+
+        cond[side] = {
+            input: {
+                type: 'string',
+                value: { type: 'literal', content: '' },
+            },
+        };
+        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel._scheduleAutoSave(nodeId);
+    }
+}

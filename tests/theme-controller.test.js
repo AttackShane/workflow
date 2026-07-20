@@ -93,7 +93,7 @@ function loadWithStorage(storageValues = {}) {
         .mockReturnValueOnce(lineNumbers)
         .mockReturnValueOnce(lineNumbersToggle);
 
-    const mod = require('../src/modules/shared-theme.js');
+    const mod = require('../src/modules/shared/shared-theme.js');
     initThemeController = mod.initThemeController;
     updateThemeButtonText = mod.updateThemeButtonText;
 

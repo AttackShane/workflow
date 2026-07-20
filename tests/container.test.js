@@ -19,7 +19,7 @@
  * 策略：使用 createMockCore 提供真实 nodes 数组 + nodeTypeInfo 映射，
  * mock i18n t() 返回键名，mock APP_CONFIG 提供尺寸常量。
  */
-import { WorkflowContainer } from '../src/modules/editor-container.js';
+import { WorkflowContainer } from '../src/modules/editor/editor-container.js';
 import { createMockCore, createMockNode } from './helpers/mockFactories.js';
 
 jest.mock('../src/config/constants.js', () => ({

@@ -1,4 +1,4 @@
-import { WorkflowCanvas } from '../src/modules/editor-canvas.js';
+import { WorkflowCanvas } from '../src/modules/editor/editor-canvas.js';
 import { DOM } from '../src/utils/helpers.js';
 
 // 只 mock DOM（需要 jsdom 模拟），NodeUtils 使用真实实现（纯数据函数，无 DOM 依赖）

@@ -15,7 +15,7 @@
  * 仅 mock 高层依赖（core/ui/canvas/container）和 APP_CONFIG 常量。
  * requestAnimationFrame mock 为同步执行以便测试 rAF 回调内的逻辑。
  */
-import { WorkflowNodeDrag } from '../src/modules/editor-node-drag.js';
+import { WorkflowNodeDrag } from '../src/modules/editor/editor-node-drag.js';
 
 jest.mock('../src/config/constants.js', () => ({
     APP_CONFIG: {

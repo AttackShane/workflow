@@ -49,7 +49,7 @@ describe('Navigator', () => {
         jest.spyOn(Storage.session, 'remove').mockImplementation(() => {});
         jest.spyOn(Storage, 'remove').mockImplementation(() => {});
 
-        navigatorExports = require('../src/modules/shared-navigator.js');
+        navigatorExports = require('../src/modules/shared/shared-navigator.js');
     });
 
     afterEach(() => {

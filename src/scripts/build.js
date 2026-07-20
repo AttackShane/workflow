@@ -63,12 +63,12 @@ const EDITOR_EXCLUDE = new Set([
 const editorModules = Array.from(
     new Set([
         ...scanDependencies('modules/app.js').filter((m) => !EDITOR_EXCLUDE.has(path.basename(m))),
-        ...scanDependencies('modules/editor-ui.js'),
-        ...scanDependencies('modules/editor-core.js'),
+        ...scanDependencies('modules/editor/editor-ui.js'),
+        ...scanDependencies('modules/editor/editor-core.js'),
     ])
 );
 
-const managerModules = scanDependencies('modules/manager-core.js');
+const managerModules = scanDependencies('modules/manager/manager-core.js');
 
 function stripMultilineImports(code) {
     const lines = code.split('\n');

@@ -1,7 +1,7 @@
 /**
  * 反向转换模块测试
  */
-import { convertClipboardToYaml } from '../src/modules/converter-reverse.js';
+import { convertClipboardToYaml } from '../src/modules/converter/converter-reverse.js';
 
 describe('Reverse Module', () => {
     describe('convertClipboardToYaml', () => {

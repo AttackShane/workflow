@@ -1,7 +1,7 @@
 /**
  * 语法高亮器模块测试
  */
-import { highlightJson, highlightYaml } from '../src/modules/converter-highlighter.js';
+import { highlightJson, highlightYaml } from '../src/modules/converter/converter-highlighter.js';
 
 describe('Highlighter', () => {
     describe('highlightJson basic functionality', () => {

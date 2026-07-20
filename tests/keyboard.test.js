@@ -1,4 +1,4 @@
-import { WorkflowKeyboard } from '../src/modules/editor-keyboard.js';
+import { WorkflowKeyboard } from '../src/modules/editor/editor-keyboard.js';
 import { DOM, Storage } from '../src/utils/helpers.js';
 
 jest.mock('../src/utils/helpers.js', () => {

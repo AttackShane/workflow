@@ -1,4 +1,4 @@
-import { convertYamlToClipboard, convertNode } from '../src/modules/converter.js';
+import { convertYamlToClipboard, convertNode } from '../src/modules/converter/converter.js';
 import { clearRefCache } from '../src/utils/types.js';
 
 describe('Converter Module', () => {

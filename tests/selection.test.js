@@ -14,7 +14,7 @@
  * 实际操作 classList），使 querySelectorAll 能正确反映选择状态。
  * mock i18n 的 t() 返回键名本身。
  */
-import { WorkflowSelection } from '../src/modules/editor-selection.js';
+import { WorkflowSelection } from '../src/modules/editor/editor-selection.js';
 
 // 薄包装：DOM.addClass/removeClass 实际操作 classList，
 // 使 querySelectorAll('.selected') 能正确反映选择状态

@@ -1,7 +1,7 @@
-import { initThemeController } from './shared-theme.js';
-import { initI18nController } from './shared-i18n.js';
+import { initThemeController } from './shared/shared-theme.js';
+import { initI18nController } from './shared/shared-i18n.js';
 // 导入导航模块（模块加载时自动初始化事件监听器）
-import './shared-navigator.js';
+import './shared/shared-navigator.js';
 
 /**
  * 显示用户可见的错误横幅
@@ -63,12 +63,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const _v = Date.now();
     if (h1Text && (h1Text.includes('转换器') || h1Text.includes('converter'))) {
         Promise.all([
-            import(`./converter-ui.js?v=${_v}`).then((m) => m.initUI()),
-            import(`./converter-keyboard.js?v=${_v}`).then((m) => m.initKeyboardShortcuts()),
-            import(`./converter-stats.js?v=${_v}`)
+            import(`./converter/converter-ui.js?v=${_v}`).then((m) => m.initUI()),
+            import(`./converter/converter-keyboard.js?v=${_v}`).then((m) => m.initKeyboardShortcuts()),
+            import(`./converter/converter-stats.js?v=${_v}`)
                 .then((m) => m.initHistoryPanel())
                 .catch((e) => console.error('加载统计视图失败:', e)),
-            import(`./shared-graph.js?v=${_v}`)
+            import(`./shared/shared-graph.js?v=${_v}`)
                 .then((m) => m.initGraphModal())
                 .catch((e) => console.error('加载图形视图失败:', e)),
         ])
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 restorePageVisibility();
             });
     } else if (h1Text && (h1Text.includes('工作流管理') || h1Text.includes('workflow manager'))) {
-        import(`./manager-core.js?v=${_v}`)
+        import(`./manager/manager-core.js?v=${_v}`)
             .then((m) => {
                 const manager = new m.WorkflowManager();
                 manager.init();

@@ -1,8 +1,8 @@
 /**
  * 剪贴板模块测试
  */
-import { WorkflowClipboard } from '../src/modules/editor-clipboard.js';
-import { WorkflowCore } from '../src/modules/editor-core.js';
+import { WorkflowClipboard } from '../src/modules/editor/editor-clipboard.js';
+import { WorkflowCore } from '../src/modules/editor/editor-core.js';
 
 // Mock DOM
 global.document = {

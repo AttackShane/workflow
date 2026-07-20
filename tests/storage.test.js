@@ -1,7 +1,7 @@
 /**
  * 工作流存储模块测试
  */
-import { WorkflowCore } from '../src/modules/editor-core.js';
+import { WorkflowCore } from '../src/modules/editor/editor-core.js';
 
 var mockStorageData;
 

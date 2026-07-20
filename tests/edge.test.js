@@ -1,4 +1,4 @@
-import { WorkflowEdge } from '../src/modules/editor-edge.js';
+import { WorkflowEdge } from '../src/modules/editor/editor-edge.js';
 
 function createMockElement(attrs = {}) {
     const el = {
