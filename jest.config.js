@@ -36,6 +36,12 @@ export default {
         'src/modules/editor-align.js': { lines: 70 },
         'src/utils/helpers.js': { lines: 50 },
         'src/utils/utils.js': { lines: 70 },
-        'src/modules/shared-serializer.js': { lines: 50 },
+        'src/modules/shared-serializer.js': { lines: 85 },
+
+        // 交互类 — 按实际覆盖设置阈值
+        'src/modules/editor-node-drag.js': { lines: 80 },
+        'src/modules/editor-selection.js': { lines: 90 },
+        'src/modules/editor-container.js': { lines: 95 },
+        'src/modules/editor-canvas.js': { lines: 60 },
     },
 };
