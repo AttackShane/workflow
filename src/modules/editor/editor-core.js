@@ -53,6 +53,8 @@ export class WorkflowCore {
         this._lastHistoryAction = null;
         /** @type {number} 上一次保存历史的时间戳 */
         this._lastHistoryTime = 0;
+        /** @type {number} 增量快照的基准间隔，每隔此数步创建完整快照 */
+        this._historyBaseInterval = 10;
 
         /** @type {ChangeCallback|null} 数据变更回调 */
         this._onChange = null;
@@ -80,6 +82,118 @@ export class WorkflowCore {
     _rebuildMaps() {
         this._nodeMap = new Map(this.nodes.map((n) => [n.id, n]));
         this._edgeMap = new Map(this.edges.map((e) => [e.id, e]));
+    }
+
+    /**
+     * 从基准状态重建完整状态
+     * @param {number} index - 目标历史记录索引
+     * @returns {{nodes: WorkflowNode[], edges: WorkflowEdge[], selectedNode: string|null, selectedEdge: string|null}}
+     */
+    _reconstructHistoryState(index) {
+        if (index < 0 || index >= this.history.length) {
+            return { nodes: [], edges: [], selectedNode: null, selectedEdge: null };
+        }
+
+        const state = this.history[index];
+        if (state.baseIndex === -1) {
+            return {
+                nodes: deepClone(state.nodes),
+                edges: deepClone(state.edges),
+                selectedNode: state.selectedNode,
+                selectedEdge: state.selectedEdge,
+            };
+        }
+
+        const baseState = this._reconstructHistoryState(state.baseIndex);
+        const nodes = baseState.nodes.slice();
+        const edges = baseState.edges.slice();
+
+        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+        const edgeMap = new Map(edges.map((e) => [e.id, e]));
+
+        if (state.nodes) {
+            if (state.nodes.deleted) {
+                state.nodes.deleted.forEach((id) => nodeMap.delete(id));
+            }
+            if (state.nodes.added) {
+                Object.values(state.nodes.added).forEach((node) => nodeMap.set(node.id, deepClone(node)));
+            }
+            if (state.nodes.updated) {
+                Object.values(state.nodes.updated).forEach((node) => nodeMap.set(node.id, deepClone(node)));
+            }
+        }
+
+        if (state.edges) {
+            if (state.edges.deleted) {
+                state.edges.deleted.forEach((id) => edgeMap.delete(id));
+            }
+            if (state.edges.added) {
+                Object.values(state.edges.added).forEach((edge) => edgeMap.set(edge.id, deepClone(edge)));
+            }
+            if (state.edges.updated) {
+                Object.values(state.edges.updated).forEach((edge) => edgeMap.set(edge.id, deepClone(edge)));
+            }
+        }
+
+        return {
+            nodes: Array.from(nodeMap.values()),
+            edges: Array.from(edgeMap.values()),
+            selectedNode: state.selectedNode,
+            selectedEdge: state.selectedEdge,
+        };
+    }
+
+    /**
+     * 计算当前状态与基准状态的差异
+     * @param {WorkflowNode[]} baseNodes - 基准节点数组
+     * @param {WorkflowEdge[]} baseEdges - 基准边数组
+     * @returns {{nodes: Object, edges: Object}}
+     */
+    _computeDiff(baseNodes, baseEdges) {
+        const baseNodeMap = new Map(baseNodes.map((n) => [n.id, n]));
+        const baseEdgeMap = new Map(baseEdges.map((e) => [e.id, e]));
+
+        const currentNodeMap = new Map(this.nodes.map((n) => [n.id, n]));
+        const currentEdgeMap = new Map(this.edges.map((e) => [e.id, e]));
+
+        const nodes = { deleted: [], added: {}, updated: {} };
+        const edges = { deleted: [], added: {}, updated: {} };
+
+        baseNodeMap.forEach((node, id) => {
+            if (!currentNodeMap.has(id)) {
+                nodes.deleted.push(id);
+            } else {
+                const currentNode = currentNodeMap.get(id);
+                if (JSON.stringify(node) !== JSON.stringify(currentNode)) {
+                    nodes.updated[id] = deepClone(currentNode);
+                }
+            }
+        });
+
+        currentNodeMap.forEach((node, id) => {
+            if (!baseNodeMap.has(id)) {
+                nodes.added[id] = deepClone(node);
+            }
+        });
+
+        baseEdgeMap.forEach((edge, id) => {
+            if (!currentEdgeMap.has(id)) {
+                edges.deleted.push(id);
+            } else {
+                const currentEdge = currentEdgeMap.get(id);
+                if (JSON.stringify(edge) !== JSON.stringify(currentEdge)) {
+                    edges.updated[id] = deepClone(currentEdge);
+                }
+            }
+        });
+
+        currentEdgeMap.forEach((edge, id) => {
+            if (!baseEdgeMap.has(id)) {
+                edges.added[id] = deepClone(edge);
+            }
+        });
+
+        return { nodes, edges };
     }
 
     /**
@@ -329,8 +443,9 @@ export class WorkflowCore {
     }
 
     /**
-     * 保存当前状态到历史记录（全量快照）
+     * 保存当前状态到历史记录（增量快照）
      * 支持操作合并：相同操作在时间窗口内自动合并为一条历史
+     * 每隔 _historyBaseInterval 步创建完整快照，其余为增量快照
      * @param {string} [actionKey='messages.defaultAction'] - i18n 操作名称键
      * @param {Object.<string, *>} [actionParams] - i18n 插值参数
      * @param {boolean} [force=false] - 强制保存，不进行合并
@@ -345,6 +460,7 @@ export class WorkflowCore {
 
         if (canMerge) {
             const currentState = this.history[this.historyIndex];
+            currentState.baseIndex = -1;
             currentState.nodes = deepClone(this.nodes);
             currentState.edges = deepClone(this.edges);
             currentState.selectedNode = this.selectedNode;
@@ -356,23 +472,60 @@ export class WorkflowCore {
             return;
         }
 
-        /** @type {HistoryState} */
-        const state = {
-            nodes: deepClone(this.nodes),
-            edges: deepClone(this.edges),
-            selectedNode: this.selectedNode,
-            selectedEdge: this.selectedEdge,
-            actionKey: actionKey,
-            actionParams: actionParams,
-            timestamp: now,
-        };
+        const newIndex = this.historyIndex + 1;
+        const needFullSnapshot = newIndex === 0 || newIndex % this._historyBaseInterval === 0;
 
-        this.historyIndex++;
+        /** @type {HistoryState} */
+        let state;
+
+        if (needFullSnapshot) {
+            state = {
+                baseIndex: -1,
+                nodes: deepClone(this.nodes),
+                edges: deepClone(this.edges),
+                selectedNode: this.selectedNode,
+                selectedEdge: this.selectedEdge,
+                actionKey: actionKey,
+                actionParams: actionParams,
+                timestamp: now,
+            };
+        } else {
+            const baseIndex = this._findNearestBaseIndex(this.historyIndex);
+            const baseState = this._reconstructHistoryState(baseIndex);
+            const diff = this._computeDiff(baseState.nodes, baseState.edges);
+
+            state = {
+                baseIndex: baseIndex,
+                nodes: diff.nodes,
+                edges: diff.edges,
+                selectedNode: this.selectedNode,
+                selectedEdge: this.selectedEdge,
+                actionKey: actionKey,
+                actionParams: actionParams,
+                timestamp: now,
+            };
+        }
+
+        this.historyIndex = newIndex;
         this.history[this.historyIndex] = state;
         this.history.length = this.historyIndex + 1;
 
         const dynamicMax = this._getDynamicMaxHistory();
         if (this.history.length > dynamicMax) {
+            const removedIndex = 0;
+
+            this.history.forEach((s) => {
+                if (s.baseIndex === removedIndex) {
+                    const idx = this.history.indexOf(s);
+                    const fullState = this._reconstructHistoryState(idx);
+                    s.baseIndex = -1;
+                    s.nodes = fullState.nodes;
+                    s.edges = fullState.edges;
+                } else if (s.baseIndex > removedIndex) {
+                    s.baseIndex--;
+                }
+            });
+
             this.history.shift();
             this.historyIndex--;
         }
@@ -380,6 +533,20 @@ export class WorkflowCore {
         this._lastHistoryAction = actionKey;
         this._lastHistoryTime = now;
         this._emitChange('history');
+    }
+
+    /**
+     * 查找最近的完整快照索引
+     * @param {number} startIndex - 起始搜索索引
+     * @returns {number} 完整快照索引
+     */
+    _findNearestBaseIndex(startIndex) {
+        for (let i = startIndex; i >= 0; i--) {
+            if (this.history[i].baseIndex === -1) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -424,19 +591,19 @@ export class WorkflowCore {
     }
 
     /**
-     * 撤销操作
+     * 撤销操作（从增量快照恢复）
      * @returns {boolean} 是否撤销成功
      */
     undo() {
         if (!this.canUndo()) return false;
 
         this.historyIndex--;
-        const state = this.history[this.historyIndex];
+        const fullState = this._reconstructHistoryState(this.historyIndex);
 
-        this.nodes = deepClone(state.nodes);
-        this.edges = deepClone(state.edges);
-        this.selectedNode = state.selectedNode;
-        this.selectedEdge = state.selectedEdge;
+        this.nodes = fullState.nodes;
+        this.edges = fullState.edges;
+        this.selectedNode = fullState.selectedNode;
+        this.selectedEdge = fullState.selectedEdge;
         this._rebuildMaps();
 
         this._emitChange('undo');
@@ -444,19 +611,19 @@ export class WorkflowCore {
     }
 
     /**
-     * 重做操作
+     * 重做操作（从增量快照恢复）
      * @returns {boolean} 是否重做成功
      */
     redo() {
         if (!this.canRedo()) return false;
 
         this.historyIndex++;
-        const state = this.history[this.historyIndex];
+        const fullState = this._reconstructHistoryState(this.historyIndex);
 
-        this.nodes = deepClone(state.nodes);
-        this.edges = deepClone(state.edges);
-        this.selectedNode = state.selectedNode;
-        this.selectedEdge = state.selectedEdge;
+        this.nodes = fullState.nodes;
+        this.edges = fullState.edges;
+        this.selectedNode = fullState.selectedNode;
+        this.selectedEdge = fullState.selectedEdge;
         this._rebuildMaps();
 
         this._emitChange('redo');

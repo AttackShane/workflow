@@ -48,17 +48,21 @@ export class WorkflowHistory {
         if (index < 0 || index >= this.core.history.length) return;
 
         this.core.historyIndex = index;
-        const state = this.core.history[index];
+        const fullState = this.core._reconstructHistoryState(index);
 
-        // 使用深拷贝避免污染历史记录
-        this.core.nodes = deepClone(state.nodes);
-        this.core.edges = deepClone(state.edges);
-        this.core.selectedNode = state.selectedNode;
-        this.core.selectedEdge = state.selectedEdge;
+        this.core.nodes = fullState.nodes;
+        this.core.edges = fullState.edges;
+        this.core.selectedNode = fullState.selectedNode;
+        this.core.selectedEdge = fullState.selectedEdge;
         this.core._rebuildMaps();
 
         this.core._emitChange('jumpToHistory');
-        this.ui.showMessage(t('history.jumpTo', { action: t(state.actionKey, state.actionParams) }), 'info');
+        this.ui.showMessage(
+            t('history.jumpTo', {
+                action: t(this.core.history[index].actionKey, this.core.history[index].actionParams),
+            }),
+            'info'
+        );
     }
 
     undo() {
