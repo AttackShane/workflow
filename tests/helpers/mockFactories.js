@@ -76,10 +76,20 @@ export function createMockCore(overrides = {}) {
         deleteEdge: jest.fn(),
         createEdge: jest.fn(),
         batchChanges: jest.fn((fn) => fn()),
-        isContainerNode: jest.fn(() => false),
-        getChildNodes: jest.fn((id) => _nodes.filter((n) => n.parentId === id)),
         getNode: jest.fn((id) => _nodes.find((n) => n.id === id)),
         getEdge: jest.fn((id) => _edges.find((e) => e.id === id)),
+
+        // container mock — 使用 container.getChildren / container.isContainer
+        container: {
+            getChildren: jest.fn((id) => _nodes.filter((n) => n.parentId === id)),
+            isContainer: jest.fn(() => false),
+            getAllDescendants: jest.fn(() => []),
+            validateContainerPorts: jest.fn(() => ({ valid: true })),
+            addToContainer: jest.fn(),
+            removeFromContainer: jest.fn(),
+            updateContainerSize: jest.fn(),
+            renderContainerChildren: jest.fn(),
+        },
     };
     // 允许 overrides 覆盖方法
     return Object.assign(core, overrides);

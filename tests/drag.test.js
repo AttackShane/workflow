@@ -52,6 +52,12 @@ function createMockCore(nodes = []) {
         saveHistory: jest.fn(),
         isContainerNode: jest.fn(() => false),
         getChildNodes: jest.fn(() => []),
+        container: {
+            isContainer: jest.fn(() => false),
+            getChildren: jest.fn(() => []),
+            getAllDescendants: jest.fn(() => []),
+            validateContainerPorts: jest.fn(() => ({ valid: true })),
+        },
         batchChanges: jest.fn((fn) => fn()),
         addNode: jest.fn(),
         getNode: function (id) {
@@ -481,7 +487,7 @@ describe('WorkflowNodeDrag', () => {
             document.body.appendChild(containerEl);
             const nodeData = { id: 'n1', x: 200, y: 200, type: 'llm', parentId: null };
             core.nodes = [nodeData, { id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             node._elMap.set('c1', containerEl);
             jest.spyOn(drag, '_findDropTarget').mockReturnValue(containerEl);
 
@@ -510,7 +516,7 @@ describe('WorkflowNodeDrag', () => {
                 parentId: 'c1',
             };
             core.nodes = [nodeData, { id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             jest.spyOn(drag, '_findDropTarget').mockReturnValue(null);
 
             const ctx = { rafId: null, dropTarget: null };
@@ -725,7 +731,7 @@ describe('WorkflowNodeDrag', () => {
     describe('_findDropTarget', () => {
         it('无容器节点时应返回 null', () => {
             core.nodes = [{ id: 'n1', x: 100, y: 100, type: 'llm' }];
-            core.isContainerNode = () => false;
+            core.container.isContainer = () => false;
 
             const result = drag._findDropTarget(200, 200, []);
             expect(result).toBe(null);
@@ -735,7 +741,7 @@ describe('WorkflowNodeDrag', () => {
             const containerEl = createNodeEl('c1', 0, 0, { container: true });
             node._elMap.set('c1', containerEl);
             core.nodes = [{ id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.isContainerNode = (id) => id === 'c1';
+            core.container.isContainer = (id) => id === 'c1';
             core.nodeTypeInfo = { loop: { containerMinWidth: 300, containerMinHeight: 200 } };
             ui.canvas.canvas.getBoundingClientRect = () => ({ left: 0, top: 0 });
             ui.canvas.screenToCanvas = (x, y) => ({ canvasX: x, canvasY: y });
@@ -749,7 +755,7 @@ describe('WorkflowNodeDrag', () => {
             const containerEl = createNodeEl('c1', 0, 0, { container: true });
             node._elMap.set('c1', containerEl);
             core.nodes = [{ id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.isContainerNode = (id) => id === 'c1';
+            core.container.isContainer = (id) => id === 'c1';
             ui.canvas.canvas.getBoundingClientRect = () => ({ left: 0, top: 0 });
             ui.canvas.screenToCanvas = (x, y) => ({ canvasX: x, canvasY: y });
 
@@ -762,7 +768,7 @@ describe('WorkflowNodeDrag', () => {
             const containerEl = createNodeEl('c1', 0, 0, { container: true });
             node._elMap.set('c1', containerEl);
             core.nodes = [{ id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.isContainerNode = (id) => id === 'c1';
+            core.container.isContainer = (id) => id === 'c1';
             ui.canvas.canvas.getBoundingClientRect = () => ({ left: 0, top: 0 });
             ui.canvas.screenToCanvas = (x, y) => ({ canvasX: x, canvasY: y });
 
@@ -774,7 +780,7 @@ describe('WorkflowNodeDrag', () => {
             const containerEl = createNodeEl('c1', 0, 0, { container: true, selected: true });
             node._elMap.set('c1', containerEl);
             core.nodes = [{ id: 'c1', x: 100, y: 100, type: 'loop', width: 400, height: 300 }];
-            core.isContainerNode = (id) => id === 'c1';
+            core.container.isContainer = (id) => id === 'c1';
             ui.canvas.canvas.getBoundingClientRect = () => ({ left: 0, top: 0 });
             ui.canvas.screenToCanvas = (x, y) => ({ canvasX: x, canvasY: y });
 
@@ -788,7 +794,7 @@ describe('WorkflowNodeDrag', () => {
     // ==================================================================
     describe('_filterEdgesOnDetach', () => {
         it('应删除拖出节点到兄弟节点的边', () => {
-            core.getChildNodes = jest.fn(() => [{ id: 'sibling1' }]);
+            core.container.getChildren = jest.fn(() => [{ id: 'sibling1' }]);
             core.edges = [
                 { source: 'n1', target: 'sibling1' },
                 { source: 'n1', target: 'external' },
@@ -801,7 +807,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('应删除拖出节点到容器的 container_end 边', () => {
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             core.edges = [
                 { source: 'n1', target: 'c1', targetPort: 'container_end' },
                 { source: 'n1', target: 'c1', targetPort: 'other_port' },
@@ -814,7 +820,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('应删除兄弟节点到拖出节点的边', () => {
-            core.getChildNodes = jest.fn(() => [{ id: 'sibling1' }]);
+            core.container.getChildren = jest.fn(() => [{ id: 'sibling1' }]);
             core.edges = [
                 { source: 'sibling1', target: 'n1' },
                 { source: 'external', target: 'n1' },
@@ -827,7 +833,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('应删除容器到拖出节点的 container_start 边', () => {
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             core.edges = [
                 { source: 'c1', target: 'n1', sourcePort: 'container_start' },
                 { source: 'c1', target: 'n1', sourcePort: 'other_port' },
@@ -840,7 +846,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('不涉及拖出节点的边应保留', () => {
-            core.getChildNodes = jest.fn(() => [{ id: 'sibling1' }]);
+            core.container.getChildren = jest.fn(() => [{ id: 'sibling1' }]);
             core.edges = [
                 { source: 'n2', target: 'n3' },
                 { source: 'sibling1', target: 'external' },
@@ -857,7 +863,7 @@ describe('WorkflowNodeDrag', () => {
     // ==================================================================
     describe('_filterEdgesForContainer', () => {
         it('应保留拖入节点到容器内兄弟的边', () => {
-            core.getChildNodes = jest.fn(() => [{ id: 'sibling1' }]);
+            core.container.getChildren = jest.fn(() => [{ id: 'sibling1' }]);
             core.edges = [
                 { source: 'n1', target: 'sibling1' },
                 { source: 'n1', target: 'external' },
@@ -870,7 +876,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('应删除拖入节点到外部节点的边', () => {
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             core.edges = [
                 { source: 'n1', target: 'external1' },
                 { source: 'n1', target: 'external2' },
@@ -882,7 +888,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('拖入节点到容器的边只保留 container_end', () => {
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             core.edges = [
                 { source: 'n1', target: 'c1', targetPort: 'container_end' },
                 { source: 'n1', target: 'c1', targetPort: 'other' },
@@ -895,7 +901,7 @@ describe('WorkflowNodeDrag', () => {
         });
 
         it('容器到拖入节点的边只保留 container_start', () => {
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             core.edges = [
                 { source: 'c1', target: 'n1', sourcePort: 'container_start' },
                 { source: 'c1', target: 'n1', sourcePort: 'other' },
@@ -929,7 +935,7 @@ describe('WorkflowNodeDrag', () => {
                 parentId: 'c1',
             };
             core.nodes = [nodeData, { id: 'c1', x: 100, y: 100, type: 'loop' }];
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
 
             const nodeStartPositions = { n1: { x: 10, y: 10 } };
             drag._handleCtrlDetach(true, nodeData, 'n1', el, nodeStartPositions, 10, 10);

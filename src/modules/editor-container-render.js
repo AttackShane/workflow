@@ -46,7 +46,7 @@ export class WorkflowContainerRender {
         const containerNode = this.node.core.getNode(containerId);
         if (!containerNode) return;
 
-        const children = this.node.core.getChildNodes(containerId);
+        const children = this.node.core.container.getChildren(containerId);
 
         containerBody.querySelectorAll('.canvas-node').forEach((el) => el.remove());
 

@@ -60,6 +60,12 @@ function createMockCore(nodes = [], edges = []) {
         saveHistory: jest.fn(),
         isContainerNode: jest.fn(() => false),
         getChildNodes: jest.fn(() => []),
+        container: {
+            isContainer: jest.fn(() => false),
+            getChildren: jest.fn(() => []),
+            getAllDescendants: jest.fn(() => []),
+            validateContainerPorts: jest.fn(() => ({ valid: true })),
+        },
         batchChanges: jest.fn((fn) => fn()),
         addNode: jest.fn(),
         deleteNode: jest.fn(),

@@ -115,6 +115,12 @@ function createMockCore(nodes = [], edges = []) {
         saveHistory: jest.fn(),
         isContainerNode: (id) => containerNodes.has(id),
         getChildNodes: (id) => coreNodes.filter((n) => n.parentId === id),
+        container: {
+            isContainer: (id) => containerNodes.has(id),
+            getChildren: (id) => coreNodes.filter((n) => n.parentId === id),
+            getAllDescendants: jest.fn(() => []),
+            validateContainerPorts: jest.fn(() => ({ valid: true })),
+        },
         getNode: function (id) {
             return this.nodes.find((n) => n.id === id);
         },

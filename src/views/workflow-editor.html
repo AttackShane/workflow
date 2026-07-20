@@ -215,8 +215,7 @@
                 core.selectedEdge = workflow.selectedEdge || null;
                 core._clipboardData = workflow._clipboardData || Storage.session.get('_rawCozeClipboard') || null;
                 Storage.session.remove('_rawCozeClipboard');
-                console.log('[editor] 加载工作流, _clipboardData 存在?', !!core._clipboardData);
-                if (core._clipboardData) console.log('[editor] _clipboardData 结构:', Object.keys(core._clipboardData), 'nodes:', core._clipboardData?.json?.nodes?.length);
+                core._rebuildMaps();
                 core.clearSavedWorkflow();
                 core.syncIdCounters();
                 core.resetHistory('从工作流管理器加载');

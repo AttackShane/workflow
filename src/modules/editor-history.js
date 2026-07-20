@@ -55,6 +55,7 @@ export class WorkflowHistory {
         this.core.edges = deepClone(state.edges);
         this.core.selectedNode = state.selectedNode;
         this.core.selectedEdge = state.selectedEdge;
+        this.core._rebuildMaps();
 
         this.core._emitChange('jumpToHistory');
         this.ui.showMessage(t('history.jumpTo', { action: t(state.actionKey, state.actionParams) }), 'info');

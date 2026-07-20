@@ -54,8 +54,8 @@ export class WorkflowEdge {
         let y1 = sourcePos.y + height1 / 2;
         let labelText = '';
 
-        const sourceIsContainer = this.core.isContainerNode(source.id);
-        const targetIsContainer = this.core.isContainerNode(target.id);
+        const sourceIsContainer = this.core.container.isContainer(source.id);
+        const targetIsContainer = this.core.container.isContainer(target.id);
 
         if (sourceIsContainer) {
             if (edge.sourcePort === 'container_start') {
@@ -211,8 +211,8 @@ export class WorkflowEdge {
     updateAffectedEdges(nodeIds) {
         const affectedSet = new Set(nodeIds);
         for (const nid of nodeIds) {
-            if (this.core.isContainerNode(nid)) {
-                const children = this.core.getChildNodes(nid);
+            if (this.core.container.isContainer(nid)) {
+                const children = this.core.container.getChildren(nid);
                 for (const child of children) {
                     affectedSet.add(child.id);
                 }

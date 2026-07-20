@@ -1,77 +1,31 @@
 import { WorkflowCanvas } from '../src/modules/editor-canvas.js';
 import { DOM } from '../src/utils/helpers.js';
 
-jest.mock('../src/utils/helpers.js', () => ({
-    DOM: {
-        get: jest.fn(() => null),
-        on: jest.fn(),
-        off: jest.fn(),
-        setStyle: jest.fn(),
-        setAttr: jest.fn(),
-        addClass: jest.fn(),
-        removeClass: jest.fn(),
-        create: jest.fn(() => ({ style: {}, appendChild: jest.fn(), remove: jest.fn(), parentNode: null })),
-        createSVG: jest.fn(() => ({
-            style: {},
-            appendChild: jest.fn(),
-            setAttribute: jest.fn(),
-            remove: jest.fn(),
-            parentNode: null,
-        })),
-    },
-    NodeUtils: {
-        getBounds: jest.fn((nodes) => {
-            let minX = Infinity,
-                minY = Infinity,
-                maxX = -Infinity,
-                maxY = -Infinity;
-            nodes.forEach((node) => {
-                const x = node.x || 0;
-                const y = node.y || 0;
-                const w = node.width || 200;
-                const h = node.height || 100;
-                if (node.parentId) {
-                    const parent = nodes.find((n) => n.id === node.parentId);
-                    if (parent) {
-                        const absX = (parent.x || 0) + x;
-                        const absY = (parent.y || 0) + 56 + y;
-                        minX = Math.min(minX, absX);
-                        minY = Math.min(minY, absY);
-                        maxX = Math.max(maxX, absX + w);
-                        maxY = Math.max(maxY, absY + h);
-                    }
-                } else {
-                    minX = Math.min(minX, x);
-                    minY = Math.min(minY, y);
-                    maxX = Math.max(maxX, x + w);
-                    maxY = Math.max(maxY, y + h);
-                }
-            });
-            return { minX, minY, maxX, maxY };
-        }),
-        translateToCanvasOrigin: jest.fn((nodes, padding = 100) => {
-            if (!nodes.length) return;
-            let minX = Infinity,
-                minY = Infinity;
-            nodes.forEach((node) => {
-                if (!node.parentId) {
-                    minX = Math.min(minX, node.x || 0);
-                    minY = Math.min(minY, node.y || 0);
-                }
-            });
-            if (isFinite(minX) && isFinite(minY)) {
-                const offsetX = padding - minX;
-                const offsetY = padding - minY;
-                nodes.forEach((node) => {
-                    if (!node.parentId) {
-                        if (node.x !== undefined) node.x += offsetX;
-                        if (node.y !== undefined) node.y += offsetY;
-                    }
-                });
-            }
-        }),
-    },
-}));
+// 只 mock DOM（需要 jsdom 模拟），NodeUtils 使用真实实现（纯数据函数，无 DOM 依赖）
+// 这样消除 mock 与源码逻辑不同步导致的虚假通过风险
+jest.mock('../src/utils/helpers.js', () => {
+    const actual = jest.requireActual('../src/utils/helpers.js');
+    return {
+        ...actual,
+        DOM: {
+            get: jest.fn(() => null),
+            on: jest.fn(),
+            off: jest.fn(),
+            setStyle: jest.fn(),
+            setAttr: jest.fn(),
+            addClass: jest.fn(),
+            removeClass: jest.fn(),
+            create: jest.fn(() => ({ style: {}, appendChild: jest.fn(), remove: jest.fn(), parentNode: null })),
+            createSVG: jest.fn(() => ({
+                style: {},
+                appendChild: jest.fn(),
+                setAttribute: jest.fn(),
+                remove: jest.fn(),
+                parentNode: null,
+            })),
+        },
+    };
+});
 
 jest.mock('../src/i18n/i18n.js', () => ({
     t: (key) => key,
@@ -114,6 +68,12 @@ function createMockCore(nodes = []) {
             return this.edges.find((e) => e.id === id);
         },
         isContainerNode: () => false,
+        container: {
+            isContainer: () => false,
+            getChildren: jest.fn(() => []),
+            getAllDescendants: jest.fn(() => []),
+            validateContainerPorts: jest.fn(() => ({ valid: true })),
+        },
     };
 }
 
@@ -1560,7 +1520,7 @@ describe('WorkflowCanvas', () => {
             core.edges = [{ source: 'node1', target: 'node2' }];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1586,7 +1546,7 @@ describe('WorkflowCanvas', () => {
             core.edges = [];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1618,7 +1578,7 @@ describe('WorkflowCanvas', () => {
                 container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 },
             };
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn((containerId) => {
+            core.container.getChildren = jest.fn((containerId) => {
                 if (containerId === 'container1') return childNodes;
                 return [];
             });
@@ -1646,7 +1606,7 @@ describe('WorkflowCanvas', () => {
                 container: { hasContainer: true, containerMinWidth: 300, containerMinHeight: 200 },
             };
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1676,7 +1636,7 @@ describe('WorkflowCanvas', () => {
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1702,7 +1662,7 @@ describe('WorkflowCanvas', () => {
             core.edges = [{ source: 'node1', target: 'node2' }];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1732,7 +1692,7 @@ describe('WorkflowCanvas', () => {
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);
@@ -1764,7 +1724,7 @@ describe('WorkflowCanvas', () => {
             ];
             core.nodeTypeInfo = {};
             core.saveHistory = jest.fn();
-            core.getChildNodes = jest.fn(() => []);
+            core.container.getChildren = jest.fn(() => []);
             const ui = createMockUI(core);
             ui.refreshCanvas = jest.fn();
             const canvas = new WorkflowCanvas(ui);

@@ -267,7 +267,7 @@ export class WorkflowNodeRender {
         this.node.ui.canvas.setEmptyState(false);
 
         // 检查是否拖入容器
-        const containers = this.node.core.nodes.filter((n) => this.node.core.isContainerNode(n.id));
+        const containers = this.node.core.nodes.filter((n) => this.node.core.container.isContainer(n.id));
         let targetContainer = null;
         for (const c of containers) {
             const cx = c.x || 0;
@@ -396,7 +396,7 @@ export class WorkflowNodeRender {
         }
         const parentId = nodeData?.parentId;
 
-        const childNodes = this.node.core.getChildNodes(nodeId);
+        const childNodes = this.node.core.container.getChildren(nodeId);
         childNodes.forEach((child) => {
             document.querySelector(`[data-node-id="${child.id}"]`)?.remove();
             /** @type {*} */ (this.node)._elMap.delete(child.id);

@@ -360,7 +360,7 @@ export class WorkflowNodeDrag {
         const screenY = clientY - canvasRect.top;
         const { canvasX, canvasY } = this.node.ui.canvas.screenToCanvas(screenX, screenY);
 
-        const containers = this.node.core.nodes.filter((n) => this.node.core.isContainerNode(n.id));
+        const containers = this.node.core.nodes.filter((n) => this.node.core.container.isContainer(n.id));
         for (const c of containers) {
             if (selectedNodeEls.some((el) => /** @type {HTMLElement} */ (el).dataset.nodeId === c.id)) continue;
             const cx = c.x || 0;
@@ -380,7 +380,7 @@ export class WorkflowNodeDrag {
      * Ctrl 拖出时过滤容器内部边
      */
     _filterEdgesOnDetach(nodeId, parentId) {
-        const oldChildren = this.node.core.getChildNodes(parentId);
+        const oldChildren = this.node.core.container.getChildren(parentId);
         const childIds = new Set(oldChildren.map((c) => c.id));
         this.node.core.edges = this.node.core.edges.filter((edge) => {
             if (edge.source === nodeId) {
@@ -529,7 +529,7 @@ export class WorkflowNodeDrag {
      * 过滤放入容器后的内部边
      */
     _filterEdgesForContainer(nodeId, containerId) {
-        const containerChildren = this.node.core.getChildNodes(containerId);
+        const containerChildren = this.node.core.container.getChildren(containerId);
         const childIds = new Set(containerChildren.map((c) => c.id));
         this.node.core.edges = this.node.core.edges.filter((edge) => {
             if (edge.source === nodeId) {

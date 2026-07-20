@@ -127,8 +127,8 @@ export class WorkflowSearch {
                 }
             }
 
-            if (self.ui.core.isContainerNode(node.id)) {
-                const children = self.ui.core.getChildNodes(node.id);
+            if (self.ui.core.container.isContainer(node.id)) {
+                const children = self.ui.core.container.getChildren(node.id);
                 children.forEach((child) => checkNode(child));
             }
         }
@@ -145,7 +145,7 @@ export class WorkflowSearch {
         nodeElMap.forEach((el, nodeId) => {
             const isMatch = matchedNodeIds.has(nodeId);
             const node = self.ui.core.getNode(nodeId);
-            const isContainer = node && self.ui.core.isContainerNode(nodeId);
+            const isContainer = node && self.ui.core.container.isContainer(nodeId);
 
             if (isMatch) {
                 DOM.removeClass(el, 'search-dimmed');

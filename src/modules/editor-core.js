@@ -217,7 +217,7 @@ export class WorkflowCore {
         const wasBatch = this._batchMode;
         this._batchMode = true;
         try {
-            const childIds = this.getChildNodes(nodeId).map((n) => n.id);
+            const childIds = this.container.getChildren(nodeId).map((n) => n.id);
             childIds.forEach((cid) => this.deleteNode(cid));
             const removedEdges = this.edges.filter((e) => e.source === nodeId || e.target === nodeId);
             this.edges = this.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
@@ -234,26 +234,6 @@ export class WorkflowCore {
                 this._emitChange('deleteNode', nodeId);
             }
         }
-    }
-
-    /**
-     * 获取指定节点的所有直接子节点
-     * @param {string} parentId - 父节点ID
-     * @returns {WorkflowNode[]} 子节点数组
-     * @deprecated 请使用 this.container.getChildren(parentId)
-     */
-    getChildNodes(parentId) {
-        return this.container.getChildren(parentId);
-    }
-
-    /**
-     * 检查节点是否为容器节点
-     * @param {string} nodeId - 节点ID
-     * @returns {boolean} 是否为容器节点
-     * @deprecated 请使用 this.container.isContainer(nodeId)
-     */
-    isContainerNode(nodeId) {
-        return this.container.isContainer(nodeId);
     }
 
     /**

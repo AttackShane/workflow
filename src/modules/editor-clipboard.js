@@ -31,8 +31,8 @@ export class WorkflowClipboard {
 
         const expandedNodeIds = new Set(selectedNodeIds);
         for (const nodeId of selectedNodeIds) {
-            if (this.core.isContainerNode(nodeId)) {
-                const childNodes = this.core.getChildNodes(nodeId);
+            if (this.core.container.isContainer(nodeId)) {
+                const childNodes = this.core.container.getChildren(nodeId);
                 for (const child of childNodes) expandedNodeIds.add(child.id);
             }
         }
@@ -93,9 +93,9 @@ export class WorkflowClipboard {
         const childNodeIds = new Set();
 
         for (const node of selectedNodes) {
-            if (this.core.isContainerNode(node.id)) {
+            if (this.core.container.isContainer(node.id)) {
                 containerNodeIds.add(node.id);
-                const children = this.core.getChildNodes(node.id);
+                const children = this.core.container.getChildren(node.id);
                 for (const child of children) childNodeIds.add(child.id);
             }
         }

@@ -68,7 +68,7 @@ const editorModules = Array.from(
     ])
 );
 
-const managerModules = scanDependencies('modules/manager.js');
+const managerModules = scanDependencies('modules/manager-core.js');
 
 function stripMultilineImports(code) {
     const lines = code.split('\n');
@@ -361,27 +361,36 @@ async function minifyJs(code) {
     return result.code;
 }
 
-const cssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/style.css');
+const cssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/converter.css');
 if (!fs.existsSync(cssPath)) {
     console.error(`缺少文件: ${cssPath}`);
     process.exit(1);
 }
 const cssContent = fs.readFileSync(cssPath, 'utf8');
 
-const editorCssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/workflow-editor.css');
+const editorCssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/editor.css');
 let editorCssContent = '';
 if (fs.existsSync(editorCssPath)) {
     editorCssContent = fs.readFileSync(editorCssPath, 'utf8');
 }
 
-const managerCssPath = path.join(
-    path.dirname(import.meta.url).replace('file:///', ''),
-    '../styles/workflow-manager.css'
-);
+const managerCssPath = path.join(path.dirname(import.meta.url).replace('file:///', ''), '../styles/manager.css');
 let managerCssContent = '';
 if (fs.existsSync(managerCssPath)) {
     managerCssContent = fs.readFileSync(managerCssPath, 'utf8');
 }
+
+const sharedVarsPath = path.join(
+    path.dirname(import.meta.url).replace('file:///', ''),
+    '../styles/shared-variables.css'
+);
+const sharedVarsCss = fs.existsSync(sharedVarsPath) ? fs.readFileSync(sharedVarsPath, 'utf8') : '';
+
+const sharedCompsPath = path.join(
+    path.dirname(import.meta.url).replace('file:///', ''),
+    '../styles/shared-components.css'
+);
+const sharedCompsCss = fs.existsSync(sharedCompsPath) ? fs.readFileSync(sharedCompsPath, 'utf8') : '';
 
 function stripAppInitWrapper(script) {
     return script.replace(
@@ -481,9 +490,11 @@ function createInlineHighlighterWorker() {
     let converterHtml = fs.readFileSync(converterHtmlPath, 'utf8');
 
     converterHtml = converterHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
+    converterHtml = converterHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-variables\.css">\s*/, '');
+    converterHtml = converterHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-components\.css">\s*/, '');
     converterHtml = converterHtml.replace(
-        /<link\s+rel="stylesheet"\s+href="\/styles\/style\.css">/,
-        `<style>${minifyCss(cssContent)}</style>`
+        /<link\s+rel="stylesheet"\s+href="\/styles\/converter\.css">/,
+        `<style>${minifyCss(sharedVarsCss + '\n' + sharedCompsCss + '\n' + cssContent)}</style>`
     );
     converterHtml = converterHtml.replace(
         /<script\s+type="module"\s+src="\/modules\/app\.js"><\/script>/,
@@ -521,15 +532,24 @@ function createInlineHighlighterWorker() {
     let editorHtml = fs.readFileSync(editorHtmlPath, 'utf8');
 
     editorHtml = editorHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
+    editorHtml = editorHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-variables\.css">\s*/, '');
+    editorHtml = editorHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-components\.css">\s*/, '');
     editorHtml = editorHtml.replace(
-        /<link\s+rel="stylesheet"\s+href="\/styles\/workflow-editor\.css">/,
-        `<style>${minifyCss(editorCssContent)}</style>`
+        /<link\s+rel="stylesheet"\s+href="\/styles\/editor\.css">/,
+        `<style>${minifyCss(sharedVarsCss + '\n' + sharedCompsCss + '\n' + editorCssContent)}</style>`
     );
 
     const scriptTag = '<script type="module" src="/modules/app.js"></script>';
     const scriptTagIdx = editorHtml.indexOf(scriptTag);
     if (scriptTagIdx !== -1) {
-        const replacement = `<script>document.addEventListener('DOMContentLoaded', function() {\n${await minifyJs(editorScriptWithWorker)}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nvar _pendingDescription = '';\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {\n        core.nodes = deepClone(workflow.nodes);\n        core.edges = deepClone(workflow.edges || []);\n        core.selectedNode = workflow.selectedNode || null;\n        core.selectedEdge = workflow.selectedEdge || null;\n    }\n    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name;\n    if (workflow.description) _pendingDescription = workflow.description;\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                if (found.description) _pendingDescription = found.description;\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.currentDescription = _pendingDescription;\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`;
+        const replacement = `<script>document.addEventListener('DOMContentLoaded', function() {\n${await minifyJs(editorScriptWithWorker)}\n\nvar editingWorkflow = sessionStorage.getItem('editingWorkflow');\nvar editingWorkflowId = sessionStorage.getItem('editingWorkflowId');\nvar isFromCache = !editingWorkflow && editingWorkflowId;\nvar core = new WorkflowCore();\nvar _pendingDescription = '';\nif (editingWorkflow) {\n    var workflow = JSON.parse(editingWorkflow);\n    sessionStorage.setItem('editingWorkflowId', workflow.id);\n    sessionStorage.removeItem('editingWorkflow');\n    core.clearSavedWorkflow();\n    if (workflow.nodes && workflow.nodes.length > 0) {
+        core.nodes = deepClone(workflow.nodes);
+        core.edges = deepClone(workflow.edges || []);
+        core.selectedNode = workflow.selectedNode || null;
+        core.selectedEdge = workflow.selectedEdge || null;
+        core._rebuildMaps();
+    }
+    core.resetHistory('从工作流管理器加载');\n    if (workflow.name) document.getElementById('workflowName').textContent = workflow.name;\n    if (workflow.description) _pendingDescription = workflow.description;\n    if (workflow.id) document.getElementById('workflowId').textContent = 'ID: ' + workflow.id;\n} else if (isFromCache && core.hasSavedWorkflow()) {\n    core.loadFromLocalStorage();\n    if (editingWorkflowId) {\n        document.getElementById('workflowId').textContent = 'ID: ' + editingWorkflowId;\n        try {\n            var storedWorkflows = JSON.parse(localStorage.getItem('workflows') || '[]');\n            var found = storedWorkflows.find(function(w) { return w.id === editingWorkflowId; });\n            if (found && found.name) {\n                document.getElementById('workflowName').textContent = found.name;\n                if (found.description) _pendingDescription = found.description;\n            }\n        } catch (e) {}\n    }\n} else {\n    core.clearSavedWorkflow();\n    core.resetHistory('初始化');\n}\nwindow.workflowUI = new WorkflowUI(core);\nwindow.workflowUI.currentDescription = _pendingDescription;\nwindow.workflowUI.init();\n});\n\nwindow.draggedNodeType = null;\n\nwindow.dragStartHandler = function(event) {\n    window.draggedNodeType = event.target.dataset.nodeType;\n    event.dataTransfer.effectAllowed = 'copy';\n    event.dataTransfer.setData('text/plain', window.draggedNodeType);\n};\n\nwindow.dragOverHandler = function(event) {\n    event.preventDefault();\n    event.dataTransfer.dropEffect = 'copy';\n};\n\nwindow.dropHandler = function(event) {\n    event.preventDefault();\n    \n    if (!window.draggedNodeType) {\n        window.draggedNodeType = event.dataTransfer.getData('text/plain');\n    }\n    \n    if (!window.draggedNodeType) {\n        return;\n    }\n    \n    var canvas = document.getElementById('canvas');\n    var rect = canvas.getBoundingClientRect();\n    var x = event.clientX - rect.left;\n    var y = event.clientY - rect.top;\n    \n    window.workflowUI.addNodeToCanvas(window.draggedNodeType, x, y);\n    window.draggedNodeType = null;\n};</script>`;
         editorHtml =
             editorHtml.substring(0, scriptTagIdx) + replacement + editorHtml.substring(scriptTagIdx + scriptTag.length);
     } else {
@@ -555,9 +575,11 @@ function createInlineHighlighterWorker() {
     let managerHtml = fs.readFileSync(managerHtmlPath, 'utf8');
 
     managerHtml = managerHtml.replace(/<link\s+rel="icon"[^>]*>/g, '');
+    managerHtml = managerHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-variables\.css">\s*/, '');
+    managerHtml = managerHtml.replace(/<link\s+rel="stylesheet"\s+href="\/styles\/shared-components\.css">\s*/, '');
     managerHtml = managerHtml.replace(
-        /<link\s+rel="stylesheet"\s+href="\/styles\/workflow-manager\.css">/,
-        `<style>${minifyCss(managerCssContent)}</style>`
+        /<link\s+rel="stylesheet"\s+href="\/styles\/manager\.css">/,
+        `<style>${minifyCss(sharedVarsCss + '\n' + sharedCompsCss + '\n' + managerCssContent)}</style>`
     );
     managerHtml = managerHtml.replace(
         /<script type="module" src="\/modules\/app\.js"><\/script>/,

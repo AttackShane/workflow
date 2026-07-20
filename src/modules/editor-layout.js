@@ -190,7 +190,7 @@ export function autoOptimizeLayout(core, canvas) {
     core.nodes.forEach((container) => {
         const info = core.nodeTypeInfo[container.type] || {};
         if (!info.hasContainer) return;
-        const children = core.getChildNodes(container.id);
+        const children = core.container.getChildren(container.id);
         if (children.length === 0) return;
 
         layoutNodeGroup(children, PADDING, PADDING, CONTAINER_H_GAP, CONTAINER_V_GAP, false);

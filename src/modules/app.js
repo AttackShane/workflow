@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 restorePageVisibility();
             });
     } else if (h1Text && (h1Text.includes('工作流管理') || h1Text.includes('workflow manager'))) {
-        import(`./manager.js?v=${_v}`)
+        import(`./manager-core.js?v=${_v}`)
             .then((m) => {
                 const manager = new m.WorkflowManager();
                 manager.init();
