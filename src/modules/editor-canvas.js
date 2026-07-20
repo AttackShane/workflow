@@ -534,7 +534,7 @@ export class WorkflowCanvas {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             if (!edgeId) return;
 
-            const edge = this.core.edges.find((e) => e.id === edgeId);
+            const edge = this.core.getEdge(edgeId);
             if (!edge) return;
 
             const isVisible = visibleNodeIds.has(edge.source) || visibleNodeIds.has(edge.target);

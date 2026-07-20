@@ -163,7 +163,7 @@ export class WorkflowNodePanel {
         if (!valueObj || !valueObj.input || !valueObj.input.value) return '';
         const v = valueObj.input.value;
         if (v.type === 'ref' && v.content && v.content.blockID) {
-            const srcNode = this.node.core.nodes.find((n) => n.id === v.content.blockID);
+            const srcNode = this.node.core.getNode(v.content.blockID);
             const nodeName = srcNode ? srcNode.title || srcNode.id : v.content.blockID;
             return `${nodeName} → ${v.content.name || 'output'}`;
         }
@@ -237,7 +237,7 @@ export class WorkflowNodePanel {
 
         // 切换节点前保存当前节点的动态参数
         if (this.node.ui._currentPanelNodeId && this.node.ui._currentPanelNodeId !== targetNode.id) {
-            const prevNode = this.node.core.nodes.find((n) => n.id === this.node.ui._currentPanelNodeId);
+            const prevNode = this.node.core.getNode(this.node.ui._currentPanelNodeId);
             if (prevNode) {
                 this.node.paramEditor.saveDynamicParams(prevNode, 'input');
                 this.node.paramEditor.saveDynamicParams(prevNode, 'output');
@@ -528,7 +528,7 @@ export class WorkflowNodePanel {
             const nodeId = el.dataset.nodeId;
             if (nodeId) {
                 nodeIds.push(nodeId);
-                const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+                const nodeData = this.node.core.getNode(nodeId);
                 if (nodeData) nodeTypes.add(nodeData.type);
             }
         });
@@ -628,7 +628,7 @@ export class WorkflowNodePanel {
                 }
 
                 nodeIds.forEach((nodeId) => {
-                    const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+                    const nodeData = this.node.core.getNode(nodeId);
                     if (nodeData) {
                         if (!nodeData.parameters) nodeData.parameters = {};
                         for (const [key, val] of Object.entries(changes)) {
@@ -650,7 +650,7 @@ export class WorkflowNodePanel {
         }
     }
     saveNodeDetail(nodeId, silent) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode) return;
 
         const titleEl = /** @type {HTMLInputElement|null} */ (document.getElementById('prop_nodeTitle'));
@@ -833,7 +833,7 @@ export class WorkflowNodePanel {
         }, 500);
     }
     _autoSavePropertyPanel(nodeId) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode) return;
         this.node.paramEditor.saveDynamicParams(targetNode, 'input');
         this.node.paramEditor.saveDynamicParams(targetNode, 'output');
@@ -918,7 +918,7 @@ export class WorkflowNodePanel {
                 break;
             }
             case 'toggleLock': {
-                const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+                const targetNode = this.node.core.getNode(nodeId);
                 if (targetNode) {
                     targetNode.locked = !targetNode.locked;
                     this.node.core.saveHistory('messages.toggleLock');

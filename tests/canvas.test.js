@@ -103,9 +103,16 @@ jest.mock('../src/config/constants.js', () => ({
 }));
 
 function createMockCore(nodes = []) {
+    const edges = [];
     return {
         nodes,
-        edges: [],
+        edges,
+        getNode: function (id) {
+            return this.nodes.find((n) => n.id === id);
+        },
+        getEdge: function (id) {
+            return this.edges.find((e) => e.id === id);
+        },
         isContainerNode: () => false,
     };
 }

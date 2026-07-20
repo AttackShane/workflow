@@ -15,7 +15,7 @@ export class WorkflowNodeSelector {
     openInputParamRefSelector(prefix, index) {
         const selectedNode = this.node.core.selectedNode;
         if (!selectedNode) return;
-        const targetNode = this.node.core.nodes.find((n) => n.id === selectedNode);
+        const targetNode = this.node.core.getNode(selectedNode);
         if (!targetNode) return;
 
         const refEl = document.getElementById(`${prefix}Ref_${index}`);
@@ -76,7 +76,7 @@ export class WorkflowNodeSelector {
 
     clearInputParamRef(prefix, index) {
         const selectedNode = this.node.core.selectedNode;
-        const targetNode = selectedNode ? this.node.core.nodes.find((n) => n.id === selectedNode) : null;
+        const targetNode = selectedNode ? this.node.core.getNode(selectedNode) : null;
         const valueEl = document.getElementById(`${prefix}Value_${index}`);
         const refDisplayEl = document.getElementById(`${prefix}RefDisplay_${index}`);
         const refHiddenEl = document.getElementById(`${prefix}Ref_${index}`);
@@ -103,7 +103,7 @@ export class WorkflowNodeSelector {
     }
 
     openVariableSelector(nodeId, gi, vi) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !targetNode.parameters?.mergeGroups) return;
         const group = targetNode.parameters.mergeGroups[gi];
         if (!group || !group.variables) return;
@@ -129,7 +129,7 @@ export class WorkflowNodeSelector {
 
     addMergeVariable(nodeId, gi) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode || !targetNode.parameters?.mergeGroups) return;
             const group = targetNode.parameters.mergeGroups[gi];
             if (!group || !group.variables) return;
@@ -148,7 +148,7 @@ export class WorkflowNodeSelector {
 
     removeMergeVariable(nodeId, gi, vi) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode || !targetNode.parameters?.mergeGroups) return;
             const group = targetNode.parameters.mergeGroups[gi];
             if (!group || !group.variables) return;
@@ -163,7 +163,7 @@ export class WorkflowNodeSelector {
         const result = new Set();
         const queue = [targetNodeId];
 
-        const targetNode = this.node.core.nodes.find((n) => n.id === targetNodeId);
+        const targetNode = this.node.core.getNode(targetNodeId);
         const info = targetNode ? this.node.core.nodeTypeInfo[targetNode.type] : null;
         // 容器节点：其输出变量可以引用容器内所有子孙节点的输出
         if (info && info.hasContainer) {
@@ -185,7 +185,7 @@ export class WorkflowNodeSelector {
             if (visited.has(currentId)) continue;
             visited.add(currentId);
             // 容器内子节点，其父容器也是上游节点（提供中间变量等）
-            const currentNode = this.node.core.nodes.find((n) => n.id === currentId);
+            const currentNode = this.node.core.getNode(currentId);
             if (currentNode && currentNode.parentId && !visited.has(currentNode.parentId)) {
                 result.add(currentNode.parentId);
                 queue.push(currentNode.parentId);
@@ -255,7 +255,7 @@ export class WorkflowNodeSelector {
         };
 
         const upstreamIds = this._getUpstreamNodeIds(excludeNodeId);
-        const excludeNode = this.node.core.nodes.find((n) => n.id === excludeNodeId);
+        const excludeNode = this.node.core.getNode(excludeNodeId);
         const availableNodes = this.node.core.nodes.filter((n) => {
             if (n.id === excludeNodeId) return false;
             if (!upstreamIds.has(n.id)) return false;
@@ -275,7 +275,7 @@ export class WorkflowNodeSelector {
                 let nodeInContainer = excludeNode;
                 while (nodeInContainer && nodeInContainer.parentId) {
                     if (nodeInContainer.parentId === n.id) return true;
-                    nodeInContainer = this.node.core.nodes.find((nn) => nn.id === nodeInContainer.parentId);
+                    nodeInContainer = this.node.core.getNode(nodeInContainer.parentId);
                 }
             }
             return false;
@@ -338,7 +338,7 @@ export class WorkflowNodeSelector {
         const outputTree = modal.querySelector('#varOutputTree');
 
         const updateOutputTree = (nId) => {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nId);
+            const targetNode = this.node.core.getNode(nId);
             if (!targetNode) {
                 outputTree.innerHTML = '<p style="color:var(--text-secondary);">该节点无输出参数</p>';
                 return;
@@ -364,14 +364,14 @@ export class WorkflowNodeSelector {
                 Array.isArray(targetNode.parameters.variableParameters)
             ) {
                 // 只有当前要进行引用的节点是该容器的直接或间接子节点时，才能看到中间变量
-                let current = this.node.core.nodes.find((n) => n.id === excludeNodeId);
+                let current = this.node.core.getNode(excludeNodeId);
                 let inThisContainer = false;
                 while (current && current.parentId) {
                     if (current.parentId === nId) {
                         inThisContainer = true;
                         break;
                     }
-                    current = this.node.core.nodes.find((nn) => nn.id === current.parentId);
+                    current = this.node.core.getNode(current.parentId);
                 }
                 if (inThisContainer) {
                     for (const vp of targetNode.parameters.variableParameters) {
@@ -464,7 +464,7 @@ export class WorkflowNodeSelector {
 
     addLoopVariable(nodeId) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode) return;
             if (!targetNode.parameters) targetNode.parameters = {};
             if (!Array.isArray(targetNode.parameters.variables)) {
@@ -495,7 +495,7 @@ export class WorkflowNodeSelector {
 
     removeLoopVariable(nodeId, vi) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
             targetNode.parameters.variables.splice(vi, 1);
             this.node.render.renderPropertyPanel(targetNode);
@@ -503,7 +503,7 @@ export class WorkflowNodeSelector {
         } catch (e) {}
     }
     openLoopVariableSelector(nodeId, vi, side) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
         const variable = targetNode.parameters.variables[vi];
         if (!variable) return;
@@ -530,7 +530,7 @@ export class WorkflowNodeSelector {
     }
 
     clearLoopVarRef(nodeId, vi, side) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
         const variable = targetNode.parameters.variables[vi];
         if (!variable) return;
@@ -545,7 +545,7 @@ export class WorkflowNodeSelector {
     }
 
     openConditionRefSelector(nodeId, branchIndex, condIndex, side) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !targetNode.parameters?.branches) return;
         const branches = targetNode.parameters.branches;
         if (!Array.isArray(branches) || !branches[branchIndex]) return;
@@ -579,7 +579,7 @@ export class WorkflowNodeSelector {
     }
 
     clearConditionRef(nodeId, branchIndex, condIndex, side) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !targetNode.parameters?.branches) return;
         const branches = targetNode.parameters.branches;
         if (!Array.isArray(branches) || !branches[branchIndex]) return;

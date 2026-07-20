@@ -257,7 +257,27 @@ export class WorkflowManager {
     }
 
     saveWorkflows() {
-        Storage.set('workflows', this.workflows);
+        if (typeof localStorage === 'undefined') return;
+
+        const jsonStr = JSON.stringify(this.workflows);
+        const sizeBytes = new Blob([jsonStr]).size;
+        const SIZE_THRESHOLD = 4 * 1024 * 1024; // 4MB
+
+        // 预估数据大小，超过阈值时警告用户
+        if (sizeBytes > SIZE_THRESHOLD) {
+            const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(1);
+            Logger.warn(t('manager.storageLargeData', { size: sizeMB }));
+        }
+
+        try {
+            localStorage.setItem('workflows', jsonStr);
+        } catch (error) {
+            if (error && (error.name === 'QuotaExceededError' || error.code === 22)) {
+                Dialog.error(t('manager.storageQuotaExceeded'));
+            } else {
+                Logger.error('Failed to save workflows:', error);
+            }
+        }
     }
 
     saveWorkflowVersion(workflowId, workflowData) {

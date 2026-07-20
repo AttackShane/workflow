@@ -1003,6 +1003,9 @@ export class WorkflowSerializer {
             this.core.nodes.push(processNode(nodeData));
         });
 
+        // 重建 Map 索引（节点通过 push 直接添加，未经过 addNode）
+        this.core._rebuildMaps();
+
         if (workflow.edges) {
             workflow.edges.forEach((edgeData) => {
                 const sourceId = nodeIdMap.get(edgeData.source_node);
@@ -1096,6 +1099,7 @@ export class WorkflowSerializer {
         // 更新 core 状态
         this.core.nodeIdCounter += nodes.length;
         nodes.forEach((n) => this.core.nodes.push(n));
+        this.core._rebuildMaps();
 
         const reverseIdMap = _buildReverseIdMap(idMap);
         const variableMergeEdgeMap = _buildVariableMergeEdgeMap(nodes, reverseIdMap, data.json.edges, data.json.nodes);

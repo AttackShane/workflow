@@ -135,7 +135,7 @@ export class WorkflowSearch {
 
         nodeEls.forEach((el) => {
             const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
-            const node = self.ui.core.nodes.find((n) => n.id === nodeId);
+            const node = self.ui.core.getNode(nodeId);
             if (!node) return;
             nodeElMap.set(nodeId, el);
 
@@ -144,7 +144,7 @@ export class WorkflowSearch {
 
         nodeElMap.forEach((el, nodeId) => {
             const isMatch = matchedNodeIds.has(nodeId);
-            const node = self.ui.core.nodes.find((n) => n.id === nodeId);
+            const node = self.ui.core.getNode(nodeId);
             const isContainer = node && self.ui.core.isContainerNode(nodeId);
 
             if (isMatch) {
@@ -172,7 +172,7 @@ export class WorkflowSearch {
         edgeEls.forEach((el) => {
             const edgeId = el.getAttribute('data-edge-id');
             if (!edgeId) return;
-            const edge = self.ui.core.edges.find((e) => e.id === edgeId);
+            const edge = self.ui.core.getEdge(edgeId);
             if (!edge) return;
 
             const isVisible = matchedNodeIds.has(edge.source) || matchedNodeIds.has(edge.target);
@@ -201,7 +201,7 @@ export class WorkflowSearch {
                 }
             }
             if (targetEl && self.ui.canvas) {
-                const nodeData = self.ui.core.nodes.find((n) => n.id === firstMatchId);
+                const nodeData = self.ui.core.getNode(firstMatchId);
                 if (nodeData) {
                     const canvasRect = self.ui.canvas.canvas.getBoundingClientRect();
                     const nodeCenterX = nodeData.x + (nodeData.width || 200) / 2;

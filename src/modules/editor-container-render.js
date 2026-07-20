@@ -43,7 +43,7 @@ export class WorkflowContainerRender {
         const containerBody = containerEl.querySelector('.container-body');
         if (!containerBody) return;
 
-        const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
+        const containerNode = this.node.core.getNode(containerId);
         if (!containerNode) return;
 
         const children = this.node.core.getChildNodes(containerId);
@@ -74,7 +74,7 @@ export class WorkflowContainerRender {
      * @param {string} containerId - 容器节点ID
      */
     updateContainerSize(containerId) {
-        const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
+        const containerNode = this.node.core.getNode(containerId);
         if (!containerNode) return;
         const containerEl = /** @type {*} */ (this.node)._elMap.get(containerId);
         if (!containerEl) return;
@@ -195,7 +195,7 @@ export class WorkflowContainerRender {
                 cd.el.dataset.x = newLeft;
                 cd.el.dataset.y = newTop;
                 cd.el.style.transform = `translate(${newLeft}px, ${newTop}px)`;
-                const nodeData = this.node.core.nodes.find((n) => n.id === cd.el.dataset.nodeId);
+                const nodeData = this.node.core.getNode(cd.el.dataset.nodeId);
                 if (nodeData) {
                     nodeData.x = newLeft;
                     nodeData.y = newTop;

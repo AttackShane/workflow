@@ -610,6 +610,8 @@ export const zhCN = {
         versionChangeType: '类型: {old} → {new}',
         versionChangePosition: '位置: ({x1},{y1}) → ({x2},{y2})',
         versionChangeParams: '参数已变更',
+        storageQuotaExceeded: '存储空间不足，请删除旧工作流后重试',
+        storageLargeData: '数据量较大（{size}MB），建议清理旧工作流',
     },
     nodes: {
         node: '节点',

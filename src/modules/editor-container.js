@@ -24,7 +24,7 @@ export class WorkflowContainer {
      * @returns {boolean} 是否为容器节点
      */
     isContainer(nodeId) {
-        const node = this.core.nodes.find((n) => n.id === nodeId);
+        const node = this.core.getNode(nodeId);
         if (!node) return false;
         const info = this.core.nodeTypeInfo[node.type];
         return info?.hasContainer === true;
@@ -71,9 +71,9 @@ export class WorkflowContainer {
         const result = [];
         let currentId = nodeId;
         while (true) {
-            const node = this.core.nodes.find((n) => n.id === currentId);
+            const node = this.core.getNode(currentId);
             if (!node || !node.parentId) break;
-            const parent = this.core.nodes.find((n) => n.id === node.parentId);
+            const parent = this.core.getNode(node.parentId);
             if (parent) {
                 result.push(parent);
                 currentId = parent.id;
@@ -93,7 +93,7 @@ export class WorkflowContainer {
         let depth = 0;
         let currentId = nodeId;
         while (true) {
-            const node = this.core.nodes.find((n) => n.id === currentId);
+            const node = this.core.getNode(currentId);
             if (!node || !node.parentId) break;
             depth++;
             currentId = node.parentId;
@@ -111,7 +111,7 @@ export class WorkflowContainer {
         const ancestors1 = new Set(this.getAncestors(nodeId1).map((n) => n.id));
         let currentId = nodeId2;
         while (true) {
-            const node = this.core.nodes.find((n) => n.id === currentId);
+            const node = this.core.getNode(currentId);
             if (!node || !node.parentId) break;
             if (ancestors1.has(node.parentId)) {
                 return node.parentId;
@@ -148,8 +148,8 @@ export class WorkflowContainer {
     validateContainerPorts(sourceId, targetId, sourcePort = '', targetPort = '') {
         const sourceIsContainer = this.isContainer(sourceId);
         const targetIsContainer = this.isContainer(targetId);
-        const sourceIsChild = !!this.core.nodes.find((n) => n.id === sourceId)?.parentId;
-        const targetIsChild = !!this.core.nodes.find((n) => n.id === targetId)?.parentId;
+        const sourceIsChild = !!this.core.getNode(sourceId)?.parentId;
+        const targetIsChild = !!this.core.getNode(targetId)?.parentId;
 
         if (sourceIsContainer) {
             const isInternalPort = sourcePort === 'container_start';
@@ -205,7 +205,7 @@ export class WorkflowContainer {
     addToContainer(nodeId, containerId) {
         if (!this.isContainer(containerId)) return false;
         if (this.isDescendant(nodeId, containerId)) return false;
-        const node = this.core.nodes.find((n) => n.id === nodeId);
+        const node = this.core.getNode(nodeId);
         if (!node) return false;
         node.parentId = containerId;
         return true;
@@ -217,7 +217,7 @@ export class WorkflowContainer {
      * @returns {boolean} 是否成功
      */
     removeFromContainer(nodeId) {
-        const node = this.core.nodes.find((n) => n.id === nodeId);
+        const node = this.core.getNode(nodeId);
         if (!node || !node.parentId) return false;
         node.parentId = null;
         return true;

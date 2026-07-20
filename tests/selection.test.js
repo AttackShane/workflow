@@ -63,6 +63,12 @@ function createMockCore(nodes = [], edges = []) {
         batchChanges: jest.fn((fn) => fn()),
         addNode: jest.fn(),
         deleteNode: jest.fn(),
+        getNode: function (id) {
+            return this.nodes.find((n) => n.id === id);
+        },
+        getEdge: function (id) {
+            return this.edges.find((e) => e.id === id);
+        },
     };
 }
 

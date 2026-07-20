@@ -36,7 +36,7 @@ export class WorkflowClipboardPaste {
 
         const convertCozePort = (port, nodeId) => {
             if (!port) return port;
-            const node = this.clipboard.core.nodes.find((n) => n.id === nodeId);
+            const node = this.clipboard.core.getNode(nodeId);
             if (!node || node.type !== 'condition') return port;
             const branches = node.parameters?.branches;
             if (!Array.isArray(branches) || branches.length === 0) return port;
@@ -506,7 +506,7 @@ export class WorkflowClipboardPaste {
             // 选中新粘贴的顶层节点
             const newPastedIds = Object.values(idMap);
             const pastedTopNodes = newPastedIds.filter((id) => {
-                const node = this.clipboard.core.nodes.find((n) => n.id === id);
+                const node = this.clipboard.core.getNode(id);
                 return node && !node.parentId;
             });
             pastedTopNodes.forEach((nodeId) => {
@@ -576,8 +576,8 @@ export class WorkflowClipboardPaste {
                     newEdge.target = newNodeId;
                 }
 
-                const sourceExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.source);
-                const targetExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.target);
+                const sourceExists = this.clipboard.core.getNode(newEdge.source);
+                const targetExists = this.clipboard.core.getNode(newEdge.target);
 
                 if (sourceExists && targetExists) {
                     this.clipboard.core.addEdge(newEdge);
@@ -626,8 +626,8 @@ export class WorkflowClipboardPaste {
                     target: `node_${edge.target || edge.targetNodeID}`,
                 };
 
-                const sourceExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.source);
-                const targetExists = this.clipboard.core.nodes.find((n) => n.id === newEdge.target);
+                const sourceExists = this.clipboard.core.getNode(newEdge.source);
+                const targetExists = this.clipboard.core.getNode(newEdge.target);
 
                 if (sourceExists && targetExists) {
                     this.clipboard.core.addEdge(newEdge);

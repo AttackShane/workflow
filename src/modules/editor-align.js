@@ -44,8 +44,11 @@ export class WorkflowAlign {
         const canvas = DOM.get('canvas');
         const canvasRect = canvas.getBoundingClientRect();
 
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        selectedNodes.forEach(el => {
+        let minX = Infinity,
+            minY = Infinity,
+            maxX = -Infinity,
+            maxY = -Infinity;
+        selectedNodes.forEach((el) => {
             const rect = el.getBoundingClientRect();
             if (rect.left < minX) minX = rect.left;
             if (rect.top < minY) minY = rect.top;
@@ -82,9 +85,9 @@ export class WorkflowAlign {
         if (selectedEls.length < 2) return;
 
         const nodes = [];
-        selectedEls.forEach(el => {
+        selectedEls.forEach((el) => {
             const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
-            const node = this.core.nodes.find(n => n.id === nodeId);
+            const node = this.core.getNode(nodeId);
             if (node) {
                 nodes.push({
                     node,
@@ -92,7 +95,7 @@ export class WorkflowAlign {
                     x: node.x,
                     y: node.y,
                     width: node.width || 200,
-                    height: node.height || 100
+                    height: node.height || 100,
                 });
             }
         });
@@ -102,14 +105,30 @@ export class WorkflowAlign {
         const isDistribute = mode === 'distH' || mode === 'distV';
 
         switch (mode) {
-            case 'left':   this.alignLeft(nodes);   break;
-            case 'centerH': this.alignCenterH(nodes); break;
-            case 'right':  this.alignRight(nodes);  break;
-            case 'top':    this.alignTop(nodes);    break;
-            case 'centerV': this.alignCenterV(nodes); break;
-            case 'bottom': this.alignBottom(nodes); break;
-            case 'distH':  this.distributeHorizontal(nodes); break;
-            case 'distV':  this.distributeVertical(nodes);   break;
+            case 'left':
+                this.alignLeft(nodes);
+                break;
+            case 'centerH':
+                this.alignCenterH(nodes);
+                break;
+            case 'right':
+                this.alignRight(nodes);
+                break;
+            case 'top':
+                this.alignTop(nodes);
+                break;
+            case 'centerV':
+                this.alignCenterV(nodes);
+                break;
+            case 'bottom':
+                this.alignBottom(nodes);
+                break;
+            case 'distH':
+                this.distributeHorizontal(nodes);
+                break;
+            case 'distV':
+                this.distributeVertical(nodes);
+                break;
         }
 
         if (!isDistribute) {
@@ -119,8 +138,8 @@ export class WorkflowAlign {
 
     alignLeft(nodes) {
         if (!nodes || nodes.length === 0) return;
-        const minX = Math.min(...nodes.map(n => n.x));
-        nodes.forEach(n => {
+        const minX = Math.min(...nodes.map((n) => n.x));
+        nodes.forEach((n) => {
             this.core.updateNodePosition(n.node.id, minX, n.y);
             n.el.dataset.x = minX;
             n.el.dataset.y = n.y;
@@ -132,7 +151,7 @@ export class WorkflowAlign {
 
     alignCenterH(nodes) {
         const centerX = nodes.reduce((s, n) => s + n.x + n.width / 2, 0) / nodes.length;
-        nodes.forEach(n => {
+        nodes.forEach((n) => {
             const newX = centerX - n.width / 2;
             this.core.updateNodePosition(n.node.id, newX, n.y);
             n.el.dataset.x = newX;
@@ -144,8 +163,8 @@ export class WorkflowAlign {
     }
 
     alignRight(nodes) {
-        const maxX = Math.max(...nodes.map(n => n.x + n.width));
-        nodes.forEach(n => {
+        const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+        nodes.forEach((n) => {
             const newX = maxX - n.width;
             this.core.updateNodePosition(n.node.id, newX, n.y);
             n.el.dataset.x = newX;
@@ -157,8 +176,8 @@ export class WorkflowAlign {
     }
 
     alignTop(nodes) {
-        const minY = Math.min(...nodes.map(n => n.y));
-        nodes.forEach(n => {
+        const minY = Math.min(...nodes.map((n) => n.y));
+        nodes.forEach((n) => {
             this.core.updateNodePosition(n.node.id, n.x, minY);
             n.el.dataset.x = n.x;
             n.el.dataset.y = minY;
@@ -170,7 +189,7 @@ export class WorkflowAlign {
 
     alignCenterV(nodes) {
         const centerY = nodes.reduce((s, n) => s + n.y + n.height / 2, 0) / nodes.length;
-        nodes.forEach(n => {
+        nodes.forEach((n) => {
             const newY = centerY - n.height / 2;
             this.core.updateNodePosition(n.node.id, n.x, newY);
             n.el.dataset.x = n.x;
@@ -182,8 +201,8 @@ export class WorkflowAlign {
     }
 
     alignBottom(nodes) {
-        const maxY = Math.max(...nodes.map(n => n.y + n.height));
-        nodes.forEach(n => {
+        const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+        nodes.forEach((n) => {
             const newY = maxY - n.height;
             this.core.updateNodePosition(n.node.id, n.x, newY);
             n.el.dataset.x = n.x;
@@ -203,7 +222,7 @@ export class WorkflowAlign {
         const gap = (maxX - minX - totalWidth) / (sorted.length - 1);
 
         let curX = sorted[0].x;
-        sorted.forEach(n => {
+        sorted.forEach((n) => {
             this.core.updateNodePosition(n.node.id, curX, n.y);
             n.el.dataset.x = curX;
             n.el.dataset.y = n.y;
@@ -224,7 +243,7 @@ export class WorkflowAlign {
         const gap = (maxY - minY - totalHeight) / (sorted.length - 1);
 
         let curY = sorted[0].y;
-        sorted.forEach(n => {
+        sorted.forEach((n) => {
             this.core.updateNodePosition(n.node.id, n.x, curY);
             n.el.dataset.x = n.x;
             n.el.dataset.y = curY;

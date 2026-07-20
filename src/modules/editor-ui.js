@@ -244,7 +244,7 @@ export class WorkflowUI {
         const types = this.core.nodeTypeInfo;
         const allTypes = Object.entries(types);
 
-        const selectedNode = this.core.nodes.find((n) => n.id === this.core.selectedNode);
+        const selectedNode = this.core.getNode(this.core.selectedNode);
         const isLoopSelected = selectedNode && selectedNode.type === 'loop';
         const loopInternalTypes = new Set(['break', 'loop_set_variable', 'loop_continue']);
 
@@ -363,7 +363,7 @@ export class WorkflowUI {
 
     showSummaryPanel() {
         if (this._currentPanelNodeId) {
-            const prevNode = this.core.nodes.find((n) => n.id === this._currentPanelNodeId);
+            const prevNode = this.core.getNode(this._currentPanelNodeId);
             if (prevNode && this.node && this.node.paramEditor) {
                 this.node.paramEditor.saveDynamicParams(prevNode, 'input');
                 this.node.paramEditor.saveDynamicParams(prevNode, 'output');
@@ -482,14 +482,14 @@ export class WorkflowUI {
         if (selectedEls.length === 0) return;
 
         const allLocked = Array.from(selectedEls).every((el) => {
-            const node = this.core.nodes.find((n) => n.id === /** @type {HTMLElement} */ (el).dataset.nodeId);
+            const node = this.core.getNode(/** @type {HTMLElement} */ (el).dataset.nodeId);
             return node && node.locked;
         });
 
         const newLockState = !allLocked;
 
         selectedEls.forEach((el) => {
-            const node = this.core.nodes.find((n) => n.id === /** @type {HTMLElement} */ (el).dataset.nodeId);
+            const node = this.core.getNode(/** @type {HTMLElement} */ (el).dataset.nodeId);
             if (node) {
                 node.locked = newLockState;
                 this.node.render._reRenderNode(node.id);

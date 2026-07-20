@@ -48,6 +48,7 @@ export class WorkflowStorage {
         this.core.edgeIdCounter = data.edgeIdCounter || 100000;
         this.core.selectedNode = null;
         this.core.selectedEdge = null;
+        this.core._rebuildMaps();
 
         this.core.resetHistory('messages.loadFromLocalStorage');
         return true;

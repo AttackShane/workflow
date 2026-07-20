@@ -337,9 +337,7 @@ export class WorkflowNodeRender {
                 this.node.ui.isMultiSelectMode = false;
 
                 this.node.core.selectNode(/** @type {HTMLElement} */ (clickedNode).dataset.nodeId);
-                const targetNode = this.node.core.nodes.find(
-                    (n) => n.id === /** @type {HTMLElement} */ (clickedNode).dataset.nodeId
-                );
+                const targetNode = this.node.core.getNode(/** @type {HTMLElement} */ (clickedNode).dataset.nodeId);
                 if (targetNode) this.node.panel.renderPropertyPanel(targetNode);
                 this.node.ui.updateEdges();
                 this.node.ui.align.updateAlignToolbar();
@@ -353,9 +351,7 @@ export class WorkflowNodeRender {
             this.node.ui.isMultiSelectMode = false;
 
             this.node.core.selectNode(/** @type {HTMLElement} */ (clickedNode).dataset.nodeId);
-            const targetNode = this.node.core.nodes.find(
-                (n) => n.id === /** @type {HTMLElement} */ (clickedNode).dataset.nodeId
-            );
+            const targetNode = this.node.core.getNode(/** @type {HTMLElement} */ (clickedNode).dataset.nodeId);
             if (targetNode) this.node.panel.renderPropertyPanel(targetNode);
             this.node.ui.updateEdges();
             this.node.ui.align.updateAlignToolbar();
@@ -376,7 +372,7 @@ export class WorkflowNodeRender {
         if (selectedNodes.length > 0) {
             const lastSelected = /** @type {HTMLElement} */ (selectedNodes[selectedNodes.length - 1]);
             this.node.core.selectNode(lastSelected.dataset.nodeId);
-            const targetNode = this.node.core.nodes.find((n) => n.id === lastSelected.dataset.nodeId);
+            const targetNode = this.node.core.getNode(lastSelected.dataset.nodeId);
             if (targetNode) this.node.panel.renderPropertyPanel(targetNode);
 
             if (selectedNodes.length > 1) {
@@ -393,7 +389,7 @@ export class WorkflowNodeRender {
     }
 
     delete(nodeId, saveHistory = true, _updatePanel = true) {
-        const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+        const nodeData = this.node.core.getNode(nodeId);
         if (nodeData && nodeData.locked) {
             this.node.ui.showMessage(t('messages.nodeLocked'), 'warning');
             return;
@@ -420,7 +416,7 @@ export class WorkflowNodeRender {
         if (selectedEdges.length > 0) {
             const stillExists = Array.from(selectedEdges).some((edge) => {
                 const edgeId = edge.getAttribute('data-edge-id');
-                return this.node.core.edges.find((e) => e.id === edgeId);
+                return this.node.core.getEdge(edgeId);
             });
             if (!stillExists) {
                 this.node.core.selectEdge(null);
@@ -435,7 +431,7 @@ export class WorkflowNodeRender {
     }
 
     _reRenderNode(nodeId) {
-        const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+        const nodeData = this.node.core.getNode(nodeId);
         if (!nodeData) return;
 
         const oldEl = document.querySelector(`[data-node-id="${nodeId}"]`);

@@ -23,15 +23,15 @@ export class WorkflowEdge {
      * @returns {object|null} 几何数据 { x1, y1, x2, y2, d, arrowPoints, labelText, labelX, labelY }
      */
     _computeEdgeGeometry(edge) {
-        const source = this.core.nodes.find((n) => n.id === edge.source);
-        const target = this.core.nodes.find((n) => n.id === edge.target);
+        const source = this.core.getNode(edge.source);
+        const target = this.core.getNode(edge.target);
         if (!source || !target) return null;
 
         const getAbsPos = (node) => {
             let absX = node.x || 0;
             let absY = node.y || 0;
             if (node.parentId) {
-                const parent = this.core.nodes.find((n) => n.id === node.parentId);
+                const parent = this.core.getNode(node.parentId);
                 if (parent) {
                     absX = (parent.x || 0) + absX;
                     absY = (parent.y || 0) + APP_CONFIG.NODE.CONTAINER_OFFSET + absY;
@@ -280,7 +280,7 @@ export class WorkflowEdge {
             const lastSelected = selectedEdges[selectedEdges.length - 1];
             const lastEdgeId = lastSelected.getAttribute('data-edge-id');
             this.core.selectEdge(lastEdgeId);
-            const edge = this.core.edges.find((e) => e.id === lastEdgeId);
+            const edge = this.core.getEdge(lastEdgeId);
             if (edge) this.renderPropertyPanel(edge);
         } else {
             this.core.selectEdge(null);
@@ -312,8 +312,8 @@ export class WorkflowEdge {
         }
 
         // 单选一条边 - 显示详情
-        const source = this.core.nodes.find((n) => n.id === edge.source);
-        const target = this.core.nodes.find((n) => n.id === edge.target);
+        const source = this.core.getNode(edge.source);
+        const target = this.core.getNode(edge.target);
 
         this.ui.showDetailPanel();
         const detailContainer = document.getElementById('nodeDetail');

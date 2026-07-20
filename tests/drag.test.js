@@ -39,9 +39,10 @@ global.cancelAnimationFrame = () => {};
 // ---- Mock 工厂 ----
 
 function createMockCore(nodes = []) {
+    const edges = [];
     return {
         nodes,
-        edges: [],
+        edges,
         selectedNode: null,
         selectedEdge: null,
         nodeTypeInfo: {},
@@ -53,6 +54,12 @@ function createMockCore(nodes = []) {
         getChildNodes: jest.fn(() => []),
         batchChanges: jest.fn((fn) => fn()),
         addNode: jest.fn(),
+        getNode: function (id) {
+            return this.nodes.find((n) => n.id === id);
+        },
+        getEdge: function (id) {
+            return this.edges.find((e) => e.id === id);
+        },
     };
 }
 

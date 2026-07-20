@@ -20,16 +20,16 @@ export class WorkflowSelection {
     selectAll() {
         document.querySelectorAll('.canvas-node').forEach((n) => {
             const nodeId = n.getAttribute('data-node-id');
-            const node = this.core.nodes.find((nd) => nd.id === nodeId);
+            const node = this.core.getNode(nodeId);
             if (node && (node.parentId || node.locked)) return;
             DOM.addClass(n, 'selected');
         });
         document.querySelectorAll('.workflow-edge').forEach((e) => {
             const edgeId = e.getAttribute('data-edge-id');
-            const edge = this.core.edges.find((ed) => ed.id === edgeId);
+            const edge = this.core.getEdge(edgeId);
             if (!edge) return;
-            const sourceNode = this.core.nodes.find((n) => n.id === edge.source);
-            const targetNode = this.core.nodes.find((n) => n.id === edge.target);
+            const sourceNode = this.core.getNode(edge.source);
+            const targetNode = this.core.getNode(edge.target);
             if ((sourceNode && sourceNode.parentId) || (targetNode && targetNode.parentId)) return;
             DOM.addClass(e, 'selected');
         });
@@ -41,7 +41,7 @@ export class WorkflowSelection {
 
         if (this.core.nodes.length > 0) {
             const firstNode = this.core.nodes[0];
-            const node = this.core.nodes.find((n) => n.id === firstNode.id);
+            const node = this.core.getNode(firstNode.id);
             if (node) this.ui.node.panel.renderPropertyPanel(node);
         }
 
@@ -80,7 +80,7 @@ export class WorkflowSelection {
             const lastSelected = /** @type {HTMLElement} */ (selectedNodes[selectedNodes.length - 1]);
             this.core.selectNode(lastSelected.dataset.nodeId);
 
-            const node = this.core.nodes.find((n) => n.id === lastSelected.dataset.nodeId);
+            const node = this.core.getNode(lastSelected.dataset.nodeId);
             if (node) this.ui.node.panel.renderPropertyPanel(node);
 
             if (selectedNodes.length > 1 || selectedEdges.length > 0) {
@@ -91,7 +91,7 @@ export class WorkflowSelection {
             const lastEdgeId = lastSelected.getAttribute('data-edge-id');
             this.core.selectEdge(lastEdgeId);
 
-            const edge = this.core.edges.find((e) => e.id === lastEdgeId);
+            const edge = this.core.getEdge(lastEdgeId);
             if (edge) this.ui.edge.renderPropertyPanel(edge);
         }
 
@@ -115,7 +115,7 @@ export class WorkflowSelection {
 
         document.querySelectorAll('.canvas-node').forEach((nodeEl) => {
             const nodeId = nodeEl.getAttribute('data-node-id');
-            const node = this.core.nodes.find((nd) => nd.id === nodeId);
+            const node = this.core.getNode(nodeId);
             if (!node) return;
 
             if (containerId) {
@@ -149,7 +149,7 @@ export class WorkflowSelection {
         document.querySelectorAll('.workflow-edge').forEach((edgeEl) => {
             const edgeId = edgeEl.getAttribute('data-edge-id');
             if (edgeId) {
-                const edge = this.core.edges.find((e) => e.id === edgeId);
+                const edge = this.core.getEdge(edgeId);
                 if (edge && selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)) {
                     DOM.addClass(edgeEl, 'selected');
                 }
@@ -179,7 +179,7 @@ export class WorkflowSelection {
 
             selectedNodes.forEach((nodeEl) => {
                 const nodeId = /** @type {HTMLElement} */ (nodeEl).dataset.nodeId;
-                const nodeData = this.core.nodes.find((n) => n.id === nodeId);
+                const nodeData = this.core.getNode(nodeId);
                 if (nodeData && nodeData.locked) return;
                 this.ui.node.render.delete(nodeId, false, false);
             });
@@ -205,7 +205,7 @@ export class WorkflowSelection {
 
         selectedEls.forEach((el) => {
             const nodeId = /** @type {HTMLElement} */ (el).dataset.nodeId;
-            const node = this.core.nodes.find((n) => n.id === nodeId);
+            const node = this.core.getNode(nodeId);
             if (!node) return;
 
             const newId = `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;

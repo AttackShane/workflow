@@ -27,7 +27,7 @@ export class WorkflowNodeDrag {
         if (el.classList.contains('container') && /** @type {Element} */ (e.target).closest('.container-body')) return;
 
         const nodeId = el.dataset.nodeId;
-        const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+        const nodeData = this.node.core.getNode(nodeId);
 
         // 锁定节点处理（Shift 多选/单选切换）
         if (nodeData && nodeData.locked) {
@@ -96,7 +96,7 @@ export class WorkflowNodeDrag {
             el.classList.add('selected');
             this.node.ui.isMultiSelectMode = false;
             this.node.core.selectNode(el.dataset.nodeId);
-            const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+            const clickedNode = this.node.core.getNode(el.dataset.nodeId);
             if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
             this.node.ui.align.updateAlignToolbar();
         }
@@ -124,7 +124,7 @@ export class WorkflowNodeDrag {
             el.classList.add('selected');
             this.node.ui.isMultiSelectMode = false;
             this.node.core.selectNode(el.dataset.nodeId);
-            const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+            const clickedNode = this.node.core.getNode(el.dataset.nodeId);
             if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
         } else if (shiftPressed && (this.node.ui.isMultiSelectMode || hasMultipleSelected)) {
             if (!isAlreadySelected) el.classList.add('selected');
@@ -135,7 +135,7 @@ export class WorkflowNodeDrag {
                 this._deselectAll();
                 this.node.ui.isMultiSelectMode = false;
                 this.node.core.selectNode(el.dataset.nodeId);
-                const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+                const clickedNode = this.node.core.getNode(el.dataset.nodeId);
                 if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
             }
             el.classList.add('selected');
@@ -154,7 +154,7 @@ export class WorkflowNodeDrag {
         } else {
             this.node.ui.isMultiSelectMode = false;
             this.node.core.selectNode(el.dataset.nodeId);
-            const clickedNode = this.node.core.nodes.find((n) => n.id === el.dataset.nodeId);
+            const clickedNode = this.node.core.getNode(el.dataset.nodeId);
             if (clickedNode) this.node.panel.renderPropertyPanel(clickedNode);
         }
     }
@@ -172,7 +172,7 @@ export class WorkflowNodeDrag {
             const lastSelected = newSelectedNodes[newSelectedNodes.length - 1];
             const lastEl = /** @type {HTMLElement} */ (lastSelected);
             this.node.core.selectNode(lastEl.dataset.nodeId);
-            const node = this.node.core.nodes.find((n) => n.id === lastEl.dataset.nodeId);
+            const node = this.node.core.getNode(lastEl.dataset.nodeId);
             if (node) this.node.panel.renderPropertyPanel(node);
         }
     }
@@ -195,7 +195,7 @@ export class WorkflowNodeDrag {
      */
     _getDraggableSelectedEls() {
         return Array.from(document.querySelectorAll('.canvas-node.selected')).filter((nodeEl) => {
-            const nd = this.node.core.nodes.find((n) => n.id === /** @type {HTMLElement} */ (nodeEl).dataset.nodeId);
+            const nd = this.node.core.getNode(/** @type {HTMLElement} */ (nodeEl).dataset.nodeId);
             return !nd || !nd.locked;
         });
     }
@@ -267,7 +267,7 @@ export class WorkflowNodeDrag {
                 let newX = startPos.x + moveDx + snapDX;
                 let newY = startPos.y + moveDy + snapDY;
                 const nodeId = el.dataset.nodeId;
-                const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+                const nodeData = this.node.core.getNode(nodeId);
 
                 if (this.node.ui.canvas.snapEnabled) {
                     newX = this.node.ui.canvas.snapToGrid(newX);
@@ -305,7 +305,7 @@ export class WorkflowNodeDrag {
                 parentContainers.add(nodeData.parentId);
                 return;
             }
-            const parent = this.node.core.nodes.find((n) => n.id === nodeData.parentId);
+            const parent = this.node.core.getNode(nodeData.parentId);
             if (parent) {
                 const absX = (parent.x || 0) + newX;
                 const absY = (parent.y || 0) + APP_CONFIG.NODE.CONTAINER_BODY_OFFSET + newY;
@@ -428,7 +428,7 @@ export class WorkflowNodeDrag {
             nel.style.zIndex = '';
 
             const nodeId = nel.dataset.nodeId;
-            const nodeData = this.node.core.nodes.find((n) => n.id === nodeId);
+            const nodeData = this.node.core.getNode(nodeId);
             if (!nodeData) continue;
 
             const newX = parseFloat(nel.dataset.x) || 0;
@@ -464,7 +464,7 @@ export class WorkflowNodeDrag {
      */
     _handleDropIntoContainer(containerEl, nodeData, nodeId, newX, newY, domEl, affectedNodeIds) {
         const containerId = containerEl.dataset.nodeId;
-        const containerNode = this.node.core.nodes.find((n) => n.id === containerId);
+        const containerNode = this.node.core.getNode(containerId);
 
         if (nodeData.parentId === containerId) {
             this.node.core.updateNodePosition(nodeId, newX, newY);
@@ -474,7 +474,7 @@ export class WorkflowNodeDrag {
         }
 
         const oldParentId = nodeData.parentId;
-        const oldParent = oldParentId ? this.node.core.nodes.find((n) => n.id === oldParentId) : null;
+        const oldParent = oldParentId ? this.node.core.getNode(oldParentId) : null;
         const oldHeaderH = oldParent ? APP_CONFIG.NODE.CONTAINER_BODY_OFFSET : 0;
 
         if (nodeData.parentId) nodeData.parentId = null;
@@ -505,7 +505,7 @@ export class WorkflowNodeDrag {
      */
     _handleCtrlDropOut(nodeData, nodeId, newX, newY, domEl, affectedNodeIds) {
         const oldParentId = nodeData.parentId;
-        const oldContainer = this.node.core.nodes.find((n) => n.id === oldParentId);
+        const oldContainer = this.node.core.getNode(oldParentId);
         const absX = (oldContainer.x || 0) + newX;
         const absY = (oldContainer.y || 0) + APP_CONFIG.NODE.CONTAINER_BODY_OFFSET + newY;
 
@@ -661,9 +661,7 @@ export class WorkflowNodeDrag {
         if (draggedContainer) {
             const containerNode = draggedContainer.closest('.canvas-node.container');
             if (containerNode) {
-                const containerData = this.node.core.nodes.find(
-                    (n) => n.id === /** @type {HTMLElement} */ (containerNode).dataset.nodeId
-                );
+                const containerData = this.node.core.getNode(/** @type {HTMLElement} */ (containerNode).dataset.nodeId);
                 if (containerData) {
                     draggedCanvasX = (containerData.x || 0) + dragX;
                     draggedCanvasY = (containerData.y || 0) + APP_CONFIG.NODE.CONTAINER_BODY_OFFSET + dragY;
@@ -698,8 +696,8 @@ export class WorkflowNodeDrag {
             if (otherContainer) {
                 const otherContainerNode = otherEl.closest('.canvas-node.container');
                 if (otherContainerNode) {
-                    const otherContainerData = this.node.core.nodes.find(
-                        (n) => n.id === /** @type {HTMLElement} */ (otherContainerNode).dataset.nodeId
+                    const otherContainerData = this.node.core.getNode(
+                        /** @type {HTMLElement} */ (otherContainerNode).dataset.nodeId
                     );
                     if (otherContainerData) {
                         ox = (otherContainerData.x || 0) + ox;

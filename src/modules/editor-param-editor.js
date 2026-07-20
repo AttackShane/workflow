@@ -127,7 +127,7 @@ export class WorkflowParamEditor {
     _getRefDisplayText(blockId, name) {
         if (!blockId) return name || 'output';
         const resolveNode = (id) => {
-            let target = this.node.core.nodes.find((n) => n.id === id);
+            let target = this.node.core.getNode(id);
             if (target) return target;
             const shortId = id.replace('node_', '');
             target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
@@ -199,7 +199,7 @@ export class WorkflowParamEditor {
         }
 
         const resolveNode = (blockId) => {
-            let target = this.node.core.nodes.find((n) => n.id === blockId);
+            let target = this.node.core.getNode(blockId);
             if (target) return target;
             const shortId = blockId.replace('node_', '');
             target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
@@ -254,7 +254,7 @@ export class WorkflowParamEditor {
     }
 
     addInputParam(nodeId) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode) return;
         if (!targetNode.inputParams) targetNode.inputParams = [];
         this.saveDynamicParams(targetNode, 'input');
@@ -264,7 +264,7 @@ export class WorkflowParamEditor {
     }
 
     addOutputParam(nodeId) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode) return;
         if (!targetNode.outputParams) targetNode.outputParams = [];
         this.saveDynamicParams(targetNode, 'input');
@@ -274,7 +274,7 @@ export class WorkflowParamEditor {
     }
 
     removeParam(nodeId, prefix, index) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode) return;
         this.saveDynamicParams(targetNode, 'input');
         this.saveDynamicParams(targetNode, 'output');
@@ -391,7 +391,7 @@ export class WorkflowParamEditor {
         }
 
         const resolveNode = (blockId) => {
-            let target = this.node.core.nodes.find((n) => n.id === blockId);
+            let target = this.node.core.getNode(blockId);
             if (target) return target;
             const shortId = blockId.replace('node_', '');
             target = this.node.core.nodes.find((n) => n.id === shortId || n.id.replace('node_', '') === shortId);
@@ -581,7 +581,7 @@ export class WorkflowParamEditor {
 
     addLoopIntermediateVariable(nodeId) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode) return;
             if (!targetNode.parameters) targetNode.parameters = {};
             if (!Array.isArray(targetNode.parameters.variableParameters)) {
@@ -601,7 +601,7 @@ export class WorkflowParamEditor {
 
     removeLoopIntermediateVariable(nodeId, vi) {
         try {
-            const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+            const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
             targetNode.parameters.variableParameters.splice(vi, 1);
             this.node.panel.renderPropertyPanel(targetNode);
@@ -610,7 +610,7 @@ export class WorkflowParamEditor {
     }
 
     openLoopIntermediateVarSelector(nodeId, vi) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
         const variable = targetNode.parameters.variableParameters[vi];
         if (!variable) return;
@@ -642,7 +642,7 @@ export class WorkflowParamEditor {
     }
 
     clearLoopIntermediateVarRef(nodeId, vi) {
-        const targetNode = this.node.core.nodes.find((n) => n.id === nodeId);
+        const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !Array.isArray(targetNode.parameters?.variableParameters)) return;
         const variable = targetNode.parameters.variableParameters[vi];
         if (!variable) return;

@@ -417,6 +417,8 @@ export const enUS = {
         versionChangeType: 'Type: {old} → {new}',
         versionChangePosition: 'Position: ({x1},{y1}) → ({x2},{y2})',
         versionChangeParams: 'Parameters changed',
+        storageQuotaExceeded: 'Storage quota exceeded. Please delete old workflows and try again.',
+        storageLargeData: 'Large data size ({size}MB). Consider cleaning up old workflows.',
     },
     history: {
         undoSuccess: 'Undo successful',

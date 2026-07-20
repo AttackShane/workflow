@@ -28,6 +28,10 @@ export class WorkflowCore {
         this.nodes = [];
         /** @type {WorkflowEdge[]} 边数组 */
         this.edges = [];
+        /** @type {Map<string, WorkflowNode>} 节点ID → 节点对象 的快速查找索引 */
+        this._nodeMap = new Map();
+        /** @type {Map<string, WorkflowEdge>} 边ID → 边对象 的快速查找索引 */
+        this._edgeMap = new Map();
         /** @type {number} 节点ID计数器 */
         this.nodeIdCounter = 100000;
         /** @type {number} 边ID计数器 */
@@ -67,6 +71,33 @@ export class WorkflowCore {
         this.storage = new WorkflowStorage(this);
         this.serializer = new WorkflowSerializer(this);
         this.container = new WorkflowContainer(this);
+    }
+
+    /**
+     * 从 nodes/edges 数组重建 Map 索引
+     * 在数组被整体替换后调用（如 undo/redo/import/loadFromLocalStorage）
+     */
+    _rebuildMaps() {
+        this._nodeMap = new Map(this.nodes.map((n) => [n.id, n]));
+        this._edgeMap = new Map(this.edges.map((e) => [e.id, e]));
+    }
+
+    /**
+     * 按 ID 快速获取节点（O(1) Map 查找）
+     * @param {string} id - 节点ID
+     * @returns {WorkflowNode|undefined}
+     */
+    getNode(id) {
+        return this._nodeMap.get(id);
+    }
+
+    /**
+     * 按 ID 快速获取边（O(1) Map 查找）
+     * @param {string} id - 边ID
+     * @returns {WorkflowEdge|undefined}
+     */
+    getEdge(id) {
+        return this._edgeMap.get(id);
     }
 
     /**
@@ -161,6 +192,7 @@ export class WorkflowCore {
         };
 
         this.nodes.push(nodeData);
+        this._nodeMap.set(nodeData.id, nodeData);
         this._emitChange('addNode', nodeData);
         return nodeData;
     }
@@ -172,6 +204,7 @@ export class WorkflowCore {
      */
     addNode(nodeData) {
         this.nodes.push(nodeData);
+        this._nodeMap.set(nodeData.id, nodeData);
         this._emitChange('addNode', nodeData);
         return nodeData;
     }
@@ -186,8 +219,11 @@ export class WorkflowCore {
         try {
             const childIds = this.getChildNodes(nodeId).map((n) => n.id);
             childIds.forEach((cid) => this.deleteNode(cid));
+            const removedEdges = this.edges.filter((e) => e.source === nodeId || e.target === nodeId);
             this.edges = this.edges.filter((e) => e.source !== nodeId && e.target !== nodeId);
+            removedEdges.forEach((e) => this._edgeMap.delete(e.id));
             this.nodes = this.nodes.filter((n) => n.id !== nodeId);
+            this._nodeMap.delete(nodeId);
 
             if (this.selectedNode === nodeId) {
                 this.selectedNode = null;
@@ -227,7 +263,7 @@ export class WorkflowCore {
      * @param {number} y - 新的Y坐标
      */
     updateNodePosition(nodeId, x, y) {
-        const node = this.nodes.find((n) => n.id === nodeId);
+        const node = this._nodeMap.get(nodeId);
         if (node) {
             node.x = x;
             node.y = y;
@@ -241,7 +277,7 @@ export class WorkflowCore {
      * @param {*} value - 属性值
      */
     updateNodeProperty(nodeId, key, value) {
-        const node = this.nodes.find((n) => n.id === nodeId);
+        const node = this._nodeMap.get(nodeId);
         if (node) {
             node[key] = value;
         }
@@ -294,6 +330,7 @@ export class WorkflowCore {
             return null;
         }
         this.edges.push(edgeData);
+        this._edgeMap.set(edgeData.id, edgeData);
         this._emitChange('addEdge', edgeData);
         return edgeData;
     }
@@ -304,6 +341,7 @@ export class WorkflowCore {
      */
     deleteEdge(edgeId) {
         this.edges = this.edges.filter((e) => e.id !== edgeId);
+        this._edgeMap.delete(edgeId);
         if (this.selectedEdge === edgeId) {
             this.selectedEdge = null;
         }
@@ -419,6 +457,7 @@ export class WorkflowCore {
         this.edges = deepClone(state.edges);
         this.selectedNode = state.selectedNode;
         this.selectedEdge = state.selectedEdge;
+        this._rebuildMaps();
 
         this._emitChange('undo');
         return true;
@@ -438,6 +477,7 @@ export class WorkflowCore {
         this.edges = deepClone(state.edges);
         this.selectedNode = state.selectedNode;
         this.selectedEdge = state.selectedEdge;
+        this._rebuildMaps();
 
         this._emitChange('redo');
         return true;
@@ -469,6 +509,8 @@ export class WorkflowCore {
     clearAll() {
         this.nodes = [];
         this.edges = [];
+        this._nodeMap.clear();
+        this._edgeMap.clear();
         this.selectedNode = null;
         this.selectedEdge = null;
         this._emitChange('clearAll');

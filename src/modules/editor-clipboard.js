@@ -113,25 +113,25 @@ export class WorkflowClipboard {
             let containerId = null;
 
             if (sourceIsChild && targetIsChild) {
-                const sourceNode = this.core.nodes.find((n) => n.id === e.source);
+                const sourceNode = this.core.getNode(e.source);
                 containerId = sourceNode?.parentId;
                 putInContainer = !!containerId;
             } else if ((sourceInContainer && targetIsChild) || (sourceIsChild && targetInContainer)) {
                 if (sourceInContainer) {
                     containerId = e.source;
-                    const targetNode = this.core.nodes.find((n) => n.id === e.target);
+                    const targetNode = this.core.getNode(e.target);
                     if (targetNode?.parentId === containerId) putInContainer = true;
                 } else {
                     containerId = e.target;
-                    const sourceNode = this.core.nodes.find((n) => n.id === e.source);
+                    const sourceNode = this.core.getNode(e.source);
                     if (sourceNode?.parentId === containerId) putInContainer = true;
                 }
             }
 
             if (putInContainer && containerId) {
                 if (!containerEdges[containerId]) containerEdges[containerId] = [];
-                const sourceNode = this.core.nodes.find((n) => n.id === e.source);
-                const targetNode = this.core.nodes.find((n) => n.id === e.target);
+                const sourceNode = this.core.getNode(e.source);
+                const targetNode = this.core.getNode(e.target);
                 containerEdges[containerId].push({
                     sourceNodeID: e.source.replace('node_', ''),
                     targetNodeID: e.target.replace('node_', ''),
@@ -227,11 +227,11 @@ export class WorkflowClipboard {
                     let sourcePortID = e.sourcePort;
                     let targetPortID = e.targetPort;
                     if (sourcePortID) {
-                        const sourceNode = this.core.nodes.find((n) => n.id === e.source);
+                        const sourceNode = this.core.getNode(e.source);
                         sourcePortID = this._convertPortToCoze(sourcePortID, sourceNode);
                     }
                     if (targetPortID) {
-                        const targetNode = this.core.nodes.find((n) => n.id === e.target);
+                        const targetNode = this.core.getNode(e.target);
                         targetPortID = this._convertPortToCoze(targetPortID, targetNode);
                     }
                     return {
@@ -306,6 +306,11 @@ export class WorkflowClipboard {
                     return;
                 }
                 copyData = JSON.parse(text);
+                // 校验解析结果：必须是非 null 对象
+                if (!copyData || typeof copyData !== 'object' || Array.isArray(copyData)) {
+                    this.ui.showMessage(t('actions.pasteInvalidData'), 'error');
+                    return;
+                }
             }
         } catch (err) {
             // 读取剪贴板失败（如权限问题），回退到内部复制数据
@@ -316,6 +321,14 @@ export class WorkflowClipboard {
 
         if (!copyData) {
             this.ui.showMessage(t('actions.pasteEmpty'), 'warning');
+            return;
+        }
+
+        // 校验数据结构：必须包含 nodes 数组或 json.nodes 数组
+        const hasCozeNodes = Array.isArray(copyData.json?.nodes);
+        const hasSimpleNodes = Array.isArray(copyData.nodes);
+        if (!hasCozeNodes && !hasSimpleNodes && copyData.type !== 'workflow-node') {
+            this.ui.showMessage(t('actions.pasteInvalidData'), 'error');
             return;
         }
 
