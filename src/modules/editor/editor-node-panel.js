@@ -367,17 +367,25 @@ export class WorkflowNodePanel {
                     } catch {}
                 }
                 if (!Array.isArray(options)) options = [];
-                inputHtml = `<div class="branch-list" id="prop_${param.name}">`;
+                // 判断 answer_type 是否为 text，是则禁用 options 编辑器
+                const answerType = targetNode.parameters?.answer_type ?? 'text';
+                const isTextMode = answerType === 'text';
+                const placeholderName = t('option_name') || '选项名称';
+                const placeholderValue = t('option_value') || '选项值';
+                const emptyHint = t('option_empty_hint') || '当前为文本模式，选项不生效';
+                inputHtml = `${isTextMode ? `<div class="property-hint" style="margin-bottom:0.5rem;color:var(--text-muted);font-size:0.85rem;">${StringUtils.escapeHtml(emptyHint)}</div>` : ''}<div class="branch-list" id="prop_${param.name}" data-question-options="true"${isTextMode ? ' style="opacity:0.5;pointer-events:none;"' : ''}>`;
                 options.forEach((opt, i) => {
-                    const name = typeof opt === 'string' ? opt : opt.name || opt;
+                    const name = typeof opt === 'string' ? opt : opt.name || '';
+                    const val = typeof opt === 'object' && opt !== null ? (opt.value ?? '') : '';
                     inputHtml += `
                         <div class="branch-item" data-index="${i}">
-                            <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(name)}" placeholder="选项名称">
+                            <input type="text" class="property-input branch-name" value="${StringUtils.escapeHtml(String(name))}" placeholder="${StringUtils.escapeHtml(placeholderName)}">
+                            <input type="text" class="property-input branch-value" value="${StringUtils.escapeHtml(String(val))}" placeholder="${StringUtils.escapeHtml(placeholderValue)}">
                             <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>
                         </div>`;
                 });
                 inputHtml += `</div>
-                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddSimpleItem" data-prop="prop_${param.name}" data-placeholder="选项名称">+ 添加选项</button>`;
+                    <button type="button" class="btn btn-sm" style="margin-top:0.25rem" data-action="wfAddSimpleItem" data-prop="prop_${param.name}" data-placeholder="${StringUtils.escapeHtml(placeholderName)}"${isTextMode ? ' disabled' : ''}>+ ${t('options') || '添加选项'}</button>`;
             } else if (param.name === 'categories' && targetNode.type === 'intent') {
                 let categories = [];
                 if (Array.isArray(value)) {
@@ -743,11 +751,20 @@ export class WorkflowNodePanel {
                             })
                             .filter(Boolean);
                     } else if (param.name === 'options' && targetNode.type === 'question') {
-                        const items = list.querySelectorAll('.branch-name');
+                        const items = list.querySelectorAll('.branch-item');
                         values = Array.from(items)
-                            .map((input) => {
-                                const name = /** @type {HTMLInputElement} */ (input).value.trim();
-                                return name;
+                            .map((item) => {
+                                const nameInput = /** @type {HTMLInputElement | null} */ (
+                                    item.querySelector('.branch-name')
+                                );
+                                const valueInput = /** @type {HTMLInputElement | null} */ (
+                                    item.querySelector('.branch-value')
+                                );
+                                const name = nameInput ? nameInput.value.trim() : '';
+                                const val = valueInput ? valueInput.value.trim() : '';
+                                if (!name) return null;
+                                // 仅在用户填写了 value 时保留对象结构，否则退化为字符串以兼容旧数据
+                                return val ? { name, value: val } : name;
                             })
                             .filter(Boolean);
                     } else if (param.name === 'categories' && targetNode.type === 'intent') {
@@ -870,15 +887,28 @@ export class WorkflowNodePanel {
                 const list = document.getElementById(btn.dataset.prop);
                 if (list) {
                     const placeholder = btn.dataset.placeholder || '';
+                    // 对于 question.options 列表，添加 name+value 双 input
+                    const isQuestionOptions = list.id === 'prop_options' && list.dataset.questionOptions === 'true';
                     const i = list.children.length;
                     const item = document.createElement('div');
                     item.className = 'branch-item';
                     item.dataset.index = String(i);
-                    item.innerHTML =
-                        '<input type="text" class="property-input branch-name" placeholder="' +
-                        StringUtils.escapeHtml(placeholder) +
-                        '"><button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>';
+                    if (isQuestionOptions) {
+                        const valuePlaceholder = t('option_value') || '选项值';
+                        item.innerHTML =
+                            '<input type="text" class="property-input branch-name" placeholder="' +
+                            StringUtils.escapeHtml(placeholder) +
+                            '"><input type="text" class="property-input branch-value" placeholder="' +
+                            StringUtils.escapeHtml(valuePlaceholder) +
+                            '"><button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>';
+                    } else {
+                        item.innerHTML =
+                            '<input type="text" class="property-input branch-name" placeholder="' +
+                            StringUtils.escapeHtml(placeholder) +
+                            '"><button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentBranchItem">×</button>';
+                    }
                     list.appendChild(item);
+                    item.querySelector('input')?.focus();
                 }
                 this._scheduleAutoSave(activeNodeId);
                 break;
