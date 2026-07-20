@@ -5,7 +5,7 @@
 import { t } from '../i18n/i18n.js';
 import { Logger } from '../utils/logger.js';
 import { deepClone } from '../utils/helpers.js';
-import { REV_TYPE_MAP, TYPE_MAP } from '../utils/types.js';
+import { REV_TYPE_MAP, TYPE_MAP, getMainColor, getSubTitle } from '../utils/types.js';
 
 /**
  * 根据节点类型获取正确的默认尺寸（归一化到 Coze 标准）
@@ -439,6 +439,426 @@ function _processEdges(cozeEdges, idMap, options = {}) {
 }
 
 // ====================================================================
+// 内部节点 → Coze 节点序列化（统一路径，消除 clipboard 重复逻辑）
+// ====================================================================
+
+/**
+ * 构建 Coze 节点基础结构
+ * @param {object} node - 内部节点
+ * @returns {object} Coze 格式节点（含 data.inputs/outputs 空壳）
+ */
+function _buildCozeNodeBase(node) {
+    const type = node.type;
+    const typeNum = TYPE_MAP[type] || '4';
+    return {
+        id: String(node.id).replace('node_', ''),
+        type: typeNum,
+        meta: { position: { x: node.x || 0, y: node.y || 0 } },
+        data: {
+            nodeMeta: {
+                title: node.title || '',
+                icon: node.icon || '',
+                description: node.description || '',
+                mainColor: node.color || getMainColor(type),
+                subTitle: getSubTitle(type),
+            },
+            outputs: [],
+            inputs: { inputParameters: [] },
+        },
+    };
+}
+
+/**
+ * 序列化节点参数（按类型分发）
+ * @param {object} node - 内部节点
+ * @param {object} cozeNode - 要填充的 Coze 节点
+ */
+function _serializeNodeParameters(node, cozeNode) {
+    _serializeOutputs(node, cozeNode);
+    _serializeInputParams(node, cozeNode);
+    _serializeOutputParams(node, cozeNode);
+    _serializeTypeSpecific(node, cozeNode);
+
+    // 补充 inputParameters (旧格式)
+    if (node.inputParameters && Array.isArray(node.inputParameters)) {
+        cozeNode.data.inputs.inputParameters = node.inputParameters.map((param) => ({
+            name: param.name || '',
+            input: {
+                type: param.type || 'string',
+                value: {
+                    type: param.valueType || 'literal',
+                    content: param.value || '',
+                    ...(param.rawMeta && { rawMeta: param.rawMeta }),
+                },
+            },
+        }));
+    }
+
+    // 合并外部 inputs
+    if (node.inputs && typeof node.inputs === 'object') {
+        cozeNode.data.inputs = { ...cozeNode.data.inputs, ...node.inputs };
+    }
+
+    // Input 节点补充 outputs
+    if (cozeNode.data.outputs.length === 0 && node.type === 'input') {
+        let schema = cozeNode.data.inputs.outputSchema || [];
+        if (typeof schema === 'string') schema = JSON.parse(schema);
+        schema.forEach((field) => {
+            cozeNode.data.outputs.push({
+                name: field.name || 'output',
+                type: field.type || 'string',
+                required: field.required === true,
+                description: field.description || '',
+            });
+        });
+    }
+
+    if (node.type === 'code') cozeNode.data.version = 'v2';
+}
+
+/** 序列化 node_outputs */
+function _serializeOutputs(node, cozeNode) {
+    if (!node.parameters?.node_outputs || typeof node.parameters.node_outputs !== 'object') return;
+
+    Object.entries(node.parameters.node_outputs).forEach(([name, output]) => {
+        const outEntry = {
+            name,
+            type: output.type || 'string',
+            required: output.required === true,
+            description: output.description || '',
+        };
+        if (output.value && output.value !== '') outEntry.defaultValue = output.value;
+        if (output.rawMeta) outEntry.rawMeta = output.rawMeta;
+        if (output.assistType !== undefined) outEntry.assistType = output.assistType;
+        if (output.schema && typeof output.schema === 'object') {
+            outEntry.schema = output.schema;
+        } else if (output.properties) {
+            outEntry.schema = Array.isArray(output.properties)
+                ? output.properties
+                : Object.entries(output.properties).map(([propName, prop]) => ({
+                      name: propName,
+                      type: prop.type || 'string',
+                      required: prop.required === true,
+                      description: prop.description || '',
+                  }));
+        }
+        if (output.input && typeof output.input === 'object') outEntry.input = output.input;
+        cozeNode.data.outputs.push(outEntry);
+    });
+
+    // 合并 node.outputs
+    if (node.outputs && Array.isArray(node.outputs)) {
+        node.outputs.forEach((output) => {
+            const existingIndex = cozeNode.data.outputs.findIndex((o) => o.name === output.name);
+            if (existingIndex >= 0) {
+                cozeNode.data.outputs[existingIndex] = { ...cozeNode.data.outputs[existingIndex], ...output };
+            } else {
+                cozeNode.data.outputs.push(output);
+            }
+        });
+    }
+}
+
+/** 序列化动态入参 */
+function _serializeInputParams(node, cozeNode) {
+    if (!node.inputParams || !Array.isArray(node.inputParams) || node.inputParams.length === 0) return;
+
+    cozeNode.data.inputs.inputParameters = node.inputParams.map((p) => {
+        const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+        return {
+            name: p.name,
+            input: {
+                type: p.type || 'string',
+                value: isRef
+                    ? { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
+                    : { type: 'literal', content: p.value || '', ...(p.rawMeta && { rawMeta: p.rawMeta }) },
+                ...(p.schema && { schema: p.schema }),
+            },
+        };
+    });
+}
+
+/** 序列化动态出参 */
+function _serializeOutputParams(node, cozeNode) {
+    if (!node.outputParams || !Array.isArray(node.outputParams)) return;
+
+    node.outputParams.forEach((p) => {
+        const isRef = p.valueType === 'ref' || (p.value && typeof p.value === 'object' && p.value.type === 'ref');
+        const exists = cozeNode.data.outputs.find((o) => o.name === p.name);
+
+        if (exists) {
+            if (isRef && !exists.input) {
+                exists.input = {
+                    type: p.type || 'string',
+                    value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) },
+                };
+                delete exists.defaultValue;
+            } else if (!isRef && p.value && p.value !== '') {
+                exists.defaultValue = p.value;
+            }
+        } else {
+            const outEntry = {
+                name: p.name,
+                type: p.type || 'string',
+                description: p.description || '',
+            };
+            if (isRef) {
+                outEntry.input = {
+                    type: p.type || 'string',
+                    value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) },
+                };
+            } else if (p.value && p.value !== '') {
+                outEntry.defaultValue = p.value;
+            }
+            cozeNode.data.outputs.push(outEntry);
+        }
+    });
+}
+
+/** 按节点类型分发序列化 */
+function _serializeTypeSpecific(node, cozeNode) {
+    const p = node.parameters;
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return;
+
+    const type = node.type;
+
+    if (type === 'variable_merge') {
+        if (p.mergeGroups) cozeNode.data.inputs.mergeGroups = p.mergeGroups;
+    } else if (type === 'output' || type === 'end') {
+        _serializeContentNode(p, cozeNode);
+        if (type === 'end') {
+            cozeNode.data.inputs.terminatePlan = p.terminatePlan || 'returnVariables';
+        } else {
+            cozeNode.data.inputs.streamingOutput = p.streamingOutput === true;
+            cozeNode.data.inputs.callTransferVoice = p.callTransferVoice === true;
+            cozeNode.data.inputs.chatHistoryWriting = p.chatHistoryWriting || 'historyWrite';
+        }
+    } else if (type === 'input') {
+        if (p.outputSchema) {
+            cozeNode.data.inputs.outputSchema =
+                typeof p.outputSchema === 'string' ? p.outputSchema : JSON.stringify(p.outputSchema);
+        }
+    } else if (type === 'comment') {
+        _serializeComment(p, cozeNode);
+    } else if (type === 'llm') {
+        _serializeLLM(p, cozeNode);
+    } else if (type === 'question') {
+        _serializeQuestion(p, cozeNode);
+    } else if (type === 'loop_set_variable') {
+        cozeNode.data.inputs.inputParameters = Array.isArray(p.variables) && p.variables.length > 0 ? p.variables : [];
+    } else {
+        _serializeDefaultParameters(p, cozeNode);
+    }
+}
+
+/** output / end 类型的内容参数 */
+function _serializeContentNode(p, cozeNode) {
+    if (p._contentRaw) {
+        cozeNode.data.inputs.content = p._contentRaw;
+    } else if (p.content !== undefined) {
+        cozeNode.data.inputs.content = {
+            type: 'string',
+            value: { type: 'literal', content: p.content },
+        };
+    }
+    cozeNode.data.inputs.streamingOutput = p.streamingOutput === true;
+}
+
+/** comment 类型 — 保留 _noteRaw 原始 Slate JSON */
+function _serializeComment(p, cozeNode) {
+    if (p._noteRaw) {
+        cozeNode.data.inputs = {
+            schemaType: 'slate',
+            note: p._noteRaw,
+        };
+    } else {
+        cozeNode.data.inputs = {
+            schemaType: 'slate',
+            note: JSON.stringify([{ type: 'paragraph', children: [{ text: p.content || '', type: 'text' }] }]),
+        };
+    }
+}
+
+/** LLM 类型 */
+function _serializeLLM(p, cozeNode) {
+    const flatParams = p;
+    const structuralKeys = ['fcParamVar', 'settingOnError', 'node_outputs', 'node_inputs', '_llmParamRaw'];
+
+    // 构建原始元数据查找表
+    const metaMap = {};
+    if (flatParams._llmParamRaw && Array.isArray(flatParams._llmParamRaw)) {
+        flatParams._llmParamRaw.forEach((p) => {
+            const key = p.name === 'modleName' ? 'modelName' : p.name;
+            metaMap[key] = {
+                inputType: p.input?.type || 'string',
+                valueType: p.input?.value?.type || 'literal',
+                rawMeta: p.input?.value?.rawMeta,
+            };
+        });
+    }
+
+    const llmParams = [];
+    const handledKeys = new Set();
+    const modelValue = flatParams.modelName || flatParams.modleName;
+    if (modelValue !== undefined) {
+        const meta = metaMap.modelName || metaMap.modleName || { inputType: 'string', valueType: 'literal' };
+        const valObj = meta.rawMeta
+            ? { type: meta.valueType, content: modelValue, rawMeta: meta.rawMeta }
+            : { type: meta.valueType, content: modelValue };
+        llmParams.push({ name: 'modleName', input: { type: meta.inputType, value: valObj } });
+    }
+    handledKeys.add('modelName');
+    handledKeys.add('modleName');
+
+    Object.entries(flatParams).forEach(([key, value]) => {
+        if (structuralKeys.includes(key) || handledKeys.has(key) || value === undefined) return;
+        const meta = metaMap[key] || { inputType: 'string', valueType: 'literal' };
+        const valObj = meta.rawMeta
+            ? { type: meta.valueType, content: value, rawMeta: meta.rawMeta }
+            : { type: meta.valueType, content: value };
+        llmParams.push({ name: key, input: { type: meta.inputType, value: valObj } });
+        handledKeys.add(key);
+    });
+
+    if (flatParams._llmParamRaw && Array.isArray(flatParams._llmParamRaw)) {
+        flatParams._llmParamRaw.forEach((p) => {
+            const key = p.name === 'modleName' ? 'modelName' : p.name;
+            if (!handledKeys.has(key) && !handledKeys.has(p.name)) {
+                llmParams.push(deepClone(p));
+                handledKeys.add(p.name);
+            }
+        });
+    }
+
+    cozeNode.data.inputs.llmParam = llmParams;
+    cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
+    cozeNode.data.inputs.settingOnError = flatParams.settingOnError || {
+        switch: false,
+        processType: 1,
+        timeoutMs: 600000,
+        retryTimes: 0,
+    };
+    cozeNode.data.version = '3';
+}
+
+/** Question 类型 */
+function _serializeQuestion(p, cozeNode) {
+    const flatParams = p;
+    cozeNode.data.inputs.answer_type = flatParams.answer_type || 'text';
+    cozeNode.data.inputs.option_type = flatParams.option_type || 'static';
+    cozeNode.data.inputs.options = flatParams.options || [];
+    cozeNode.data.inputs.limit = flatParams.limit || 3;
+    cozeNode.data.inputs.extra_output = flatParams.extra_output === true;
+    cozeNode.data.inputs.question = flatParams.question || '';
+    if (flatParams.dynamic_option !== undefined) {
+        cozeNode.data.inputs.dynamic_option = flatParams.dynamic_option;
+    }
+
+    const structuralKeys = [
+        'fcParamVar',
+        'settingOnError',
+        'node_outputs',
+        'node_inputs',
+        '_llmParamRaw',
+        'answer_type',
+        'option_type',
+        'options',
+        'limit',
+        'extra_output',
+        'question',
+        'dynamic_option',
+    ];
+    const handledKeys = new Set();
+    const llmParams = _buildQuestionLLMParams(flatParams, structuralKeys, handledKeys);
+
+    Object.entries(flatParams).forEach(([key, value]) => {
+        if (structuralKeys.includes(key) || handledKeys.has(key) || value === undefined) return;
+        const idx = Object.keys(llmParams).length;
+        llmParams[String(idx)] = {
+            name: key,
+            input: { type: 'string', value: { type: 'literal', content: value } },
+        };
+    });
+
+    cozeNode.data.inputs.llmParam = llmParams;
+    cozeNode.data.inputs.fcParamVar = flatParams.fcParamVar || { knowledgeFCParam: {} };
+    cozeNode.data.inputs.settingOnError = flatParams.settingOnError || {
+        switch: false,
+        processType: 1,
+        timeoutMs: 600000,
+        retryTimes: 0,
+    };
+    if (flatParams.branches && Array.isArray(flatParams.branches)) {
+        cozeNode.data.branches = deepClone(flatParams.branches);
+    }
+}
+
+function _buildQuestionLLMParams(flatParams, structuralKeys, handledKeys) {
+    const llmParams = {};
+    const raw = flatParams._llmParamRaw;
+    if (!raw || typeof raw !== 'object' || raw === null) return llmParams;
+
+    if (Array.isArray(raw)) {
+        raw.forEach((p) => {
+            if (p.name && typeof p.name === 'string') {
+                const idx = String(Object.keys(llmParams).length);
+                const key = p.name === 'modleName' ? 'modelName' : p.name;
+                const value = flatParams[key] !== undefined ? flatParams[key] : p.input?.value?.content;
+                const entry = {
+                    name: p.name,
+                    input: {
+                        type: p.input?.type || 'string',
+                        value: { type: p.input?.value?.type || 'literal', content: value },
+                    },
+                };
+                if (p.input?.value?.rawMeta) entry.input.value.rawMeta = p.input.value.rawMeta;
+                llmParams[idx] = entry;
+                handledKeys.add(p.name);
+                handledKeys.add(key);
+            }
+        });
+    } else {
+        Object.entries(raw).forEach(([idx, p]) => {
+            if (p && typeof p === 'object' && p.name && typeof p.name === 'string') {
+                const key = p.name === 'modleName' ? 'modelName' : p.name;
+                const value = flatParams[key] !== undefined ? flatParams[key] : p.input?.value?.content;
+                const entry = {
+                    name: p.name,
+                    input: {
+                        type: p.input?.type || 'string',
+                        value: { type: p.input?.value?.type || 'literal', content: value },
+                    },
+                };
+                if (p.input?.value?.rawMeta) entry.input.value.rawMeta = p.input.value.rawMeta;
+                llmParams[idx] = entry;
+                handledKeys.add(p.name);
+                handledKeys.add(key);
+            } else if (typeof p === 'string' || typeof p === 'number' || typeof p === 'boolean') {
+                llmParams[idx] = p;
+                handledKeys.add(idx);
+            }
+        });
+    }
+    return llmParams;
+}
+
+/** 默认参数序列化 */
+function _serializeDefaultParameters(p, cozeNode) {
+    const outputKeys = new Set(Object.keys(p.node_outputs || {}));
+    Object.entries(p).forEach(([key, value]) => {
+        if (
+            key !== 'node_outputs' &&
+            key !== 'node_inputs' &&
+            key !== '_contentRaw' &&
+            key !== '_noteRaw' &&
+            !outputKeys.has(key)
+        ) {
+            cozeNode.data.inputs[key] = value;
+        }
+    });
+}
+
+// ====================================================================
 // 公共 API
 // ====================================================================
 
@@ -468,58 +888,35 @@ export function convertClipboardToInternal(data) {
 }
 
 /**
- * 将内部节点格式转换为 Coze 剪贴板格式（供 reverse.js 消费）
+ * 将内部节点格式转换为 Coze 剪贴板格式（统一序列化路径）
  * @param {object} node - 内部节点
  * @param {object[]} allNodes - 全部节点（用于查找子节点）
+ * @param {object} [options] - 选项
+ * @param {boolean} [options.includeTemp=false] - 是否包含 _temp 字段（剪贴板复制需要）
  * @returns {object} 剪贴板格式节点
  */
-export function convertInternalToClipboardNode(node, allNodes) {
-    const cozeType = TYPE_MAP[node.type] || '4';
-    const params = node.parameters || {};
+export function convertInternalToClipboardNode(node, allNodes, options = {}) {
+    const cozeNode = _buildCozeNodeBase(node);
+    _serializeNodeParameters(node, cozeNode);
 
-    const inputs = {};
-    const outputs = [];
-
-    Object.entries(params).forEach(([key, value]) => {
-        if (key === '_llmParamRaw') {
-            inputs.llmParam = value;
-        } else if (key === '_contentRaw') {
-            inputs.content = value;
-        } else if (key === 'node_outputs') {
-            const outObj = value || {};
-            Object.entries(outObj).forEach(([name, def]) => {
-                outputs.push({ name, ...def });
-            });
-        } else if (key === 'node_inputs') {
-            inputs.inputParameters = value;
-        } else {
-            inputs[key] = value;
-        }
-    });
-
-    const clipNode = {
-        id: String(node.id).replace('node_', ''),
-        type: cozeType,
-        meta: { position: { x: node.x || 0, y: node.y || 0 } },
-        data: {
-            nodeMeta: {
-                title: node.title || '',
+    if (options.includeTemp) {
+        cozeNode._temp = {
+            bounds: { x: (node.x || 0) - 180, y: node.y || 0, width: 360, height: 112 },
+            externalData: {
                 icon: node.icon || '',
                 description: node.description || '',
+                title: node.title || '',
+                mainColor: node.color || getMainColor(node.type),
             },
-            inputs,
-            outputs,
-        },
-    };
-
-    if (node.color) clipNode.data.nodeMeta.mainColor = node.color;
+        };
+    }
 
     const children = allNodes.filter((n) => n.parentId === node.id);
     if (children.length > 0) {
-        clipNode.blocks = children.map((c) => convertInternalToClipboardNode(c, allNodes));
+        cozeNode.blocks = children.map((c) => convertInternalToClipboardNode(c, allNodes, options));
     }
 
-    return clipNode;
+    return cozeNode;
 }
 
 /**
