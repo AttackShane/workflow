@@ -12,7 +12,28 @@ import { t } from '../../i18n/i18n.js';
 export class WorkflowNodePanel {
     constructor(node) {
         this.node = node;
-        document.addEventListener('click', this._handleAction.bind(this));
+        // 保存绑定函数引用，便于 destroy() 中移除监听器，避免跨实例/跨测试串扰
+        this._onClick = (e) => this._handleAction(e);
+        document.addEventListener('click', this._onClick);
+    }
+
+    destroy() {
+        if (this._onClick) {
+            document.removeEventListener('click', this._onClick);
+            this._onClick = null;
+        }
+        if (this._autoSaveTimer) {
+            clearTimeout(this._autoSaveTimer);
+            this._autoSaveTimer = null;
+        }
+        if (this._autoSaveNodeId && document.getElementById('nodeDetail')) {
+            const detail = document.getElementById('nodeDetail');
+            if (this._autoSaveHandler) {
+                detail.removeEventListener('input', this._autoSaveHandler);
+                detail.removeEventListener('change', this._autoSaveHandler);
+                this._autoSaveHandler = null;
+            }
+        }
     }
 
     static OPERATORS = [
@@ -64,8 +85,7 @@ export class WorkflowNodePanel {
         if (!list || !list.classList.contains('cond-list')) return;
         const branchItem = btn.closest('.branch-item');
         const branchIndex = branchItem ? parseInt(/** @type {HTMLElement} */ (branchItem).dataset.index, 10) : 0;
-        const selectedEl = document.querySelector('.canvas-node.selected');
-        const nodeId = selectedEl ? /** @type {HTMLElement} */ (selectedEl).dataset.nodeId : '';
+        const nodeId = this._getActiveNodeId();
         const condIndex = list.children.length;
         const item = document.createElement('div');
         item.className = 'cond-item';
@@ -104,6 +124,81 @@ export class WorkflowNodePanel {
             '</div></div>';
         list.appendChild(item);
         this._updateCondLogicVisibility(list);
+
+        // 立即把新 cond 同步写入 parameters，确保点 🔗 时 openConditionRefSelector
+        // 能找到 conditions[condIndex]；否则 500ms auto-save 之前引用选择器会因索引越界静默失败。
+        if (nodeId && this.node && this.node.core && typeof this.node.core.getNode === 'function') {
+            this._syncCondsToParameters(nodeId, branchIndex);
+        }
+    }
+
+    /**
+     * 把指定分支的 cond-list 同步写入 parameters.branches[branchIndex].condition.conditions，
+     * 跳过 _scheduleAutoSave 的 500ms 延迟，避免新增 cond 后立即操作时索引错位。
+     */
+    _syncCondsToParameters(nodeId, branchIndex) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters) return;
+        // branches 字段在 default 阶段是 JSON 字符串，第一次 auto-save 后才转成数组。
+        // 这里做兼容，让 +条件 等即时操作也能在字符串态下同步。
+        let branches = targetNode.parameters.branches;
+        if (typeof branches === 'string') {
+            try {
+                branches = JSON.parse(branches);
+            } catch {
+                return;
+            }
+            targetNode.parameters.branches = branches;
+        }
+        if (!Array.isArray(branches)) return;
+        const branch = branches[branchIndex];
+        if (!branch) return;
+        const branchItem = document.querySelector(`.branch-item[data-index="${branchIndex}"]`);
+        if (!branchItem) return;
+        const condList = branchItem.querySelector('.cond-list');
+        if (!condList) return;
+        const condItems = condList.querySelectorAll('.cond-item');
+        const existingConds =
+            branch.condition && Array.isArray(branch.condition.conditions) ? branch.condition.conditions : [];
+        branch.condition = branch.condition || {};
+        branch.condition.conditions = Array.from(condItems).map((ci, condIdx) => {
+            const leftInput = /** @type {HTMLInputElement|null} */ (ci.querySelector('.cond-left'));
+            const rightInput = /** @type {HTMLInputElement|null} */ (ci.querySelector('.cond-right'));
+            const opSelect = /** @type {HTMLSelectElement|null} */ (ci.querySelector('.cond-operator'));
+            const existingCond = existingConds[condIdx] || {};
+            const left =
+                leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
+                    ? this._textToConditionValue(leftInput.value)
+                    : existingCond.left || {
+                          input: { type: 'string', value: { type: 'literal', content: '' } },
+                      };
+            const right =
+                rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
+                    ? this._textToConditionValue(rightInput.value)
+                    : existingCond.right || {
+                          input: { type: 'string', value: { type: 'literal', content: '' } },
+                      };
+            const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
+            return { left, operator, right };
+        });
+    }
+
+    /**
+     * 获取当前正在编辑的节点 ID。优先从 panel 上下文（_currentPanelNodeId）取，
+     * 避免依赖 .canvas-node.selected 的 DOM 状态；最后才 fallback 到 selectedNode。
+     */
+    _getActiveNodeId() {
+        if (this.node && this.node.ui && this.node.ui._currentPanelNodeId) {
+            return this.node.ui._currentPanelNodeId;
+        }
+        const selectedEl = document.querySelector('.canvas-node.selected');
+        if (selectedEl) {
+            return /** @type {HTMLElement} */ (selectedEl).dataset.nodeId || '';
+        }
+        if (this.node && this.node.core && this.node.core.selectedNode) {
+            return this.node.core.selectedNode;
+        }
+        return '';
     }
     _updateCondLogicVisibility(condList) {
         const branchConditions = condList.parentElement;
@@ -713,40 +808,40 @@ export class WorkflowNodePanel {
                                 const condItems = item.querySelectorAll('.cond-item');
                                 const existingBranch = existingBranches[branchIdx] || {};
                                 const existingConds = existingBranch.condition?.conditions || [];
-                                const conditions = Array.from(condItems)
-                                    .map((ci, condIdx) => {
-                                        const leftInput = /** @type {HTMLInputElement|null} */ (
-                                            ci.querySelector('.cond-left')
-                                        );
-                                        const rightInput = /** @type {HTMLInputElement|null} */ (
-                                            ci.querySelector('.cond-right')
-                                        );
-                                        const opSelect = /** @type {HTMLSelectElement|null} */ (
-                                            ci.querySelector('.cond-operator')
-                                        );
-                                        const existingCond = existingConds[condIdx] || {};
-                                        const left =
-                                            leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
-                                                ? this._textToConditionValue(leftInput.value)
-                                                : existingCond.left || {
-                                                      input: {
-                                                          type: 'string',
-                                                          value: { type: 'literal', content: '' },
-                                                      },
-                                                  };
-                                        const right =
-                                            rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
-                                                ? this._textToConditionValue(rightInput.value)
-                                                : existingCond.right || {
-                                                      input: {
-                                                          type: 'string',
-                                                          value: { type: 'literal', content: '' },
-                                                      },
-                                                  };
-                                        const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
-                                        return { left, operator, right };
-                                    })
-                                    .filter((c) => c.left.input.value.content || c.right.input.value.content);
+                                const conditions = Array.from(condItems).map((ci, condIdx) => {
+                                    const leftInput = /** @type {HTMLInputElement|null} */ (
+                                        ci.querySelector('.cond-left')
+                                    );
+                                    const rightInput = /** @type {HTMLInputElement|null} */ (
+                                        ci.querySelector('.cond-right')
+                                    );
+                                    const opSelect = /** @type {HTMLSelectElement|null} */ (
+                                        ci.querySelector('.cond-operator')
+                                    );
+                                    const existingCond = existingConds[condIdx] || {};
+                                    const left =
+                                        leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
+                                            ? this._textToConditionValue(leftInput.value)
+                                            : existingCond.left || {
+                                                  input: {
+                                                      type: 'string',
+                                                      value: { type: 'literal', content: '' },
+                                                  },
+                                              };
+                                    const right =
+                                        rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
+                                            ? this._textToConditionValue(rightInput.value)
+                                            : existingCond.right || {
+                                                  input: {
+                                                      type: 'string',
+                                                      value: { type: 'literal', content: '' },
+                                                  },
+                                              };
+                                    const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
+                                    return { left, operator, right };
+                                });
+                                // 保留所有 cond（包括空的占位符），确保 DOM 顺序与 conditions 数组下标一致，
+                                // 避免 data-cond-index 与实际下标错位导致引用选择器/清除失效。
                                 return { name, condition: { logic, conditions } };
                             })
                             .filter(Boolean);
@@ -923,27 +1018,44 @@ export class WorkflowNodePanel {
                 const condItem = btn.closest('.cond-item');
                 if (condItem) {
                     const condList = condItem.parentElement;
+                    const branchItem = condItem.closest('.branch-item');
+                    const branchIndex = branchItem
+                        ? parseInt(/** @type {HTMLElement} */ (branchItem).dataset.index, 10)
+                        : 0;
                     condItem.remove();
                     if (condList && condList.classList.contains('cond-list')) {
                         this._updateCondLogicVisibility(condList);
                     }
+                    // 同步落库，让删除后的索引与 conditions 数组保持一致
+                    const nodeId = this._getActiveNodeId();
+                    if (nodeId) {
+                        this._syncCondsToParameters(nodeId, branchIndex);
+                        this._scheduleAutoSave(nodeId);
+                    }
+                } else {
+                    this._scheduleAutoSave(activeNodeId);
                 }
-                this._scheduleAutoSave(activeNodeId);
                 break;
             }
             case 'openConditionRef': {
-                const { nodeId, branchIndex, condIndex, side } = btn.dataset;
-                this.node.selector.openConditionRefSelector(
-                    nodeId,
-                    parseInt(branchIndex, 10),
-                    parseInt(condIndex, 10),
-                    side
-                );
+                const { nodeId, branchIndex, side } = btn.dataset;
+                // 动态从 DOM 计算 condIndex，避免 data-cond-index 在新增/删除后与实际下标错位
+                let actualCondIndex = parseInt(btn.dataset.condIndex, 10);
+                const condItem = btn.closest('.cond-item');
+                if (condItem && condItem.parentElement) {
+                    actualCondIndex = Array.from(condItem.parentElement.children).indexOf(condItem);
+                }
+                this.node.selector.openConditionRefSelector(nodeId, parseInt(branchIndex, 10), actualCondIndex, side);
                 break;
             }
             case 'clearConditionRef': {
-                const { nodeId, branchIndex, condIndex, side } = btn.dataset;
-                this.node.selector.clearConditionRef(nodeId, parseInt(branchIndex, 10), parseInt(condIndex, 10), side);
+                const { nodeId, branchIndex, side } = btn.dataset;
+                let actualCondIndex = parseInt(btn.dataset.condIndex, 10);
+                const condItem = btn.closest('.cond-item');
+                if (condItem && condItem.parentElement) {
+                    actualCondIndex = Array.from(condItem.parentElement.children).indexOf(condItem);
+                }
+                this.node.selector.clearConditionRef(nodeId, parseInt(branchIndex, 10), actualCondIndex, side);
                 this._scheduleAutoSave(nodeId);
                 break;
             }
