@@ -71,9 +71,54 @@
 
 ## 容器节点（loop / batch）
 
+### 数据结构
 - 所有节点存储在 `core.nodes` 扁平数组中
 - 子节点通过 `parentId` 指向容器节点
 - 容器端口校验：外部端口只能连外部节点，内部端口只能连内部子节点
+
+### 连接点层次（CRITICAL）
+容器节点有两层连接点，CSS定义不同位置：
+
+**外部连接点**（与外部节点连接）：
+- CSS: `.canvas-node.container > .connection-point` (`top: 24px`)
+- 固定在容器顶部24px处
+- 用于连接容器外部的上游/下游节点
+
+**内部连接点**（与内部子节点连接）：
+- CSS: `.container-body .container-port` (`top: 50%; transform: translateY(-50%)`)
+- 在容器body区域垂直居中
+- 包括 `container_start`（左侧，循环开始）和 `container_end`（右侧，循环结束）
+
+### 渲染流程（CRITICAL）
+`updateContainerSize()` 函数会：
+1. 读取子节点DOM的 `dataset.x/y`（相对容器的坐标）
+2. 计算容器尺寸：`width = max(minW, bodyW + 2*BORDER)`
+3. 计算容器高度：`height = HEADER_H + DESC_H + bodyH + 2*BORDER`
+4. **当 `!container._skipLayout` 时**，自动平移子节点使左上角对齐到 `PADDING`
+
+### 布局算法约束（CRITICAL）
+修改 `editor-layout.js` 时必须遵循：
+
+1. **外部布局**：
+   - 容器外部连接点固定在 `nodeY + 24px`
+   - 普通节点连接点在中心 `nodeY + h/2`
+   - 对齐条件：`普通节点中心Y = 容器外部连接点Y = nodeY + 24`
+
+2. **内部布局**：
+   - 容器内部连接点和子节点都在中心 `nodeY + h/2`
+   - 子节点坐标是**相对于容器body区域**，从 `(PADDING, PADDING)` 开始
+
+3. **防止覆盖**：
+   - 布局算法计算位置后，`updateContainerSize()` 会重新调整
+   - 必须设置 `container._skipLayout = true` 防止自动平移覆盖计算结果
+
+### 常见错误
+| 错误现象 | 根因 | 解决方案 |
+|----------|------|----------|
+| 容器内子节点被压扁 | 布局算法未考虑body区域偏移 | 子节点Y从 `HEADER_H + DESC_H + BORDER + PADDING` 开始 |
+| 容器内节点偏移 | `updateContainerSize` 自动平移覆盖 | 设置 `container._skipLayout = true` |
+| 外部连接线不水平 | 容器外部连接点(24px)与节点中心(h/2)未对齐 | 布局计算时使用不同的偏移量 |
+| 容器尺寸异常 | 高度计算公式错误 | `height = HEADER_H + DESC_H + bodyH + 2*BORDER` |
 
 ---
 
