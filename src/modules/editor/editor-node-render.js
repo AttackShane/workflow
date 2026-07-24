@@ -195,17 +195,16 @@ export class WorkflowNodeRender {
     }
 
     _applyMeasurement(el, nodeData, rect) {
-        if (rect.width > 0) {
-            nodeData.width = rect.width;
-            nodeData.height = rect.height;
-        }
+        // 不覆盖 nodeData.width/height，统一使用 CSS 定义的固定尺寸（200x100）
+        // 分支端口的垂直位置仍然需要根据节点高度计算
+        const effectiveHeight = nodeData.height || rect.height;
 
         if (nodeData.type === 'question' && nodeData.parameters?.options) {
             const options = Array.isArray(nodeData.parameters.options) ? nodeData.parameters.options : [];
             const totalPorts = options.length + 1;
             const branchPorts = el.querySelectorAll('.branch-port');
             branchPorts.forEach((port, i) => {
-                port.style.top = (nodeData.height * (i + 0.5)) / totalPorts + 'px';
+                port.style.top = (effectiveHeight * (i + 0.5)) / totalPorts + 'px';
                 port.style.transform = 'translateY(-50%)';
             });
         } else if (nodeData.type === 'intent' && nodeData.parameters?.categories) {
@@ -213,7 +212,7 @@ export class WorkflowNodeRender {
             const totalPorts = categories.length + 1;
             const branchPorts = el.querySelectorAll('.branch-port');
             branchPorts.forEach((port, i) => {
-                port.style.top = (nodeData.height * (i + 0.5)) / totalPorts + 'px';
+                port.style.top = (effectiveHeight * (i + 0.5)) / totalPorts + 'px';
                 port.style.transform = 'translateY(-50%)';
             });
         } else if (nodeData.type === 'condition') {
@@ -231,7 +230,7 @@ export class WorkflowNodeRender {
             const totalPorts = branches.length;
             const branchPorts = el.querySelectorAll('.branch-port');
             branchPorts.forEach((port, i) => {
-                port.style.top = (nodeData.height * (i + 0.5)) / totalPorts + 'px';
+                port.style.top = (effectiveHeight * (i + 0.5)) / totalPorts + 'px';
                 port.style.transform = 'translateY(-50%)';
             });
         }

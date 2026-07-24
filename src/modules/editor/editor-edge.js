@@ -18,6 +18,54 @@ export class WorkflowEdge {
     }
 
     /**
+     * 判断点击位置是否落在外部容器 body 内，且该边不是该容器的内部边
+     * @param {object} edge - 边数据
+     * @param {number} clientX - 鼠标 clientX
+     * @param {number} clientY - 鼠标 clientY
+     * @returns {boolean} 如果点击落在外部容器内且边不属于该容器，返回 true
+     */
+    _isClickInsideForeignContainer(edge, clientX, clientY) {
+        // 先将 clientX/Y 转换为相对于画布元素的坐标
+        const rect = this.ui.canvas.canvas.getBoundingClientRect();
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        // 再转换为画布坐标系
+        const { canvasX, canvasY } = this.ui.canvas.screenToCanvas(x, y);
+
+        const containers = this.core.nodes.filter((n) => this.core.container.isContainer(n.id));
+        for (const c of containers) {
+            const cx = c.x || 0;
+            const cy = c.y || 0;
+            const cw = c.width || 300;
+            const ch = c.height || 200;
+            const headerH = APP_CONFIG.NODE.CONTAINER_HEADER_H;
+            const descH = APP_CONFIG.NODE.CONTAINER_DESC_H;
+            const bodyTop = cy + headerH + descH;
+            const bodyBottom = cy + ch;
+            if (canvasX >= cx && canvasX <= cx + cw && canvasY >= bodyTop && canvasY <= bodyBottom) {
+                const sourceNode = this.core.getNode(edge.source);
+                const targetNode = this.core.getNode(edge.target);
+                // 容器内部边判定：
+                // 1. source/target 都是该容器的子节点
+                // 2. 或 source 是容器本身且使用内部输出端口 container_start
+                // 3. 或 target 是容器本身且使用内部输入端口 container_end
+                const sourceIsContainer = sourceNode && sourceNode.id === c.id;
+                const targetIsContainer = targetNode && targetNode.id === c.id;
+                const sourceInContainer = sourceNode && sourceNode.parentId === c.id;
+                const targetInContainer = targetNode && targetNode.parentId === c.id;
+                const isInternalEdge =
+                    (sourceInContainer && targetInContainer) ||
+                    (sourceIsContainer && edge.sourcePort === 'container_start' && targetInContainer) ||
+                    (targetIsContainer && edge.targetPort === 'container_end' && sourceInContainer);
+                if (!isInternalEdge) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * 计算边的几何数据（纯函数，无副作用）
      * @param {object} edge - 边数据
      * @returns {object|null} 几何数据 { x1, y1, x2, y2, d, arrowPoints, labelText, labelX, labelY }
@@ -43,19 +91,20 @@ export class WorkflowEdge {
         const sourcePos = getAbsPos(source);
         const targetPos = getAbsPos(target);
 
-        const width1 = source.width || 200;
-        const height1 = source.height || 100;
-        const width2 = target.width || 200;
-        const height2 = target.height || 100;
+        // 普通节点统一使用 CSS 定义的固定尺寸（200x100）
+        // 容器节点使用实际尺寸（由布局算法计算）
+        const sourceIsContainer = this.core.container.isContainer(source.id);
+        const targetIsContainer = this.core.container.isContainer(target.id);
+        const width1 = sourceIsContainer ? source.width || 300 : APP_CONFIG.NODE.DEFAULT_NODE_WIDTH;
+        const height1 = sourceIsContainer ? source.height || 200 : APP_CONFIG.NODE.DEFAULT_NODE_HEIGHT;
+        const width2 = targetIsContainer ? target.width || 300 : APP_CONFIG.NODE.DEFAULT_NODE_WIDTH;
+        const height2 = targetIsContainer ? target.height || 200 : APP_CONFIG.NODE.DEFAULT_NODE_HEIGHT;
 
         let x1 = sourcePos.x + width1;
         let x2 = targetPos.x;
         let y2 = targetPos.y + height2 / 2;
         let y1 = sourcePos.y + height1 / 2;
         let labelText = '';
-
-        const sourceIsContainer = this.core.container.isContainer(source.id);
-        const targetIsContainer = this.core.container.isContainer(target.id);
 
         if (sourceIsContainer) {
             if (edge.sourcePort === 'container_start') {
@@ -178,6 +227,9 @@ export class WorkflowEdge {
             hitPath.setAttribute('data-edge-id', edge.id);
             hitPath.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (this._isClickInsideForeignContainer(edge, e.clientX, e.clientY)) {
+                    return;
+                }
                 this.select(edge.id, e.shiftKey);
             });
             this.svgHitLayer.appendChild(hitPath);

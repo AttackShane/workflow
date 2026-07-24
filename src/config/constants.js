@@ -38,8 +38,8 @@ export const APP_CONFIG = {
         SVG_CONTAINER_RX: 12, // SVG 导出容器圆角
         SVG_NODE_RX: 8, // SVG 导出普通节点圆角
         SVG_HEADER_CAP_H: 12, // SVG 导出容器头部封盖高度
-        DEFAULT_NODE_WIDTH: 240, // 默认节点宽度（布局计算用）
-        DEFAULT_NODE_HEIGHT: 80, // 默认节点高度（布局计算用）
+        DEFAULT_NODE_WIDTH: 200, // 默认节点宽度（与 CSS .canvas-node 一致）
+        DEFAULT_NODE_HEIGHT: 100, // 默认节点高度（与 CSS .canvas-node 一致）
     },
 
     // 主题配置

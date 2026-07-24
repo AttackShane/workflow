@@ -214,10 +214,11 @@ describe('WorkflowEdge', () => {
 
             const geom = edge._computeEdgeGeometry({ id: 'e1', source: 'n1', target: 'n2' });
 
-            expect(geom.x1).toBe(150); // 0 + 150
-            expect(geom.y1).toBe(40); // 0 + 80/2
+            // 边计算统一使用 DEFAULT_NODE_WIDTH(200) / DEFAULT_NODE_HEIGHT(100)
+            expect(geom.x1).toBe(200); // 0 + 200
+            expect(geom.y1).toBe(50); // 0 + 100/2
             expect(geom.x2).toBe(250); // 250
-            expect(geom.y2).toBe(110); // 50 + 120/2
+            expect(geom.y2).toBe(100); // 50 + 100/2
         });
 
         it('should handle container source nodes with container_start port', () => {
@@ -316,7 +317,8 @@ describe('WorkflowEdge', () => {
             });
 
             const totalPorts = 4; // 3 options + 1 (other)
-            expect(geom.y1).toBeCloseTo((295 * 0.5) / totalPorts, 0); // port 0
+            // 普通节点统一使用 DEFAULT_NODE_HEIGHT(100)，分支端口位置基于 100 计算
+            expect(geom.y1).toBeCloseTo((100 * 0.5) / totalPorts, 0); // port 0
             expect(geom.labelText).toBe('选项A');
         });
 
@@ -432,9 +434,10 @@ describe('WorkflowEdge', () => {
 
             const geom = edge._computeEdgeGeometry({ id: 'e1', source: 'n1', target: 'n2' });
 
+            // 边计算统一使用 DEFAULT_NODE_WIDTH(200) / DEFAULT_NODE_HEIGHT(100)
             // n1 absolute: x = 100 + 50 = 150, y = 50 + 56 + 100 = 206
-            expect(geom.x1).toBe(300); // 150 + 150
-            expect(geom.y1).toBe(246); // 206 + 80/2
+            expect(geom.x1).toBe(350); // 150 + 200
+            expect(geom.y1).toBe(256); // 206 + 100/2
             expect(geom.x2).toBe(400);
             expect(geom.y2).toBe(250); // 200 + 100/2
         });

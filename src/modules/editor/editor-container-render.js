@@ -123,11 +123,13 @@ export class WorkflowContainerRender {
             maxBottom = -Infinity;
 
         children.forEach((child) => {
-            const left = parseFloat(child.dataset.x) || 0;
-            const top = parseFloat(child.dataset.y) || 0;
+            const nodeData = this.node.core.getNode(child.dataset.nodeId);
+            // 优先从数据模型读取位置，确保与布局算法同步
+            const left = nodeData ? nodeData.x || 0 : parseFloat(child.dataset.x) || 0;
+            const top = nodeData ? nodeData.y || 0 : parseFloat(child.dataset.y) || 0;
             const childW = child.offsetWidth;
             const childH = child.offsetHeight;
-            childData.push({ el: child, left, top, w: childW, h: childH });
+            childData.push({ el: child, left, top, w: childW, h: childH, nodeData });
             minX = Math.min(minX, left);
             minY = Math.min(minY, top);
             maxRight = Math.max(maxRight, left + childW);
@@ -203,9 +205,16 @@ export class WorkflowContainerRender {
             });
         } else {
             childData.forEach((cd) => {
-                cd.el.dataset.x = cd.left;
-                cd.el.dataset.y = cd.top;
-                cd.el.style.transform = `translate(${cd.left}px, ${cd.top}px)`;
+                const newLeft = Math.round(cd.left);
+                const newTop = Math.round(cd.top);
+                cd.el.dataset.x = newLeft;
+                cd.el.dataset.y = newTop;
+                cd.el.style.transform = `translate(${newLeft}px, ${newTop}px)`;
+                // 同步数据模型，确保边渲染使用正确的位置
+                if (cd.nodeData) {
+                    cd.nodeData.x = newLeft;
+                    cd.nodeData.y = newTop;
+                }
             });
         }
 

@@ -38,7 +38,7 @@ export function autoOptimizeLayout(core, canvas) {
         return { w, h };
     };
 
-    const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, _centerY = false) => {
+    const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, isInner = false) => {
         if (groupNodes.length === 0) return;
         const groupSizes = new Map();
         const groupIds = new Set(groupNodes.map((n) => n.id));
@@ -49,20 +49,25 @@ export function autoOptimizeLayout(core, canvas) {
             return info.hasContainer === true;
         };
 
-        const nodeYFromConnY = (node, connY) => {
+        // 连接点Y与节点左上角Y的换算
+        // 外部布局：容器外部连接点固定在24px，普通节点中心在h/2
+        // 内部布局：统一使用中心偏移h/2（容器内部连接点和子节点都在中心）
+        const getConnOffset = (node) => {
+            if (!isInner && nodeIsContainer(node)) {
+                return 24; // 外部布局：容器外部连接点固定在24px
+            }
             const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-            return nodeIsContainer(node) ? connY - CONN_POINT_Y : connY - sz.h / 2;
-        };
-        const connYFromNodeY = (node, nodeY) => {
-            const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-            return nodeIsContainer(node) ? nodeY + CONN_POINT_Y : nodeY + sz.h / 2;
-        };
-        const bottomFromNodeY = (node, nodeY) => {
-            const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-            const h = sz.h;
-            return nodeY + h;
+            return sz.h / 2; // 内部布局或普通节点：使用中心偏移
         };
 
+        const nodeYFromConnY = (node, connY) => {
+            return connY - getConnOffset(node);
+        };
+        const connYFromNodeY = (node, nodeY) => {
+            return nodeY + getConnOffset(node);
+        };
+
+        // 构建邻接表和入度表
         const adj = new Map();
         const inDeg = new Map();
         const preds = new Map();
@@ -82,6 +87,7 @@ export function autoOptimizeLayout(core, canvas) {
             }
         });
 
+        // 拓扑排序，确定节点层级（从左到右的列）
         const nodeLevel = new Map();
         const sources = groupNodes.filter((n) => inDeg.get(n.id) === 0);
         const queue = sources.map((n) => n.id);
@@ -103,6 +109,7 @@ export function autoOptimizeLayout(core, canvas) {
             if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
         });
 
+        // 按层级分组
         const levels = [];
         const levelMaxW = [];
         nodeLevel.forEach((level, id) => {
@@ -115,69 +122,85 @@ export function autoOptimizeLayout(core, canvas) {
             }
         });
 
-        const nodeCenterY = new Map();
+        // 计算每层的总高度（含节点间距），用于对称居中
+        const levelTotalH = levels.map((level) => {
+            if (!level || level.length === 0) return 0;
+            let totalH = 0;
+            level.forEach((node) => {
+                totalH += (groupSizes.get(node.id) || { h: defaultH }).h;
+            });
+            return totalH + (level.length - 1) * gapV;
+        });
 
+        // 对称中心：以最大层总高度为参考，确保整体垂直居中而非堆在上方
+        const maxLevelH = Math.max(...levelTotalH, 0);
+        const symCenterY = startY + maxLevelH / 2;
+
+        const nodeConnY = new Map();
+
+        // 第0层：所有源节点以对称中心为目标Y
         if (levels.length > 0 && levels[0]) {
-            let yOff = startY;
             levels[0].forEach((node) => {
-                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                const connY = connYFromNodeY(node, yOff);
-                nodeCenterY.set(node.id, connY);
-                yOff += sz.h + gapV;
+                nodeConnY.set(node.id, symCenterY);
             });
         }
 
+        // 后续层：目标Y = 前驱连接点Y的平均值
+        // 单一前驱时目标Y = 前驱连接点Y，保证连接线水平
         for (let col = 1; col < levels.length; col++) {
             if (!levels[col]) continue;
             levels[col].forEach((node) => {
                 const predIds = preds.get(node.id);
-
                 if (predIds && predIds.length > 0) {
-                    let sumCenterY = 0;
+                    let sumY = 0;
                     let count = 0;
                     predIds.forEach((pid) => {
-                        if (nodeCenterY.has(pid)) {
-                            sumCenterY += nodeCenterY.get(pid);
+                        if (nodeConnY.has(pid)) {
+                            sumY += nodeConnY.get(pid);
                             count++;
                         }
                     });
                     if (count > 0) {
-                        nodeCenterY.set(node.id, sumCenterY / count);
+                        nodeConnY.set(node.id, sumY / count);
                     } else {
-                        nodeCenterY.set(node.id, connYFromNodeY(node, startY));
+                        nodeConnY.set(node.id, symCenterY);
                     }
                 } else {
-                    nodeCenterY.set(node.id, connYFromNodeY(node, startY));
+                    nodeConnY.set(node.id, symCenterY);
                 }
             });
         }
 
+        // 重叠处理：每层以目标Y平均值为中心，垂直对称排列
         for (let col = 0; col < levels.length; col++) {
             if (!levels[col]) continue;
-            levels[col].sort((a, b) => (nodeCenterY.get(a.id) || 0) - (nodeCenterY.get(b.id) || 0));
+            const level = levels[col];
 
-            let prevBottom = -Infinity;
-            levels[col].forEach((node) => {
-                let connY = nodeCenterY.get(node.id) || 0;
-                const nodeY = nodeYFromConnY(node, connY);
-                const top = nodeY;
+            level.sort((a, b) => (nodeConnY.get(a.id) || 0) - (nodeConnY.get(b.id) || 0));
 
-                if (top < prevBottom + gapV) {
-                    const newY = prevBottom + gapV;
-                    connY = connYFromNodeY(node, newY);
-                    nodeCenterY.set(node.id, connY);
-                }
+            let sumTargetY = 0;
+            level.forEach((node) => {
+                sumTargetY += nodeConnY.get(node.id) || 0;
+            });
+            const idealCenterY = level.length > 0 ? sumTargetY / level.length : symCenterY;
 
-                prevBottom = bottomFromNodeY(node, nodeYFromConnY(node, nodeCenterY.get(node.id) || 0));
+            const totalH = levelTotalH[col] || 0;
+            let yOff = idealCenterY - totalH / 2;
+            level.forEach((node) => {
+                const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
+                const connY = yOff + getConnOffset(node);
+                nodeConnY.set(node.id, connY);
+                yOff += sz.h + gapV;
             });
         }
 
+        // 应用X坐标和最终Y坐标
         let xOff = startX;
         levels.forEach((level, col) => {
             const maxW = levelMaxW[col] || defaultW;
             level.forEach((node) => {
                 const sz = groupSizes.get(node.id) || { w: defaultW, h: defaultH };
-                const connY = nodeCenterY.get(node.id) || 0;
+                const connY = nodeConnY.get(node.id) || 0;
                 node.x = xOff;
                 node.y = nodeYFromConnY(node, connY);
                 node.width = sz.w;
@@ -193,7 +216,11 @@ export function autoOptimizeLayout(core, canvas) {
         const children = core.container.getChildren(container.id);
         if (children.length === 0) return;
 
-        layoutNodeGroup(children, PADDING, PADDING, CONTAINER_H_GAP, CONTAINER_V_GAP, false);
+        // 设置_skipLayout标记，防止updateContainerSize自动平移覆盖布局计算
+        container._skipLayout = true;
+
+        // 容器内部布局：使用isInner=true，子节点和内部连接点都在中心
+        layoutNodeGroup(children, PADDING, PADDING, CONTAINER_H_GAP, CONTAINER_V_GAP, true);
 
         const minW = info.containerMinWidth || 300;
         const minH = info.containerMinHeight || 200;
@@ -215,7 +242,7 @@ export function autoOptimizeLayout(core, canvas) {
     });
 
     const nodes = core.nodes.filter((n) => !n.parentId);
-    layoutNodeGroup(nodes, 0, 0, hGap, vGap, false);
+    layoutNodeGroup(nodes, 0, 0, hGap, vGap);
 
     const bounds = canvas.calculateNodesBounds();
     const offsetX = -Math.min(0, bounds.minX);
