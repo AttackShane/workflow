@@ -79,6 +79,12 @@ export class WorkflowNodePanel {
         item.dataset.index = String(list.children.length);
         item.innerHTML = WorkflowNodePanel.NEW_BRANCH_ITEM_HTML;
         list.appendChild(item);
+
+        // 立即同步到 parameters，避免添加后立即操作时索引错位
+        const nodeId = this._getActiveNodeId();
+        if (nodeId) {
+            this._syncBranchesToParameters(nodeId);
+        }
     }
     _wfAddCondItem(btn) {
         const list = btn.previousElementSibling;
@@ -135,12 +141,13 @@ export class WorkflowNodePanel {
     /**
      * 把指定分支的 cond-list 同步写入 parameters.branches[branchIndex].condition.conditions，
      * 跳过 _scheduleAutoSave 的 500ms 延迟，避免新增 cond 后立即操作时索引错位。
+     * @param {string} nodeId - 节点 ID
+     * @param {number} branchIndex - 分支索引（仅用于从 branches 数组取已有数据）
+     * @param {HTMLElement} [branchItem] - 分支 DOM 元素（优先使用动态计算的索引）
      */
-    _syncCondsToParameters(nodeId, branchIndex) {
+    _syncCondsToParameters(nodeId, branchIndex, branchItem) {
         const targetNode = this.node.core.getNode(nodeId);
         if (!targetNode || !targetNode.parameters) return;
-        // branches 字段在 default 阶段是 JSON 字符串，第一次 auto-save 后才转成数组。
-        // 这里做兼容，让 +条件 等即时操作也能在字符串态下同步。
         let branches = targetNode.parameters.branches;
         if (typeof branches === 'string') {
             try {
@@ -151,9 +158,17 @@ export class WorkflowNodePanel {
             targetNode.parameters.branches = branches;
         }
         if (!Array.isArray(branches)) return;
-        const branch = branches[branchIndex];
+        // 使用传入的 branchItem 动态计算索引，而非依赖 data-index（删除后会错位）
+        let actualBranchIndex = branchIndex;
+        if (branchItem && branchItem.parentElement) {
+            actualBranchIndex = Array.from(branchItem.parentElement.children).indexOf(branchItem);
+        }
+        const branch = branches[actualBranchIndex];
         if (!branch) return;
-        const branchItem = document.querySelector(`.branch-item[data-index="${branchIndex}"]`);
+        // 如果没传入 branchItem，尝试用 data-index 查找（仅在删除前的添加操作中使用）
+        if (!branchItem) {
+            branchItem = document.querySelector(`.branch-item[data-index="${branchIndex}"]`);
+        }
         if (!branchItem) return;
         const condList = branchItem.querySelector('.cond-list');
         if (!condList) return;
@@ -199,6 +214,82 @@ export class WorkflowNodePanel {
             return this.node.core.selectedNode;
         }
         return '';
+    }
+
+    /**
+     * 把 branches 的 DOM 结构同步写入 parameters.branches，跳过 500ms auto-save，
+     * 确保添加/删除分支后立即操作时索引一致。
+     */
+    _syncBranchesToParameters(nodeId) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters) return;
+        const list = document.getElementById('prop_branches');
+        if (!list) return;
+        const branchItems = list.querySelectorAll('.branch-item');
+        const newBranches = Array.from(branchItems).map((item) => {
+            const nameInput = /** @type {HTMLInputElement|null} */ (item.querySelector('.branch-name'));
+            const name = nameInput ? nameInput.value.trim() : '';
+            const logicSelect = /** @type {HTMLSelectElement|null} */ (item.querySelector('.cond-logic-select'));
+            const logic = logicSelect ? parseInt(logicSelect.value) || 1 : 1;
+            const condList = item.querySelector('.cond-list');
+            let conditions = [];
+            if (condList) {
+                const condItems = condList.querySelectorAll('.cond-item');
+                conditions = Array.from(condItems).map((ci) => {
+                    const leftInput = /** @type {HTMLInputElement|null} */ (ci.querySelector('.cond-left'));
+                    const rightInput = /** @type {HTMLInputElement|null} */ (ci.querySelector('.cond-right'));
+                    const opSelect = /** @type {HTMLSelectElement|null} */ (ci.querySelector('.cond-operator'));
+                    const left =
+                        leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
+                            ? this._textToConditionValue(leftInput.value)
+                            : {
+                                  input: { type: 'string', value: { type: 'literal', content: '' } },
+                              };
+                    const right =
+                        rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
+                            ? this._textToConditionValue(rightInput.value)
+                            : {
+                                  input: { type: 'string', value: { type: 'literal', content: '' } },
+                              };
+                    const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
+                    return { left, operator, right };
+                });
+            }
+            return { name, condition: { logic, conditions } };
+        });
+        try {
+            targetNode.parameters.branches = newBranches;
+        } catch {
+            try {
+                const newParams = { ...targetNode.parameters, branches: newBranches };
+                targetNode.parameters = newParams;
+            } catch {}
+        }
+    }
+
+    /**
+     * 把 options/categories 的 DOM 结构同步写入 parameters，跳过 500ms auto-save。
+     */
+    _syncSimpleListToParameters(nodeId, paramName) {
+        const targetNode = this.node.core.getNode(nodeId);
+        if (!targetNode || !targetNode.parameters) return;
+        const list = document.getElementById(`prop_${paramName}`);
+        if (!list) return;
+        const items = list.querySelectorAll('.branch-item');
+        if (paramName === 'options' && targetNode.type === 'question') {
+            targetNode.parameters.options = Array.from(items).map((item) => {
+                const nameInput = /** @type {HTMLInputElement|null} */ (item.querySelector('.branch-name'));
+                const valueInput = /** @type {HTMLInputElement|null} */ (item.querySelector('.branch-value'));
+                const name = nameInput ? nameInput.value.trim() : '';
+                const val = valueInput ? valueInput.value.trim() : '';
+                return val ? { name, value: val } : name;
+            });
+        } else if (paramName === 'categories' && targetNode.type === 'intent') {
+            const nameInputs = list.querySelectorAll('.branch-name');
+            targetNode.parameters.categories = Array.from(nameInputs).map((input) =>
+                /** @type {HTMLInputElement} */ (input).value.trim()
+            );
+        }
     }
     _updateCondLogicVisibility(condList) {
         const branchConditions = condList.parentElement;
@@ -794,57 +885,50 @@ export class WorkflowNodePanel {
                     if (param.name === 'branches' && targetNode.type === 'condition') {
                         const branchItems = list.querySelectorAll('.branch-item');
                         const existingBranches = targetNode.parameters.branches || [];
-                        values = Array.from(branchItems)
-                            .map((item, branchIdx) => {
-                                const nameInput = /** @type {HTMLInputElement|null} */ (
-                                    item.querySelector('.branch-name')
+                        values = Array.from(branchItems).map((item, branchIdx) => {
+                            const nameInput = /** @type {HTMLInputElement|null} */ (item.querySelector('.branch-name'));
+                            const name = nameInput ? nameInput.value.trim() : '';
+                            const logicSelect = /** @type {HTMLSelectElement|null} */ (
+                                item.querySelector('.cond-logic-select')
+                            );
+                            const logic = logicSelect ? parseInt(logicSelect.value) || 1 : 1;
+                            const condItems = item.querySelectorAll('.cond-item');
+                            const existingBranch = existingBranches[branchIdx] || {};
+                            const existingConds = existingBranch.condition?.conditions || [];
+                            const conditions = Array.from(condItems).map((ci, condIdx) => {
+                                const leftInput = /** @type {HTMLInputElement|null} */ (ci.querySelector('.cond-left'));
+                                const rightInput = /** @type {HTMLInputElement|null} */ (
+                                    ci.querySelector('.cond-right')
                                 );
-                                const name = nameInput ? nameInput.value.trim() : '';
-                                if (!name) return null;
-                                const logicSelect = /** @type {HTMLSelectElement|null} */ (
-                                    item.querySelector('.cond-logic-select')
+                                const opSelect = /** @type {HTMLSelectElement|null} */ (
+                                    ci.querySelector('.cond-operator')
                                 );
-                                const logic = logicSelect ? parseInt(logicSelect.value) || 1 : 1;
-                                const condItems = item.querySelectorAll('.cond-item');
-                                const existingBranch = existingBranches[branchIdx] || {};
-                                const existingConds = existingBranch.condition?.conditions || [];
-                                const conditions = Array.from(condItems).map((ci, condIdx) => {
-                                    const leftInput = /** @type {HTMLInputElement|null} */ (
-                                        ci.querySelector('.cond-left')
-                                    );
-                                    const rightInput = /** @type {HTMLInputElement|null} */ (
-                                        ci.querySelector('.cond-right')
-                                    );
-                                    const opSelect = /** @type {HTMLSelectElement|null} */ (
-                                        ci.querySelector('.cond-operator')
-                                    );
-                                    const existingCond = existingConds[condIdx] || {};
-                                    const left =
-                                        leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
-                                            ? this._textToConditionValue(leftInput.value)
-                                            : existingCond.left || {
-                                                  input: {
-                                                      type: 'string',
-                                                      value: { type: 'literal', content: '' },
-                                                  },
-                                              };
-                                    const right =
-                                        rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
-                                            ? this._textToConditionValue(rightInput.value)
-                                            : existingCond.right || {
-                                                  input: {
-                                                      type: 'string',
-                                                      value: { type: 'literal', content: '' },
-                                                  },
-                                              };
-                                    const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
-                                    return { left, operator, right };
-                                });
-                                // 保留所有 cond（包括空的占位符），确保 DOM 顺序与 conditions 数组下标一致，
-                                // 避免 data-cond-index 与实际下标错位导致引用选择器/清除失效。
-                                return { name, condition: { logic, conditions } };
-                            })
-                            .filter(Boolean);
+                                const existingCond = existingConds[condIdx] || {};
+                                const left =
+                                    leftInput && !leftInput.disabled && leftInput.style.display !== 'none'
+                                        ? this._textToConditionValue(leftInput.value)
+                                        : existingCond.left || {
+                                              input: {
+                                                  type: 'string',
+                                                  value: { type: 'literal', content: '' },
+                                              },
+                                          };
+                                const right =
+                                    rightInput && !rightInput.disabled && rightInput.style.display !== 'none'
+                                        ? this._textToConditionValue(rightInput.value)
+                                        : existingCond.right || {
+                                              input: {
+                                                  type: 'string',
+                                                  value: { type: 'literal', content: '' },
+                                              },
+                                          };
+                                const operator = opSelect ? parseInt(opSelect.value) || 1 : 1;
+                                return { left, operator, right };
+                            });
+                            // 保留所有分支（包括空 name 的占位符），确保 DOM 顺序与 branches 数组下标一致，
+                            // 避免 data-index 与实际下标错位导致 +条件/引用选择器失效。
+                            return { name, condition: { logic, conditions } };
+                        });
                     } else if (param.name === 'options' && targetNode.type === 'question') {
                         const items = list.querySelectorAll('.branch-item');
                         values = Array.from(items)
@@ -982,7 +1066,6 @@ export class WorkflowNodePanel {
                 const list = document.getElementById(btn.dataset.prop);
                 if (list) {
                     const placeholder = btn.dataset.placeholder || '';
-                    // 对于 question.options 列表，添加 name+value 双 input
                     const isQuestionOptions = list.id === 'prop_options' && list.dataset.questionOptions === 'true';
                     const i = list.children.length;
                     const item = document.createElement('div');
@@ -1004,13 +1087,35 @@ export class WorkflowNodePanel {
                     }
                     list.appendChild(item);
                     item.querySelector('input')?.focus();
+
+                    // 立即同步到 parameters，避免添加后立即操作时索引错位
+                    const nodeId = this._getActiveNodeId();
+                    if (nodeId) {
+                        const paramName = list.id.replace('prop_', '');
+                        if (paramName === 'options' || paramName === 'categories') {
+                            this._syncSimpleListToParameters(nodeId, paramName);
+                        }
+                    }
                 }
                 this._scheduleAutoSave(activeNodeId);
                 break;
             }
             case 'wfRemoveParentBranchItem': {
                 const branchItem = btn.closest('.branch-item');
-                if (branchItem) branchItem.remove();
+                if (branchItem) {
+                    // 先获取 parentList，再 remove（remove 后 parentElement 会变成 null）
+                    const parentList = branchItem.parentElement;
+                    branchItem.remove();
+                    const nodeId = this._getActiveNodeId();
+                    if (nodeId && parentList && parentList.id) {
+                        const paramName = parentList.id.replace('prop_', '');
+                        if (paramName === 'branches') {
+                            this._syncBranchesToParameters(nodeId);
+                        } else if (paramName === 'options' || paramName === 'categories') {
+                            this._syncSimpleListToParameters(nodeId, paramName);
+                        }
+                    }
+                }
                 this._scheduleAutoSave(activeNodeId);
                 break;
             }
@@ -1027,9 +1132,10 @@ export class WorkflowNodePanel {
                         this._updateCondLogicVisibility(condList);
                     }
                     // 同步落库，让删除后的索引与 conditions 数组保持一致
+                    // 传入 branchItem 以使用动态索引计算（避免 data-index 错位）
                     const nodeId = this._getActiveNodeId();
                     if (nodeId) {
-                        this._syncCondsToParameters(nodeId, branchIndex);
+                        this._syncCondsToParameters(nodeId, branchIndex, branchItem);
                         this._scheduleAutoSave(nodeId);
                     }
                 } else {

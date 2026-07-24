@@ -488,7 +488,7 @@ export class WorkflowNodeSelector {
                     },
                 },
             });
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }
@@ -498,7 +498,7 @@ export class WorkflowNodeSelector {
             const targetNode = this.node.core.getNode(nodeId);
             if (!targetNode || !Array.isArray(targetNode.parameters.variables)) return;
             targetNode.parameters.variables.splice(vi, 1);
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         } catch (e) {}
     }
@@ -524,7 +524,7 @@ export class WorkflowNodeSelector {
                 edge.sourcePort = outputPath;
             }
 
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         });
     }
@@ -540,7 +540,7 @@ export class WorkflowNodeSelector {
             type: 'string',
             value: { type: 'literal', content: '' },
         };
-        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel.renderPropertyPanel(targetNode);
         this.node.panel._scheduleAutoSave(nodeId);
     }
 
@@ -573,7 +573,7 @@ export class WorkflowNodeSelector {
                     },
                 },
             };
-            this.node.render.renderPropertyPanel(targetNode);
+            this.node.panel.renderPropertyPanel(targetNode);
             this.node.panel._scheduleAutoSave(nodeId);
         });
     }
@@ -594,7 +594,7 @@ export class WorkflowNodeSelector {
                 value: { type: 'literal', content: '' },
             },
         };
-        this.node.render.renderPropertyPanel(targetNode);
+        this.node.panel.renderPropertyPanel(targetNode);
         this.node.panel._scheduleAutoSave(nodeId);
     }
 }
