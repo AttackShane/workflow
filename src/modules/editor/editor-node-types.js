@@ -27,6 +27,7 @@ export function getNodeTypeInfo() {
         start: {
             title: t('nodeTypes.start'),
             icon: '🚀',
+            category: 'basic',
             description: t('nodeTypes.description.start'),
             hasInput: false,
             hasOutput: true,
@@ -44,6 +45,7 @@ export function getNodeTypeInfo() {
         end: {
             title: t('nodeTypes.end'),
             icon: '🏁',
+            category: 'basic',
             description: t('nodeTypes.description.end'),
             hasInput: true,
             hasOutput: false,
@@ -61,6 +63,7 @@ export function getNodeTypeInfo() {
         llm: {
             title: t('nodeTypes.llm'),
             icon: '🤖',
+            category: 'ai',
             description: t('nodeTypes.description.llm'),
             hasInput: true,
             hasOutput: true,
@@ -113,6 +116,7 @@ export function getNodeTypeInfo() {
         condition: {
             title: t('nodeTypes.condition'),
             icon: '🔀',
+            category: 'business',
             description: t('nodeTypes.description.condition'),
             hasInput: true,
             hasOutput: true,
@@ -129,6 +133,7 @@ export function getNodeTypeInfo() {
         image_generate: {
             title: t('nodeTypes.image_generate'),
             icon: '🖼️',
+            category: 'image',
             description: t('nodeTypes.description.image_generate'),
             hasInput: true,
             hasOutput: true,
@@ -157,6 +162,7 @@ export function getNodeTypeInfo() {
         text: {
             title: t('nodeTypes.text'),
             icon: '📝',
+            category: 'knowledge',
             description: t('nodeTypes.description.text'),
             hasInput: true,
             hasOutput: true,
@@ -175,6 +181,7 @@ export function getNodeTypeInfo() {
         code: {
             title: t('nodeTypes.code'),
             icon: '💻',
+            category: 'knowledge',
             description: t('nodeTypes.description.code'),
             hasInput: true,
             hasOutput: true,
@@ -191,6 +198,7 @@ export function getNodeTypeInfo() {
         comment: {
             title: t('nodeTypes.comment'),
             icon: '📋',
+            category: 'basic',
             description: t('nodeTypes.description.comment'),
             hasInput: false,
             hasOutput: false,
@@ -198,28 +206,10 @@ export function getNodeTypeInfo() {
                 { name: 'content', label: tl('content'), type: 'textarea', defaultValue: '', required: false },
             ],
         },
-        delay: {
-            title: t('nodeTypes.delay'),
-            icon: '⏱️',
-            description: t('nodeTypes.description.delay'),
-            hasInput: true,
-            hasOutput: true,
-            hidden: true,
-            parameters: [
-                {
-                    name: 'duration',
-                    label: tl('duration'),
-                    type: 'number',
-                    min: 100,
-                    max: 300000,
-                    defaultValue: 1000,
-                    required: true,
-                },
-            ],
-        },
         http: {
             title: t('nodeTypes.http'),
             icon: '🌐',
+            category: 'component',
             description: t('nodeTypes.description.http'),
             hasInput: true,
             hasOutput: true,
@@ -240,6 +230,7 @@ export function getNodeTypeInfo() {
         loop: {
             title: t('nodeTypes.loop'),
             icon: '🔄',
+            category: 'business',
             description: t('nodeTypes.description.loop'),
             hasInput: true,
             hasOutput: true,
@@ -270,6 +261,7 @@ export function getNodeTypeInfo() {
         input: {
             title: t('nodeTypes.input'),
             icon: '📥',
+            category: 'io',
             description: t('nodeTypes.description.input'),
             hasInput: true,
             hasOutput: true,
@@ -280,6 +272,7 @@ export function getNodeTypeInfo() {
         output: {
             title: t('nodeTypes.output'),
             icon: '📤',
+            category: 'io',
             description: t('nodeTypes.description.output'),
             hasInput: true,
             hasOutput: true,
@@ -297,6 +290,7 @@ export function getNodeTypeInfo() {
         question: {
             title: t('nodeTypes.question'),
             icon: '❓',
+            category: 'io',
             description: t('nodeTypes.description.question'),
             hasInput: true,
             hasOutput: true,
@@ -347,6 +341,7 @@ export function getNodeTypeInfo() {
         variable_assign: {
             title: t('nodeTypes.variable_assign'),
             icon: '📦',
+            category: 'business',
             description: t('nodeTypes.description.variable_assign'),
             hasInput: true,
             hasOutput: true,
@@ -357,6 +352,7 @@ export function getNodeTypeInfo() {
         variable_merge: {
             title: t('nodeTypes.variable_merge'),
             icon: '🔗',
+            category: 'business',
             description: t('nodeTypes.description.variable_merge'),
             hasInput: true,
             hasOutput: true,
@@ -374,6 +370,7 @@ export function getNodeTypeInfo() {
         batch: {
             title: t('nodeTypes.batch'),
             icon: '📤',
+            category: 'business',
             description: t('nodeTypes.description.batch'),
             hasInput: true,
             hasOutput: true,
@@ -396,6 +393,7 @@ export function getNodeTypeInfo() {
         knowledge_query: {
             title: t('nodeTypes.knowledge_query'),
             icon: '📚',
+            category: 'knowledge',
             description: t('nodeTypes.description.knowledge_query'),
             hasInput: true,
             hasOutput: true,
@@ -433,6 +431,7 @@ export function getNodeTypeInfo() {
         intent: {
             title: t('nodeTypes.intent'),
             icon: '🧠',
+            category: 'ai',
             description: t('nodeTypes.description.intent'),
             hasInput: true,
             hasOutput: true,
@@ -444,6 +443,7 @@ export function getNodeTypeInfo() {
         break: {
             title: t('nodeTypes.break'),
             icon: '⏹️',
+            category: 'business',
             description: t('nodeTypes.description.break'),
             hasInput: true,
             hasOutput: false,
@@ -453,6 +453,7 @@ export function getNodeTypeInfo() {
         loop_set_variable: {
             title: t('nodeTypes.loop_set_variable'),
             icon: '📦',
+            category: 'business',
             description: t('nodeTypes.description.loop_set_variable'),
             hasInput: true,
             hasOutput: true,
@@ -464,6 +465,7 @@ export function getNodeTypeInfo() {
         loop_continue: {
             title: t('nodeTypes.loop_continue'),
             icon: '🔄',
+            category: 'business',
             description: t('nodeTypes.description.loop_continue'),
             hasInput: true,
             hasOutput: false,
@@ -473,6 +475,7 @@ export function getNodeTypeInfo() {
         plugin: {
             title: t('nodeTypes.plugin'),
             icon: '🔌',
+            category: 'component',
             description: t('nodeTypes.description.plugin'),
             hasInput: true,
             hasOutput: true,
@@ -484,6 +487,7 @@ export function getNodeTypeInfo() {
         async_task: {
             title: t('nodeTypes.async_task'),
             icon: '⏳',
+            category: 'component',
             description: t('nodeTypes.description.async_task'),
             hasInput: true,
             hasOutput: true,
@@ -512,6 +516,7 @@ export function getNodeTypeInfo() {
         video_generation: {
             title: t('nodeTypes.video_generation'),
             icon: '🎬',
+            category: 'audio_video',
             description: t('nodeTypes.description.video_generation'),
             hasInput: true,
             hasOutput: true,
@@ -536,70 +541,10 @@ export function getNodeTypeInfo() {
                 },
             ],
         },
-        database: {
-            title: t('nodeTypes.database'),
-            icon: '🗄️',
-            description: t('nodeTypes.description.database'),
-            hasInput: true,
-            hasOutput: true,
-            parameters: [
-                {
-                    name: 'dbType',
-                    label: tl('dbType'),
-                    type: 'select',
-                    options: ['mysql', 'postgresql', 'mongodb', 'redis'],
-                    defaultValue: 'mysql',
-                    required: true,
-                },
-                {
-                    name: 'query',
-                    label: tl('query'),
-                    type: 'code',
-                    defaultValue: 'SELECT * FROM table',
-                    required: true,
-                },
-                { name: 'connection', label: tl('connection'), type: 'json', defaultValue: '{}', required: true },
-            ],
-        },
-        email: {
-            title: t('nodeTypes.email'),
-            icon: '📧',
-            description: t('nodeTypes.description.email'),
-            hasInput: true,
-            hasOutput: true,
-            parameters: [
-                { name: 'to', label: tl('to'), type: 'text', defaultValue: '', required: true },
-                { name: 'subject', label: tl('subject'), type: 'text', defaultValue: '', required: true },
-                { name: 'body', label: tl('body'), type: 'textarea', defaultValue: '', required: true },
-                { name: 'isHtml', label: tl('isHtml'), type: 'boolean', defaultValue: false, required: false },
-            ],
-        },
-        webhook: {
-            title: t('nodeTypes.webhook'),
-            icon: '🪝',
-            description: t('nodeTypes.description.webhook'),
-            hasInput: true,
-            hasOutput: true,
-            parameters: [
-                { name: 'url', label: tl('url'), type: 'text', defaultValue: '', required: true },
-                { name: 'payload', label: tl('payload'), type: 'json', defaultValue: '{}', required: false },
-                { name: 'secret', label: tl('secret'), type: 'text', defaultValue: '', required: false },
-            ],
-        },
-        json_parse: {
-            title: t('nodeTypes.json_parse'),
-            icon: '🔍',
-            description: t('nodeTypes.description.json_parse'),
-            hasInput: true,
-            hasOutput: true,
-            parameters: [
-                { name: 'input', label: tl('input'), type: 'json', defaultValue: '{}', required: true },
-                { name: 'schema', label: tl('schema'), type: 'json', defaultValue: '{}', required: false },
-            ],
-        },
         workflow: {
             title: t('nodeTypes.workflow'),
             icon: '🔗',
+            category: 'business',
             description: t('nodeTypes.description.workflow'),
             hasInput: true,
             hasOutput: true,
@@ -608,6 +553,7 @@ export function getNodeTypeInfo() {
         sql_exec: {
             title: t('nodeTypes.sql_exec'),
             icon: '🗄️',
+            category: 'database',
             description: t('nodeTypes.description.sql_exec'),
             hasInput: true,
             hasOutput: true,
@@ -624,6 +570,7 @@ export function getNodeTypeInfo() {
         canvas: {
             title: t('nodeTypes.canvas'),
             icon: '🎨',
+            category: 'image',
             description: t('nodeTypes.description.canvas'),
             hasInput: true,
             hasOutput: true,
@@ -632,6 +579,7 @@ export function getNodeTypeInfo() {
         knowledge_write: {
             title: t('nodeTypes.knowledge_write'),
             icon: '📝',
+            category: 'knowledge',
             description: t('nodeTypes.description.knowledge_write'),
             hasInput: true,
             hasOutput: true,
@@ -642,6 +590,7 @@ export function getNodeTypeInfo() {
         knowledge_delete: {
             title: t('nodeTypes.knowledge_delete'),
             icon: '🗑️',
+            category: 'knowledge',
             description: t('nodeTypes.description.knowledge_delete'),
             hasInput: true,
             hasOutput: true,
@@ -652,6 +601,7 @@ export function getNodeTypeInfo() {
         clear_conversation: {
             title: t('nodeTypes.clear_conversation'),
             icon: '🗑️',
+            category: 'conversation',
             description: t('nodeTypes.description.clear_conversation'),
             hasInput: true,
             hasOutput: true,
@@ -660,6 +610,7 @@ export function getNodeTypeInfo() {
         create_conversation: {
             title: t('nodeTypes.create_conversation'),
             icon: '💬',
+            category: 'conversation',
             description: t('nodeTypes.description.create_conversation'),
             hasInput: true,
             hasOutput: true,
@@ -668,6 +619,7 @@ export function getNodeTypeInfo() {
         db_update: {
             title: t('nodeTypes.db_update'),
             icon: '🔄',
+            category: 'database',
             description: t('nodeTypes.description.db_update'),
             hasInput: true,
             hasOutput: true,
@@ -684,6 +636,7 @@ export function getNodeTypeInfo() {
         db_select: {
             title: t('nodeTypes.db_select'),
             icon: '🔍',
+            category: 'database',
             description: t('nodeTypes.description.db_select'),
             hasInput: true,
             hasOutput: true,
@@ -700,6 +653,7 @@ export function getNodeTypeInfo() {
         db_delete: {
             title: t('nodeTypes.db_delete'),
             icon: '🗑️',
+            category: 'database',
             description: t('nodeTypes.description.db_delete'),
             hasInput: true,
             hasOutput: true,
@@ -710,6 +664,7 @@ export function getNodeTypeInfo() {
         db_insert: {
             title: t('nodeTypes.db_insert'),
             icon: '➕',
+            category: 'database',
             description: t('nodeTypes.description.db_insert'),
             hasInput: true,
             hasOutput: true,
@@ -726,6 +681,7 @@ export function getNodeTypeInfo() {
         update_conversation: {
             title: t('nodeTypes.update_conversation'),
             icon: '✏️',
+            category: 'conversation',
             description: t('nodeTypes.description.update_conversation'),
             hasInput: true,
             hasOutput: true,
@@ -734,6 +690,7 @@ export function getNodeTypeInfo() {
         delete_conversation: {
             title: t('nodeTypes.delete_conversation'),
             icon: '🗑️',
+            category: 'conversation',
             description: t('nodeTypes.description.delete_conversation'),
             hasInput: true,
             hasOutput: true,
@@ -742,6 +699,7 @@ export function getNodeTypeInfo() {
         list_conversation: {
             title: t('nodeTypes.list_conversation'),
             icon: '📋',
+            category: 'conversation',
             description: t('nodeTypes.description.list_conversation'),
             hasInput: true,
             hasOutput: true,
@@ -750,6 +708,7 @@ export function getNodeTypeInfo() {
         get_conversation_history: {
             title: t('nodeTypes.get_conversation_history'),
             icon: '📜',
+            category: 'conversation_history',
             description: t('nodeTypes.description.get_conversation_history'),
             hasInput: true,
             hasOutput: true,
@@ -758,6 +717,7 @@ export function getNodeTypeInfo() {
         create_message: {
             title: t('nodeTypes.create_message'),
             icon: '💬',
+            category: 'message',
             description: t('nodeTypes.description.create_message'),
             hasInput: true,
             hasOutput: true,
@@ -766,6 +726,7 @@ export function getNodeTypeInfo() {
         update_message: {
             title: t('nodeTypes.update_message'),
             icon: '✏️',
+            category: 'message',
             description: t('nodeTypes.description.update_message'),
             hasInput: true,
             hasOutput: true,
@@ -774,6 +735,7 @@ export function getNodeTypeInfo() {
         delete_message: {
             title: t('nodeTypes.delete_message'),
             icon: '🗑️',
+            category: 'message',
             description: t('nodeTypes.description.delete_message'),
             hasInput: true,
             hasOutput: true,
@@ -782,6 +744,7 @@ export function getNodeTypeInfo() {
         json_serialize: {
             title: t('nodeTypes.json_serialize'),
             icon: '📦',
+            category: 'knowledge',
             description: t('nodeTypes.description.json_serialize'),
             hasInput: true,
             hasOutput: true,
@@ -790,6 +753,7 @@ export function getNodeTypeInfo() {
         json_deserialize: {
             title: t('nodeTypes.json_deserialize'),
             icon: '📤',
+            category: 'knowledge',
             description: t('nodeTypes.description.json_deserialize'),
             hasInput: true,
             hasOutput: true,
@@ -798,6 +762,7 @@ export function getNodeTypeInfo() {
         video_extract_audio: {
             title: t('nodeTypes.video_extract_audio'),
             icon: '🎵',
+            category: 'audio_video',
             description: t('nodeTypes.description.video_extract_audio'),
             hasInput: true,
             hasOutput: true,
@@ -806,6 +771,7 @@ export function getNodeTypeInfo() {
         video_extract_frame: {
             title: t('nodeTypes.video_extract_frame'),
             icon: '🖼️',
+            category: 'audio_video',
             description: t('nodeTypes.description.video_extract_frame'),
             hasInput: true,
             hasOutput: true,
@@ -814,6 +780,7 @@ export function getNodeTypeInfo() {
         memory_write: {
             title: t('nodeTypes.memory_write'),
             icon: '🧠',
+            category: 'knowledge',
             description: t('nodeTypes.description.memory_write'),
             hasInput: true,
             hasOutput: true,
@@ -822,6 +789,7 @@ export function getNodeTypeInfo() {
         memory_read: {
             title: t('nodeTypes.memory_read'),
             icon: '📖',
+            category: 'knowledge',
             description: t('nodeTypes.description.memory_read'),
             hasInput: true,
             hasOutput: true,

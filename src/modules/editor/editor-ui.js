@@ -248,6 +248,21 @@ export class WorkflowUI {
         const isLoopSelected = selectedNode && selectedNode.type === 'loop';
         const loopInternalTypes = new Set(['break', 'loop_set_variable', 'loop_continue']);
 
+        const categoryOrder = [
+            'basic',
+            'ai',
+            'business',
+            'io',
+            'database',
+            'knowledge',
+            'image',
+            'audio_video',
+            'component',
+            'conversation',
+            'conversation_history',
+            'message',
+        ];
+
         const render = (filter = '') => {
             const q = filter.toLowerCase();
             const filtered = allTypes.filter(([type, info]) => {
@@ -257,22 +272,48 @@ export class WorkflowUI {
                 return !q || info.title.includes(q) || info.description?.includes(q);
             });
 
-            palette.innerHTML = '';
-            for (const [type, info] of filtered) {
-                const item = document.createElement('div');
-                item.className = 'node-item';
-                item.draggable = true;
-                item.dataset.nodeType = type;
-                item.title = info.description || '';
-                item.innerHTML = `<div class="icon">${info.icon}</div><div class="label">${info.title}</div>`;
+            const grouped = {};
+            filtered.forEach(([type, info]) => {
+                const category = info.category || 'basic';
+                if (!grouped[category]) {
+                    grouped[category] = [];
+                }
+                grouped[category].push([type, info]);
+            });
 
-                item.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', type);
-                    e.dataTransfer.effectAllowed = 'copy';
+            palette.innerHTML = '';
+
+            categoryOrder.forEach((cat) => {
+                const items = grouped[cat];
+                if (!items || items.length === 0) return;
+
+                const categoryTitle = t(`nodeTypes.categories.${cat}`) || cat;
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'node-category-header';
+                categoryHeader.textContent = categoryTitle;
+                palette.appendChild(categoryHeader);
+
+                const categoryItems = document.createElement('div');
+                categoryItems.className = 'node-category-items';
+
+                items.forEach(([type, info]) => {
+                    const item = document.createElement('div');
+                    item.className = 'node-item';
+                    item.draggable = true;
+                    item.dataset.nodeType = type;
+                    item.title = info.description || '';
+                    item.innerHTML = `<div class="icon">${info.icon}</div><div class="label">${info.title}</div>`;
+
+                    item.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', type);
+                        e.dataTransfer.effectAllowed = 'copy';
+                    });
+
+                    categoryItems.appendChild(item);
                 });
 
-                palette.appendChild(item);
-            }
+                palette.appendChild(categoryItems);
+            });
         };
 
         render();
