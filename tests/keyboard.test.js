@@ -59,6 +59,7 @@ function createMockUI() {
         },
         confirmExit: jest.fn(),
         quickSave: jest.fn(),
+        toggleSelectedNodesLock: jest.fn(),
         canvas: {
             autoOptimizeLayout: jest.fn(),
         },
@@ -483,6 +484,202 @@ describe('WorkflowKeyboard', () => {
         it('should handle destroy when handlers are null', () => {
             keyboard.destroy();
             expect(keyboard._keydownHandler).toBeNull();
+        });
+    });
+
+    describe('parseShortcut', () => {
+        it('解析 Ctrl+C', () => {
+            expect(keyboard.parseShortcut('Ctrl+C')).toEqual({
+                ctrl: true,
+                shift: false,
+                alt: false,
+                meta: false,
+                key: 'C',
+            });
+        });
+        it('解析 Ctrl+Shift+Z（大写规范格式）', () => {
+            expect(keyboard.parseShortcut('Ctrl+Shift+Z')).toEqual({
+                ctrl: true,
+                shift: true,
+                alt: false,
+                meta: false,
+                key: 'Z',
+            });
+        });
+        it('解析 Cmd（Meta）等价 Ctrl', () => {
+            expect(keyboard.parseShortcut('Cmd+S')).toEqual({
+                ctrl: false,
+                shift: false,
+                alt: false,
+                meta: true,
+                key: 'S',
+            });
+        });
+        it('解析含 Alt 的组合', () => {
+            expect(keyboard.parseShortcut('Alt+Delete')).toEqual({
+                ctrl: false,
+                shift: false,
+                alt: true,
+                meta: false,
+                key: 'Delete',
+            });
+        });
+        it('Control 作为 Ctrl 别名', () => {
+            expect(keyboard.parseShortcut('Control+A').ctrl).toBe(true);
+        });
+    });
+
+    describe('matchShortcut', () => {
+        it('单字符键大小写不敏感匹配', () => {
+            const e = createMockEvent({ key: 'c', ctrlKey: true });
+            expect(keyboard.matchShortcut(e, 'Ctrl+C')).toBe(true);
+        });
+        it('修饰键不匹配时返回 false', () => {
+            const e = createMockEvent({ key: 'c', ctrlKey: false });
+            expect(keyboard.matchShortcut(e, 'Ctrl+C')).toBe(false);
+        });
+        it('Meta 等价 Ctrl 匹配', () => {
+            const e = createMockEvent({ key: 's', metaKey: true });
+            expect(keyboard.matchShortcut(e, 'Ctrl+S')).toBe(true);
+        });
+        it('字符串键（如 Delete）精确匹配', () => {
+            const e = createMockEvent({ key: 'Delete' });
+            expect(keyboard.matchShortcut(e, 'Delete')).toBe(true);
+            const e2 = createMockEvent({ key: 'Backspace' });
+            expect(keyboard.matchShortcut(e2, 'Delete')).toBe(false);
+        });
+        it('Shift 不匹配时返回 false', () => {
+            const e = createMockEvent({ key: 'z', ctrlKey: true });
+            expect(keyboard.matchShortcut(e, 'Ctrl+Shift+Z')).toBe(false);
+        });
+    });
+
+    describe('快捷键持久化', () => {
+        it('saveShortcuts 合并并写入 Storage', () => {
+            keyboard.saveShortcuts({ copy: 'Ctrl+Shift+C' });
+            expect(keyboard.shortcuts.copy).toBe('Ctrl+Shift+C');
+            expect(Storage.set).toHaveBeenCalledWith('keyboardShortcuts', keyboard.shortcuts);
+        });
+        it('getShortcuts 返回副本', () => {
+            const s1 = keyboard.getShortcuts();
+            s1.copy = 'X';
+            expect(keyboard.shortcuts.copy).not.toBe('X');
+        });
+        it('resetShortcuts 恢复默认并清除 Storage', () => {
+            keyboard.saveShortcuts({ copy: 'Ctrl+Shift+C' });
+            keyboard.resetShortcuts();
+            expect(keyboard.shortcuts.copy).toBe('Ctrl+C');
+            expect(Storage.remove).toHaveBeenCalledWith('keyboardShortcuts');
+        });
+        it('_loadShortcuts 合并已保存配置', () => {
+            Storage.get.mockReturnValue({ lock: 'Ctrl+L' });
+            const kb = new WorkflowKeyboard(createMockUI());
+            expect(kb.shortcuts.lock).toBe('Ctrl+L');
+            expect(kb.shortcuts.copy).toBe('Ctrl+C'); // 默认保留
+        });
+        it('_loadShortcuts 非对象时回退默认', () => {
+            Storage.get.mockReturnValue('invalid');
+            const kb = new WorkflowKeyboard(createMockUI());
+            expect(kb.shortcuts.copy).toBe('Ctrl+C');
+        });
+    });
+
+    describe('锁节点快捷键', () => {
+        it('Ctrl+L 触发 toggleSelectedNodesLock', () => {
+            const event = createMockEvent({ key: 'l', ctrlKey: true });
+            keyboard.handleKeydown(event);
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(mockUI.toggleSelectedNodesLock).toHaveBeenCalled();
+        });
+        it('非锁快捷键不触发', () => {
+            const event = createMockEvent({ key: 'x', ctrlKey: true });
+            keyboard.handleKeydown(event);
+            expect(mockUI.toggleSelectedNodesLock).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('showShortcutSettings', () => {
+        function mountModal() {
+            const overlay = document.createElement('div');
+            overlay.id = 'shortcutModalOverlay';
+            const body = document.createElement('div');
+            body.id = 'shortcutModalBody';
+            document.body.appendChild(overlay);
+            document.body.appendChild(body);
+            return { overlay, body };
+        }
+        afterEach(() => {
+            document.body.innerHTML = '';
+        });
+        it('overlay/body 不存在时安全跳过', () => {
+            expect(() => keyboard.showShortcutSettings()).not.toThrow();
+        });
+        it('渲染快捷键列表并绑定编辑按钮', () => {
+            const { body } = mountModal();
+            keyboard.showShortcutSettings();
+            expect(body.innerHTML).toContain('shortcut-item');
+            expect(body.innerHTML).toContain('Ctrl+C');
+            const btns = body.querySelectorAll('.shortcut-edit-btn');
+            expect(btns.length).toBeGreaterThan(0);
+        });
+        it('编辑按钮捕获按键并保存新快捷键', () => {
+            const { body } = mountModal();
+            Storage.set.mockClear();
+            keyboard.showShortcutSettings();
+            const btn = body.querySelector('.shortcut-edit-btn');
+            btn.click();
+            // 模拟用户按下 Ctrl+L（通过 document 捕获监听）
+            const evt = new KeyboardEvent('keydown', { key: 'l', ctrlKey: true, bubbles: true });
+            Object.defineProperty(evt, 'preventDefault', { value: jest.fn() });
+            Object.defineProperty(evt, 'stopPropagation', { value: jest.fn() });
+            document.dispatchEvent(evt);
+            expect(Storage.set).toHaveBeenCalled();
+        });
+    });
+
+    describe('hideShortcutSettings', () => {
+        afterEach(() => {
+            document.body.innerHTML = '';
+        });
+        it('overlay 不存在时安全跳过', () => {
+            expect(() => keyboard.hideShortcutSettings()).not.toThrow();
+        });
+        it('设置 overlay 隐藏', () => {
+            const overlay = document.createElement('div');
+            overlay.id = 'shortcutModalOverlay';
+            document.body.appendChild(overlay);
+            keyboard.hideShortcutSettings();
+            expect(overlay.style.display).toBe('none');
+        });
+    });
+
+    describe('setupShortcutSettingsEvents', () => {
+        afterEach(() => {
+            document.body.innerHTML = '';
+        });
+        it('各按钮/overlay 存在时绑定监听且安全', () => {
+            const ids = [
+                'btnShortcuts',
+                'btnShortcutClose',
+                'btnResetShortcuts',
+                'shortcutModalClose',
+                'shortcutModalOverlay',
+            ];
+            const els = {};
+            ids.forEach((id) => {
+                const el = document.createElement('div');
+                el.id = id;
+                document.body.appendChild(el);
+                els[id] = el;
+            });
+            expect(() => keyboard.setupShortcutSettingsEvents()).not.toThrow();
+            // 绑定后点击重置按钮应触发 resetShortcuts（Storage.remove 被调用）
+            Storage.remove.mockClear();
+            els.btnResetShortcuts.click();
+            expect(Storage.remove).toHaveBeenCalledWith('keyboardShortcuts');
+        });
+        it('元素缺失时安全跳过', () => {
+            expect(() => keyboard.setupShortcutSettingsEvents()).not.toThrow();
         });
     });
 });
