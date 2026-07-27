@@ -89,10 +89,22 @@ export class WorkflowClipboardPaste {
             const newNodeId = idMap[originalId];
             if (!newNodeId) return null;
 
+            // 节点类型转换：支持数字或字符串格式
             let type = 'plugin';
+            const rawType = cozeNode.type;
             try {
-                type = this.clipboard.core.getTypeFromNumber(cozeNode.type);
+                if (rawType !== undefined && rawType !== null) {
+                    const typeStr = String(rawType).trim();
+                    // 尝试用 getTypeFromNumber 转换（处理数字 ID）
+                    if (/^\d+$/.test(typeStr)) {
+                        type = this.clipboard.core.getTypeFromNumber(typeStr);
+                    } else {
+                        // 已经是类型名称（如 "comment"），直接使用
+                        type = typeStr;
+                    }
+                }
             } catch (err) {
+                console.warn(`[pasteFromCozeFormat] Unknown node type "${rawType}", falling back to "plugin"`);
                 type = 'plugin';
             }
 
@@ -197,8 +209,12 @@ export class WorkflowClipboardPaste {
             }
 
             const nodeMeta = cozeNode.data?.nodeMeta || cozeNode._temp?.externalData || {};
-            const title = nodeMeta.title || cozeNode.title || t('nodeTypes.plugin');
-            const description = nodeMeta.description || cozeNode.description || '';
+            const title = nodeMeta.title || cozeNode.title || nodeMeta.subTitle || `nodeTypes.${type}`;
+            // 注释节点：使用注释内容作为描述，方便搜索
+            let description = nodeMeta.description || cozeNode.description || '';
+            if ((type === 'comment' || type === '31') && !description && parameters.content) {
+                description = parameters.content;
+            }
             const icon = nodeMeta.icon || cozeNode.icon || '';
 
             const newNode = {
@@ -500,15 +516,43 @@ export class WorkflowClipboardPaste {
                 });
             });
 
-            // 清除旧的选择状态，避免粘贴后旧边仍显示为选中
-            this.clipboard.ui.selection.deselectAll();
-
-            // 选中新粘贴的顶层节点
+            // 创建顶层节点DOM并添加到画布
+            const elements = [];
             const newPastedIds = Object.values(idMap);
             const pastedTopNodes = newPastedIds.filter((id) => {
                 const node = this.clipboard.core.getNode(id);
                 return node && !node.parentId;
             });
+            pastedTopNodes.forEach((nodeId) => {
+                const node = this.clipboard.core.getNode(nodeId);
+                if (!node) return;
+                const el = this.clipboard.ui.node.render.createElement(node, { skipMeasure: true });
+                elements.push({ el, nodeData: node });
+                this.clipboard.ui.canvas.canvasContent.appendChild(el);
+            });
+            this.clipboard.ui.node.render.batchMeasureElements(elements);
+
+            // 渲染容器子节点DOM
+            const newPastedIdsSet = new Set(Object.values(idMap));
+            const pastedContainerIds = this.clipboard.core.nodes
+                .filter((node) => {
+                    if (!newPastedIdsSet.has(node.id)) return false;
+                    const info = this.clipboard.core.nodeTypeInfo[node.type] || {};
+                    return info.hasContainer;
+                })
+                .map((n) => n.id);
+            pastedContainerIds.forEach((containerId) => {
+                this.clipboard.ui.node.container.renderContainerChildren(containerId);
+            });
+
+            // 更新边
+            this.clipboard.ui.updateEdges();
+            this.clipboard.ui.canvas.setEmptyState(false);
+
+            // 清除旧的选择状态，避免粘贴后旧边仍显示为选中
+            this.clipboard.ui.selection.deselectAll();
+
+            // 选中新粘贴的顶层节点
             pastedTopNodes.forEach((nodeId) => {
                 const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
                 if (nodeEl) nodeEl.classList.add('selected');

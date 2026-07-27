@@ -467,15 +467,22 @@ export class WorkflowCanvas {
     }
 
     /**
-     * 刷新父节点缓存 Map
+     * 刷新父节点缓存 Map（使用节点数量 + 引用双重校验）
      */
     _ensureParentMap() {
-        if (this._parentMapCache && this._parentMapVersion === this.core.nodes.length) return;
+        if (
+            this._parentMapCache &&
+            this._parentMapVersion === this.core.nodes.length &&
+            this._parentMapRef === this.core.nodes
+        ) {
+            return;
+        }
         this._parentMapCache = new Map();
         for (const node of this.core.nodes) {
             this._parentMapCache.set(node.id, node);
         }
         this._parentMapVersion = this.core.nodes.length;
+        this._parentMapRef = this.core.nodes;
     }
 
     /**
