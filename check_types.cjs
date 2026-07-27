@@ -12,7 +12,7 @@ if (typeMapMatch) {
 }
 
 // 读取workflow-node-types
-const nodeTypesContent = fs.readFileSync('src/modules/workflow-node-types.js', 'utf8');
+const nodeTypesContent = fs.readFileSync('src/modules/editor/editor-node-types.js', 'utf8');
 const nodeTypeKeys = [];
 const regex = /^\s+(\w+):\s*\{/gm;
 let match;
