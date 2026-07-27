@@ -550,9 +550,6 @@ export function autoOptimizeLayout(core, canvas) {
                     const pushDelta = aBottom - bTop + vGap;
                     nodeB.y += pushDelta;
                     adjusted = true;
-                    console.log(
-                        `[layout] post-container collision: "${nodeA.title}" pushed "${nodeB.title}" by ${pushDelta}`
-                    );
                 }
             }
         }

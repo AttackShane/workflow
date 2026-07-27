@@ -2,6 +2,7 @@ import { initThemeController } from './shared/shared-theme.js';
 import { initI18nController } from './shared/shared-i18n.js';
 // 导入导航模块（模块加载时自动初始化事件监听器）
 import './shared/shared-navigator.js';
+import { Logger } from '../utils/logger.js';
 
 /**
  * 显示用户可见的错误横幅
@@ -67,16 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
             import(`./converter/converter-keyboard.js?v=${_v}`).then((m) => m.initKeyboardShortcuts()),
             import(`./converter/converter-stats.js?v=${_v}`)
                 .then((m) => m.initHistoryPanel())
-                .catch((e) => console.error('加载统计视图失败:', e)),
+                .catch((e) => Logger.error('加载统计视图失败:', e)),
             import(`./shared/shared-graph.js?v=${_v}`)
                 .then((m) => m.initGraphModal())
-                .catch((e) => console.error('加载图形视图失败:', e)),
+                .catch((e) => Logger.error('加载图形视图失败:', e)),
         ])
             .then(() => {
                 restorePageVisibility();
             })
             .catch((e) => {
-                console.error('加载页面功能失败:', e);
+                Logger.error('加载页面功能失败:', e);
                 showErrorBanner('页面功能加载失败，请刷新页面重试');
                 restorePageVisibility();
             });
@@ -88,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 restorePageVisibility();
             })
             .catch((e) => {
-                console.error('加载工作流管理器失败:', e);
+                Logger.error('加载工作流管理器失败:', e);
                 showErrorBanner('工作流管理器加载失败，请刷新页面重试');
                 restorePageVisibility();
             });

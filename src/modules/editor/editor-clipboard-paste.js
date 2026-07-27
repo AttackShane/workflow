@@ -4,6 +4,7 @@
  */
 import { t } from '../../i18n/i18n.js';
 import { deepClone, extractSlateText } from '../../utils/helpers.js';
+import { Logger } from '../../utils/logger.js';
 
 function getDefaultSize(_type) {
     return { width: 200, height: 100 };
@@ -104,7 +105,7 @@ export class WorkflowClipboardPaste {
                     }
                 }
             } catch (err) {
-                console.warn(`[pasteFromCozeFormat] Unknown node type "${rawType}", falling back to "plugin"`);
+                Logger.warn(`[pasteFromCozeFormat] Unknown node type "${rawType}", falling back to "plugin"`);
                 type = 'plugin';
             }
 
