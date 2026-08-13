@@ -5,6 +5,7 @@
 
 import { APP_CONFIG, SELECTORS } from '../../config/constants.js';
 import { DOM, NodeUtils } from '../../utils/helpers.js';
+import { t } from '../../i18n/i18n.js';
 import { autoOptimizeLayout } from './editor-layout.js';
 
 export class WorkflowCanvas {
@@ -36,6 +37,7 @@ export class WorkflowCanvas {
         // 父节点缓存（加速 isNodeVisible 中的 parentId 查找）
         this._parentMapCache = null;
         this._parentMapVersion = -1;
+        this._parentMapRef = null;
 
         // 网格吸附
         this.gridVisible = false;
@@ -51,6 +53,49 @@ export class WorkflowCanvas {
             right: 0,
             bottom: 0,
         };
+
+        // 事件监听器引用（用于 destroy 清理）
+        this._listeners = [];
+    }
+
+    /**
+     * 注册事件监听器并保存引用
+     * @param {EventTarget|null} element - 元素
+     * @param {string} event - 事件名
+     * @param {EventListenerOrEventListenerObject} handler - 事件处理函数
+     * @param {AddEventListenerOptions|boolean} [options] - 事件监听选项
+     */
+    _on(element, event, handler, options) {
+        if (options !== undefined) {
+            DOM.on(element, event, handler, options);
+        } else {
+            DOM.on(element, event, handler);
+        }
+        if (element) {
+            this._listeners.push({ element, event, handler, options });
+        }
+    }
+
+    /**
+     * 销毁画布实例，清理所有事件监听器和定时器
+     */
+    destroy() {
+        if (this.renderDebounceTimer) {
+            clearTimeout(this.renderDebounceTimer);
+            this.renderDebounceTimer = null;
+        }
+        this._listeners.forEach(({ element, event, handler, options }) => {
+            if (element) {
+                element.removeEventListener(event, handler, options);
+            }
+        });
+        this._listeners = [];
+        if (this._themeObserver) {
+            this._themeObserver.disconnect();
+            this._themeObserver = null;
+        }
+        this._parentMapCache = null;
+        this._parentMapRef = null;
     }
 
     /**
@@ -187,25 +232,28 @@ export class WorkflowCanvas {
      * 设置事件监听器
      */
     setupEventListeners() {
-        DOM.on(this.canvas, 'mousemove', (e) => this.onMouseMove(/** @type {MouseEvent} */ (e)));
-        DOM.on(this.canvas, 'wheel', (e) => this.onCanvasWheel(/** @type {WheelEvent} */ (e)));
-        DOM.on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(/** @type {MouseEvent} */ (e)));
-        DOM.on(this.canvas, 'click', (e) => this.onCanvasClick(/** @type {MouseEvent} */ (e)));
-        DOM.on(this.canvas, 'touchstart', (e) => this.onTouchStart(/** @type {TouchEvent} */ (e)), { passive: false });
-        DOM.on(this.canvas, 'touchmove', (e) => this.onTouchMove(/** @type {TouchEvent} */ (e)), { passive: false });
-        DOM.on(this.canvas, 'touchend', () => this.onTouchEnd());
+        this._on(this.canvas, 'mousemove', (e) => this.onMouseMove(/** @type {MouseEvent} */ (e)));
+        this._on(this.canvas, 'wheel', (e) => this.onCanvasWheel(/** @type {WheelEvent} */ (e)));
+        this._on(this.canvas, 'mousedown', (e) => this.onCanvasMouseDown(/** @type {MouseEvent} */ (e)));
+        this._on(this.canvas, 'click', (e) => this.onCanvasClick(/** @type {MouseEvent} */ (e)));
+        this._on(this.canvas, 'touchstart', (e) => this.onTouchStart(/** @type {TouchEvent} */ (e)), {
+            passive: false,
+        });
+        this._on(this.canvas, 'touchmove', (e) => this.onTouchMove(/** @type {TouchEvent} */ (e)), { passive: false });
+        this._on(this.canvas, 'touchend', () => this.onTouchEnd());
 
-        DOM.on(window, 'resize', () => {
+        const resizeHandler = () => {
             this.updateSvgSize();
             this.scheduleRenderUpdate();
-        });
+        };
+        this._on(window, 'resize', resizeHandler);
 
-        DOM.on(this.canvas, 'scroll', () => this.scheduleRenderUpdate());
+        this._on(this.canvas, 'scroll', () => this.scheduleRenderUpdate());
 
-        const themeObserver = new MutationObserver(() => {
+        this._themeObserver = new MutationObserver(() => {
             this.renderMinimap();
         });
-        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        this._themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     }
 
     /**
@@ -218,25 +266,27 @@ export class WorkflowCanvas {
         const zoomLevel = document.getElementById('zoomLevel');
 
         if (zoomInBtn) {
-            DOM.on(zoomInBtn, 'click', () => this.zoomIn());
+            this._on(zoomInBtn, 'click', () => this.zoomIn());
         }
         if (zoomOutBtn) {
-            DOM.on(zoomOutBtn, 'click', () => this.zoomOut());
+            this._on(zoomOutBtn, 'click', () => this.zoomOut());
         }
         if (zoomFitBtn) {
-            DOM.on(zoomFitBtn, 'click', () => this.centerView());
+            this._on(zoomFitBtn, 'click', () => this.centerView());
         }
         if (zoomLevel) {
-            DOM.on(zoomLevel, 'click', () => this.resetView());
+            this._on(zoomLevel, 'click', () => this.resetView());
         }
 
         const toggleGridBtn = document.getElementById('toggleGridBtn');
         const toggleSnapBtn = document.getElementById('toggleSnapBtn');
 
         if (toggleGridBtn) {
-            DOM.on(toggleGridBtn, 'click', () => {
+            this._on(toggleGridBtn, 'click', () => {
                 this.toggleGrid();
-                toggleGridBtn.title = this.gridVisible ? '隐藏网格' : '显示网格';
+                toggleGridBtn.title = this.gridVisible
+                    ? t('settings.hideGrid') || '隐藏网格'
+                    : t('settings.showGrid') || '显示网格';
                 if (this.gridVisible) {
                     toggleGridBtn.classList.add('active');
                 } else {
@@ -245,9 +295,11 @@ export class WorkflowCanvas {
             });
         }
         if (toggleSnapBtn) {
-            DOM.on(toggleSnapBtn, 'click', () => {
+            this._on(toggleSnapBtn, 'click', () => {
                 this.toggleSnap();
-                toggleSnapBtn.title = this.snapEnabled ? '禁用吸附' : '启用吸附';
+                toggleSnapBtn.title = this.snapEnabled
+                    ? t('settings.disableSnap') || '禁用吸附'
+                    : t('settings.enableSnap') || '启用吸附';
                 if (this.snapEnabled) {
                     toggleSnapBtn.classList.add('active');
                 } else {
@@ -258,7 +310,7 @@ export class WorkflowCanvas {
 
         const toggleMinimapBtn = document.getElementById('toggleMinimapBtn');
         if (toggleMinimapBtn) {
-            DOM.on(toggleMinimapBtn, 'click', () => this.toggleMinimap());
+            this._on(toggleMinimapBtn, 'click', () => this.toggleMinimap());
         }
     }
 
@@ -278,27 +330,39 @@ export class WorkflowCanvas {
         this.minimapCanvas.height = this.minimapHeight;
 
         let isDraggingViewport = false;
-        this.minimapViewport.addEventListener('mousedown', (e) => {
-            isDraggingViewport = true;
-            e.preventDefault();
-            e.stopPropagation();
-        });
-        document.addEventListener('mousemove', (e) => {
-            if (!isDraggingViewport || !this.minimapVisible) return;
-            this.navigateMinimap(e);
-        });
-        document.addEventListener('mouseup', () => {
-            isDraggingViewport = false;
-        });
-        this.minimapCanvas.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            isDraggingViewport = true;
-            this.navigateMinimap(e);
-        });
-        this.minimapCanvas.addEventListener('click', (e) => {
-            e.stopPropagation();
-        });
+        const mmHandlers = {
+            mvMousedown: (e) => {
+                isDraggingViewport = true;
+                e.preventDefault();
+                e.stopPropagation();
+            },
+            docMousemove: (e) => {
+                if (!isDraggingViewport || !this.minimapVisible) return;
+                this.navigateMinimap(e);
+            },
+            docMouseup: () => {
+                isDraggingViewport = false;
+            },
+            mcMousedown: (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isDraggingViewport = true;
+                this.navigateMinimap(e);
+            },
+            mcClick: (e) => {
+                e.stopPropagation();
+            },
+        };
+        this.minimapViewport.addEventListener('mousedown', mmHandlers.mvMousedown);
+        this._listeners.push({ element: this.minimapViewport, event: 'mousedown', handler: mmHandlers.mvMousedown });
+        document.addEventListener('mousemove', mmHandlers.docMousemove);
+        this._listeners.push({ element: document, event: 'mousemove', handler: mmHandlers.docMousemove });
+        document.addEventListener('mouseup', mmHandlers.docMouseup);
+        this._listeners.push({ element: document, event: 'mouseup', handler: mmHandlers.docMouseup });
+        this.minimapCanvas.addEventListener('mousedown', mmHandlers.mcMousedown);
+        this._listeners.push({ element: this.minimapCanvas, event: 'mousedown', handler: mmHandlers.mcMousedown });
+        this.minimapCanvas.addEventListener('click', mmHandlers.mcClick);
+        this._listeners.push({ element: this.minimapCanvas, event: 'click', handler: mmHandlers.mcClick });
     }
 
     toggleMinimap() {

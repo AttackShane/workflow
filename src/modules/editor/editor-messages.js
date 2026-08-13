@@ -34,10 +34,11 @@ export class WorkflowMessages {
 
     /**
      * 显示消息提示
-     * @param {string} text - 消息文本
+     * @param {string} text - 消息文本（标题）
      * @param {string} type - 消息类型 ('success', 'error', 'info', 'warning')
+     * @param {{ items?: string[] }} [options] - 可选：items 为附加的多行子项（如验证错误列表）
      */
-    show(text, type = 'info') {
+    show(text, type = 'info', options = undefined) {
         if (!this.container) {
             this.createContainer();
         }
@@ -59,7 +60,7 @@ export class WorkflowMessages {
         const messageEl = DOM.create('div', {
             className: `workflow-message workflow-message-${type}`,
             style: {
-                padding: '12px 20px',
+                padding: '12px 16px',
                 borderRadius: '8px',
                 color: 'white',
                 fontSize: '14px',
@@ -68,17 +69,54 @@ export class WorkflowMessages {
                 transform: 'translateX(100%)',
                 animation: 'slideIn 0.3s ease-out forwards',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                maxWidth: '320px',
+                alignItems: 'flex-start',
+                gap: '10px',
+                maxWidth: '360px',
                 backgroundColor: colors[type] || colors.info,
             },
         });
 
-        const iconSpan = DOM.create('span', { text: icons[type] || icons.info });
-        const textSpan = DOM.create('span', { text: text });
+        const iconSpan = DOM.create('span', {
+            text: icons[type] || icons.info,
+            style: { lineHeight: '1.4', flexShrink: 0, paddingTop: '1px' },
+        });
+
+        const contentWrap = DOM.create('div', {
+            style: { display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0, flex: 1 },
+        });
+        const titleSpan = DOM.create('span', { text: text, style: { lineHeight: '1.4' } });
+        contentWrap.appendChild(titleSpan);
+
+        if (options && Array.isArray(options.items) && options.items.length > 0) {
+            const listWrap = DOM.create('div', {
+                style: {
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
+                    fontSize: '13px',
+                    opacity: 0.92,
+                    paddingLeft: '2px',
+                    lineHeight: '1.4',
+                },
+            });
+            const maxShow = 8;
+            options.items.slice(0, maxShow).forEach((item) => {
+                listWrap.appendChild(DOM.create('div', { text: '• ' + item }));
+            });
+            if (options.items.length > maxShow) {
+                const more = options.items.length - maxShow;
+                listWrap.appendChild(
+                    DOM.create('div', {
+                        text: '+ ' + more + ' more',
+                        style: { opacity: 0.75, fontStyle: 'italic' },
+                    })
+                );
+            }
+            contentWrap.appendChild(listWrap);
+        }
+
         messageEl.appendChild(iconSpan);
-        messageEl.appendChild(textSpan);
+        messageEl.appendChild(contentWrap);
 
         this.container.appendChild(messageEl);
 

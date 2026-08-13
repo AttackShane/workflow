@@ -2,6 +2,7 @@
  * 工作流序列化模块测试
  */
 import { WorkflowCore } from '../src/modules/editor/editor-core.js';
+import { convertClipboardToInternal, convertInternalToClipboardNode } from '../src/modules/shared/shared-serializer.js';
 
 describe('WorkflowSerializer', () => {
     let core;
@@ -219,11 +220,11 @@ describe('WorkflowSerializer', () => {
             core.importWorkflow(workflow);
 
             const node3 = core.nodes.find((n) => n.id === 'node_3');
-            expect(node3.parameters.variables[0].left.value.content.blockID).toBe('2');
-            expect(node3.parameters.variables[0].right.value.content.blockID).toBe('2');
+            expect(node3.parameters.variables[0].left.value.content.blockID).toBe('node_2');
+            expect(node3.parameters.variables[0].right.value.content.blockID).toBe('node_2');
 
             const node4 = core.nodes.find((n) => n.id === 'node_4');
-            expect(node4.parameters.variables[0].left.value.content.blockID).toBe('1');
+            expect(node4.parameters.variables[0].left.value.content.blockID).toBe('node_1');
         });
 
         it('should handle edge with source_node not found', () => {
@@ -1587,5 +1588,514 @@ describe('WorkflowSerializer', () => {
             expect(node2.parameters.variables[0].left.value.content.blockID).toBe(node1.id);
             expect(node2.parameters.variables[0].right.value.content.blockID).toBe(node1.id);
         });
+    });
+});
+
+describe('convertClipboardToInternal', () => {
+    it('should throw on null data', () => {
+        expect(() => convertClipboardToInternal(null)).toThrow('Invalid clipboard data');
+    });
+
+    it('should throw on undefined data', () => {
+        expect(() => convertClipboardToInternal(undefined)).toThrow('Invalid clipboard data');
+    });
+
+    it('should throw on empty nodes array', () => {
+        expect(() => convertClipboardToInternal({ json: { nodes: [] } })).toThrow('Invalid clipboard data');
+    });
+
+    it('should fallback unknown type to plugin', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '999',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'Unknown' }, inputs: {}, outputs: [] },
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0].type).toBe('plugin');
+    });
+
+    it('should handle nested blocks with parentId', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '21',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'Loop' }, inputs: {}, outputs: [] },
+                        blocks: [
+                            {
+                                id: 2,
+                                type: '5',
+                                meta: { position: { x: 10, y: 20 } },
+                                data: { nodeMeta: { title: 'Code' }, inputs: { code: 'test' }, outputs: [] },
+                            },
+                        ],
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.nodes).toHaveLength(2);
+        const parent = result.nodes.find((n) => n.id === 'node_1');
+        const child = result.nodes.find((n) => n.id === 'node_2');
+        expect(parent._skipLayout).toBe(true);
+        expect(child.parentId).toBe('node_1');
+        expect(child.x).toBe(10);
+        expect(child.y).toBe(20);
+    });
+
+    it('should skip edges with missing source or target', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '1',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'A' }, inputs: {}, outputs: [] },
+                    },
+                ],
+                edges: [
+                    { sourceNodeID: 999, targetNodeID: 1 },
+                    { sourceNodeID: 1, targetNodeID: 999 },
+                ],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.edges).toHaveLength(0);
+    });
+
+    it('should remap blockID in loop_set_variable variables', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '3',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'LLM' }, inputs: {}, outputs: [] },
+                    },
+                    {
+                        id: 2,
+                        type: '20',
+                        meta: { position: { x: 100, y: 0 } },
+                        data: {
+                            nodeMeta: { title: 'SetVar' },
+                            inputs: {
+                                inputParameters: [
+                                    {
+                                        name: 'v1',
+                                        left: { value: { content: { blockID: '1' } } },
+                                        right: { value: { content: { blockID: '1' } } },
+                                    },
+                                ],
+                            },
+                            outputs: [],
+                        },
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        const setVar = result.nodes.find((n) => n.type === 'loop_set_variable');
+        const llmId = result.nodes.find((n) => n.type === 'llm').id;
+        expect(setVar.parameters.variables[0].left.value.content.blockID).toBe(llmId);
+        expect(setVar.parameters.variables[0].right.value.content.blockID).toBe(llmId);
+    });
+
+    it('should handle node without meta.position using x/y directly', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '1',
+                        x: 150,
+                        y: 250,
+                        data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] },
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.nodes[0].x).toBe(150);
+        expect(result.nodes[0].y).toBe(250);
+    });
+
+    it('should handle node with zero coordinates', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '1',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'Start' }, inputs: {}, outputs: [] },
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.nodes[0].x).toBe(0);
+        expect(result.nodes[0].y).toBe(0);
+    });
+
+    it('should handle multiple root nodes', () => {
+        const data = {
+            json: {
+                nodes: [
+                    {
+                        id: 1,
+                        type: '1',
+                        meta: { position: { x: 0, y: 0 } },
+                        data: { nodeMeta: { title: 'A' }, inputs: {}, outputs: [] },
+                    },
+                    {
+                        id: 2,
+                        type: '2',
+                        meta: { position: { x: 100, y: 0 } },
+                        data: { nodeMeta: { title: 'B' }, inputs: {}, outputs: [] },
+                    },
+                ],
+                edges: [],
+            },
+        };
+        const result = convertClipboardToInternal(data);
+        expect(result.nodes).toHaveLength(2);
+        expect(result.nodes[0].id).toBe('node_1');
+        expect(result.nodes[1].id).toBe('node_2');
+    });
+});
+
+describe('convertInternalToClipboardNode', () => {
+    it('should convert basic node correctly', () => {
+        const node = {
+            id: 'node_1',
+            type: 'start',
+            x: 100,
+            y: 200,
+            title: 'Start',
+            description: 'Desc',
+            parameters: {},
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.id).toBe('1');
+        expect(result.type).toBe('1');
+        expect(result.meta.position).toEqual({ x: 100, y: 200 });
+        expect(result.data.nodeMeta.title).toBe('Start');
+        expect(result.data.nodeMeta.description).toBe('Desc');
+        expect(result.data.outputs).toEqual([]);
+        expect(result.data.inputs.inputParameters).toEqual([]);
+    });
+
+    it('should include _temp when includeTemp option is true', () => {
+        const node = {
+            id: 'node_1',
+            type: 'start',
+            x: 100,
+            y: 200,
+            title: 'Start',
+            description: '',
+            parameters: {},
+            icon: 'test_icon',
+        };
+        const result = convertInternalToClipboardNode(node, [], { includeTemp: true });
+        expect(result._temp).toBeDefined();
+        expect(result._temp.bounds).toEqual({ x: -80, y: 200, width: 360, height: 112 });
+        expect(result._temp.externalData.icon).toBe('test_icon');
+    });
+
+    it('should not include _temp by default', () => {
+        const node = {
+            id: 'node_1',
+            type: 'start',
+            x: 0,
+            y: 0,
+            title: 'Start',
+            parameters: {},
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result._temp).toBeUndefined();
+    });
+
+    it('should recursively convert child nodes into blocks', () => {
+        const parent = {
+            id: 'node_1',
+            type: 'loop',
+            x: 0,
+            y: 0,
+            title: 'Loop',
+            parameters: {},
+        };
+        const child = {
+            id: 'node_2',
+            type: 'code',
+            x: 10,
+            y: 10,
+            title: 'Code',
+            parentId: 'node_1',
+            parameters: { code: 'return 1' },
+        };
+        const result = convertInternalToClipboardNode(parent, [parent, child]);
+        expect(result.blocks).toBeDefined();
+        expect(result.blocks).toHaveLength(1);
+        expect(result.blocks[0].type).toBe('5');
+        expect(result.blocks[0].data.inputs.code).toBe('return 1');
+    });
+
+    it('should serialize comment node with _noteRaw preserved', () => {
+        const node = {
+            id: 'node_1',
+            type: 'comment',
+            x: 0,
+            y: 0,
+            title: 'Note',
+            parameters: {
+                _noteRaw: [{ type: 'paragraph', children: [{ text: 'hello world', type: 'text' }] }],
+                content: 'hello world',
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.schemaType).toBe('slate');
+        expect(result.data.inputs.note).toEqual(node.parameters._noteRaw);
+    });
+
+    it('should serialize comment node without _noteRaw using default slate', () => {
+        const node = {
+            id: 'node_1',
+            type: 'comment',
+            x: 0,
+            y: 0,
+            title: 'Note',
+            parameters: { content: 'fallback text' },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.schemaType).toBe('slate');
+        expect(typeof result.data.inputs.note).toBe('string');
+        expect(result.data.inputs.note).toContain('fallback text');
+    });
+
+    it('should serialize loop_set_variable node with variables', () => {
+        const node = {
+            id: 'node_1',
+            type: 'loop_set_variable',
+            x: 0,
+            y: 0,
+            title: 'SetVar',
+            parameters: {
+                variables: [{ name: 'v1', left: { value: { content: 'a' } }, right: { value: { content: 'b' } } }],
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.inputParameters).toEqual(node.parameters.variables);
+    });
+
+    it('should serialize loop_set_variable with empty variables', () => {
+        const node = {
+            id: 'node_1',
+            type: 'loop_set_variable',
+            x: 0,
+            y: 0,
+            title: 'SetVar',
+            parameters: {},
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.inputParameters).toEqual([]);
+    });
+
+    it('should serialize llm node with llmParam', () => {
+        const node = {
+            id: 'node_1',
+            type: 'llm',
+            x: 0,
+            y: 0,
+            title: 'LLM',
+            parameters: {
+                modelName: 'gpt-4',
+                prompt: 'hello',
+                _llmParamRaw: [
+                    {
+                        name: 'modleName',
+                        input: { type: 'string', value: { type: 'literal', content: 'gpt-4' } },
+                    },
+                    {
+                        name: 'prompt',
+                        input: { type: 'string', value: { type: 'literal', content: 'hello' } },
+                    },
+                ],
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.llmParam).toBeDefined();
+        expect(Array.isArray(result.data.inputs.llmParam)).toBe(true);
+        expect(result.data.inputs.llmParam.length).toBeGreaterThanOrEqual(2);
+        expect(result.data.version).toBe('3');
+    });
+
+    it('should serialize output node with _contentRaw', () => {
+        const node = {
+            id: 'node_1',
+            type: 'output',
+            x: 0,
+            y: 0,
+            title: 'Output',
+            parameters: {
+                _contentRaw: { value: { type: 'ref', content: { blockID: 'node_2' } } },
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.content).toEqual(node.parameters._contentRaw);
+        expect(result.data.inputs.streamingOutput).toBe(false);
+    });
+
+    it('should serialize output node with plain content', () => {
+        const node = {
+            id: 'node_1',
+            type: 'output',
+            x: 0,
+            y: 0,
+            title: 'Output',
+            parameters: { content: 'plain text' },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.content).toBeDefined();
+    });
+
+    it('should serialize end node with terminatePlan', () => {
+        const node = {
+            id: 'node_1',
+            type: 'end',
+            x: 0,
+            y: 0,
+            title: 'End',
+            parameters: { terminatePlan: 'returnVariables' },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.terminatePlan).toBe('returnVariables');
+    });
+
+    it('should serialize input node with outputSchema', () => {
+        const node = {
+            id: 'node_1',
+            type: 'input',
+            x: 0,
+            y: 0,
+            title: 'Input',
+            parameters: {
+                outputSchema: [{ name: 'query', type: 'string', required: true }],
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.outputSchema).toBeDefined();
+    });
+
+    it('should serialize variable_merge node with mergeGroups', () => {
+        const node = {
+            id: 'node_1',
+            type: 'variable_merge',
+            x: 0,
+            y: 0,
+            title: 'Merge',
+            parameters: {
+                mergeGroups: [{ name: 'g1', variables: [] }],
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.mergeGroups).toEqual(node.parameters.mergeGroups);
+    });
+
+    it('should handle node with empty parameters', () => {
+        const node = {
+            id: 'node_1',
+            type: 'plugin',
+            x: 0,
+            y: 0,
+            title: 'Plugin',
+            parameters: {},
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.inputParameters).toEqual([]);
+        expect(result.data.outputs).toEqual([]);
+    });
+
+    it('should handle node with no parameters property', () => {
+        const node = {
+            id: 'node_1',
+            type: 'plugin',
+            x: 0,
+            y: 0,
+            title: 'Plugin',
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.inputParameters).toEqual([]);
+    });
+
+    it('should preserve icon and color in nodeMeta', () => {
+        const node = {
+            id: 'node_1',
+            type: 'start',
+            x: 0,
+            y: 0,
+            title: 'Start',
+            icon: 'custom_icon',
+            color: '#ff0000',
+            parameters: {},
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.nodeMeta.icon).toBe('custom_icon');
+        expect(result.data.nodeMeta.mainColor).toBe('#ff0000');
+    });
+
+    it('should serialize node_outputs to outputs array', () => {
+        const node = {
+            id: 'node_1',
+            type: 'start',
+            x: 0,
+            y: 0,
+            title: 'Start',
+            parameters: {
+                node_outputs: {
+                    out1: { type: 'string', description: 'd1', required: true, value: 'default1' },
+                },
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.outputs).toHaveLength(1);
+        expect(result.data.outputs[0].name).toBe('out1');
+        expect(result.data.outputs[0].type).toBe('string');
+        expect(result.data.outputs[0].defaultValue).toBe('default1');
+    });
+
+    it('should serialize question node with options', () => {
+        const node = {
+            id: 'node_1',
+            type: 'question',
+            x: 0,
+            y: 0,
+            title: 'Question',
+            parameters: {
+                question: 'What?',
+                options: ['A', 'B'],
+                answer_type: 'text',
+            },
+        };
+        const result = convertInternalToClipboardNode(node, []);
+        expect(result.data.inputs.question).toBe('What?');
+        expect(result.data.inputs.options).toEqual(['A', 'B']);
+        expect(result.data.inputs.answer_type).toBe('text');
     });
 });

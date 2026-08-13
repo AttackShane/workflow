@@ -19,28 +19,28 @@ export function getHistory() {
  */
 export function saveToHistory(data, isJson, name = '') {
     const history = getHistory();
-    
+
     let workflowName = name || extractWorkflowName(data, isJson);
     if (!workflowName) {
         workflowName = `未命名 ${history.length + 1}`;
     }
-    
+
     const entry = {
         id: Date.now(),
         name: workflowName,
         data: data,
         isJson: isJson,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
     };
-    
+
     history.unshift(entry);
     if (history.length > APP_CONFIG.HISTORY.MAX_ITEMS) {
         history.pop();
     }
-    
+
     Storage.set(APP_CONFIG.HISTORY.KEY, history);
     Storage.set(APP_CONFIG.HISTORY.SELECTED_KEY, entry.id.toString());
-    
+
     return entry;
 }
 
@@ -69,21 +69,21 @@ function extractWorkflowName(data, isJson) {
  */
 export function deleteHistoryItem(id) {
     const history = getHistory();
-    const filtered = history.filter(h => h.id !== id);
-    
+    const filtered = history.filter((h) => h.id !== id);
+
     if (filtered.length === history.length) {
         return false; // 未找到要删除的记录
     }
-    
+
     Storage.set(APP_CONFIG.HISTORY.KEY, filtered);
-    
+
     const selectedId = Storage.get(APP_CONFIG.HISTORY.SELECTED_KEY);
     if (selectedId !== null && selectedId !== undefined) {
         if (String(selectedId) === String(id)) {
             Storage.remove(APP_CONFIG.HISTORY.SELECTED_KEY);
         }
     }
-    
+
     return true;
 }
 
@@ -95,7 +95,7 @@ export function deleteHistoryItem(id) {
  */
 export function updateHistoryItem(id, name) {
     const history = getHistory();
-    const entry = history.find(h => h.id === id);
+    const entry = history.find((h) => h.id === id);
     if (entry) {
         entry.name = name;
         let updatedData = null;
@@ -108,9 +108,7 @@ export function updateHistoryItem(id, name) {
                 if (parsed.json && typeof parsed.json === 'object') {
                     parsed.json.name = name;
                 }
-                entry.data = entry.isJson
-                    ? JSON.stringify(parsed, null, 2)
-                    : getJsyaml().dump(parsed);
+                entry.data = entry.isJson ? JSON.stringify(parsed, null, 2) : getJsyaml().dump(parsed);
                 updatedData = entry.data;
             }
         } catch {
@@ -140,18 +138,18 @@ export function importHistory(historyData) {
     if (!Array.isArray(historyData)) {
         throw new Error('无效的历史记录数据格式');
     }
-    
+
     const existingHistory = getHistory();
-    
+
     // 过滤无效记录并去重
-    const validEntries = historyData.filter(entry => 
-        entry && typeof entry === 'object' && entry.id && entry.data !== undefined
+    const validEntries = historyData.filter(
+        (entry) => entry && typeof entry === 'object' && entry.id && entry.data !== undefined
     );
-    
+
     // 合并记录，去重
     const merged = [...validEntries, ...existingHistory];
     const seen = new Set();
-    const deduplicated = merged.filter(entry => {
+    const deduplicated = merged.filter((entry) => {
         const key = String(entry.id);
         if (seen.has(key)) return false;
         seen.add(key);
@@ -169,7 +167,7 @@ export function importHistory(historyData) {
     if (deduplicated.length > APP_CONFIG.HISTORY.MAX_ITEMS) {
         deduplicated.splice(APP_CONFIG.HISTORY.MAX_ITEMS);
     }
-    
+
     Storage.set(APP_CONFIG.HISTORY.KEY, deduplicated);
     return deduplicated.length;
 }

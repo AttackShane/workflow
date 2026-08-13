@@ -1519,6 +1519,121 @@ polygon.workflow-edge.selected {
     background: none;
 }
 
+/* ---- 基础 modal 样式（快捷键设置等顶层模态框） ---- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+.modal-overlay[style*="display: none"] {
+    display: none !important;
+}
+
+.modal {
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border, #3a3a4e);
+    border-radius: var(--radius-lg, 12px);
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.4));
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border, #3a3a4e);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-primary, #cdd6f4);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #9399b2);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.modal-close:hover {
+    background: var(--bg-tertiary, #313244);
+    color: var(--text-primary, #cdd6f4);
+}
+
+.modal-body {
+    padding: 1.25rem;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border, #3a3a4e);
+}
+
+/* ---- 快捷键设置列表 ---- */
+.shortcut-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-tertiary, #313244);
+    border-radius: 8px;
+    border: 1px solid var(--border, #3a3a4e);
+}
+
+.shortcut-label {
+    font-size: 0.9rem;
+    color: var(--text-primary, #cdd6f4);
+    flex: 1;
+}
+
+.shortcut-value {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #9399b2);
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-primary, #181825);
+    border-radius: 4px;
+    margin: 0 0.75rem;
+    min-width: 80px;
+    text-align: center;
+}
+
 .node-editor-modal {
     position: fixed;
     top: 0;

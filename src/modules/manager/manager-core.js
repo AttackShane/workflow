@@ -410,16 +410,32 @@ export class WorkflowManager {
         if (navEditorBtn) navEditorBtn.addEventListener('click', () => goToEditor({ newWorkflow: true }));
 
         // 添加页面可见性监听，当页面重新获得焦点时自动刷新
-        document.addEventListener('visibilitychange', () => {
+        this._visibilityHandler = () => {
             if (!document.hidden) {
                 this.handlePageVisible();
             }
-        });
+        };
+        document.addEventListener('visibilitychange', this._visibilityHandler);
 
         // 添加焦点监听
-        window.addEventListener('focus', () => {
+        this._focusHandler = () => {
             this.handlePageVisible();
-        });
+        };
+        window.addEventListener('focus', this._focusHandler);
+    }
+
+    /**
+     * 销毁管理器实例，清理全局事件监听器
+     */
+    destroy() {
+        if (this._visibilityHandler) {
+            document.removeEventListener('visibilitychange', this._visibilityHandler);
+            this._visibilityHandler = null;
+        }
+        if (this._focusHandler) {
+            window.removeEventListener('focus', this._focusHandler);
+            this._focusHandler = null;
+        }
     }
 
     handlePageVisible() {

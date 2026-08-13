@@ -393,7 +393,8 @@ export class Dialog {
                 if (e.key === 'Enter') handleConfirm();
             });
             descInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                // textarea 中 Enter 用于换行，仅 Ctrl/Cmd+Enter 提交
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                     e.preventDefault();
                     handleConfirm();
                 }

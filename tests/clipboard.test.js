@@ -1655,7 +1655,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
+                    render: { select: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},
@@ -1694,8 +1694,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
-                    batchMeasureElements: () => {},
+                    render: { select: () => {}, batchMeasureElements: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},
@@ -1726,8 +1725,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
-                    batchMeasureElements: () => {},
+                    render: { select: () => {}, batchMeasureElements: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},
@@ -3069,8 +3067,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
-                    batchMeasureElements: () => {},
+                    render: { select: () => {}, batchMeasureElements: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},
@@ -3098,8 +3095,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
-                    batchMeasureElements: () => {},
+                    render: { select: () => {}, batchMeasureElements: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},
@@ -3127,8 +3123,7 @@ describe('WorkflowClipboard', () => {
                 },
                 node: {
                     createElement: () => ({ style: {}, dataset: {} }),
-                    select: () => {},
-                    batchMeasureElements: () => {},
+                    render: { select: () => {}, batchMeasureElements: () => {} },
                 },
                 updateEdges: () => {},
                 updateSummary: () => {},

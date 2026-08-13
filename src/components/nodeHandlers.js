@@ -116,7 +116,9 @@ export const nodeHandlers = {
 
     condition: (data, params, ctx) => {
         data.inputs = {
-            branches: (params.branches || ctx.node.branches || []).map((b) => {
+            // 深拷贝避免修改原始节点数据（多次导出会重复应用 toValueObject）
+            branches: (params.branches || ctx.node.branches || []).map((bSrc) => {
+                const b = JSON.parse(JSON.stringify(bSrc));
                 if (b.condition?.conditions) {
                     b.condition.conditions = b.condition.conditions.map((c) => {
                         if (c.left?.input?.value) c.left.input.value = toValueObject(c.left.input.value);

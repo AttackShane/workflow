@@ -70,9 +70,9 @@ export class ConversionError extends Error {
         const template = ERROR_MESSAGES[this.code] || this.message;
         return template.replace(/{(\w+)}/g, (match, key) => {
             if (key === 'details' && this.details) return JSON.stringify(this.details);
-            if (key === 'nodeId') return this.nodeId || '未知';
-            if (key === 'line') return this.line || '未知';
-            if (key === 'column') return this.column || '未知';
+            if (key === 'nodeId') return this.nodeId ?? '未知';
+            if (key === 'line') return this.line ?? '未知';
+            if (key === 'column') return this.column ?? '未知';
             if (this.details && this.details[key] !== undefined) {
                 return this.details[key];
             }
@@ -175,8 +175,8 @@ export function convertEdgesReverse(edges) {
     return edges.map((e) => ({
         source_node: e.sourceNodeID,
         target_node: e.targetNodeID,
-        ...(e.sourcePortID && { source_port: e.sourcePortID }),
-        ...(e.targetPortID && { target_port: e.targetPortID }),
+        ...(e.sourcePortID !== undefined && { source_port: String(e.sourcePortID) }),
+        ...(e.targetPortID !== undefined && { target_port: String(e.targetPortID) }),
     }));
 }
 

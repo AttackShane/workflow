@@ -1,7 +1,7 @@
 /**
  * @fileoverview 工作流核心类型定义
- * @description 使用 JSDoc @typedef 定义工作流的核心数据结构类型
- *              供 jsconfig.json 的 checkJs 进行类型检查
+ * 使用 JSDoc typedef 定义工作流的核心数据结构类型
+ * 供 jsconfig.json 的 checkJs 进行类型检查
  */
 
 /**
@@ -14,9 +14,15 @@
  * @property {string} title - 节点显示标题
  * @property {string} description - 节点描述文本
  * @property {Object.<string, *>} parameters - 节点业务参数（键值对）
- * @property {InputParam[]} inputParams - 输入参数列表
- * @property {OutputParam[]} outputParams - 输出参数列表
+ * @property {InputParam[]} [inputParams] - 输入参数列表
+ * @property {OutputParam[]} [outputParams] - 输出参数列表
  * @property {string|null} parentId - 父容器节点ID，普通节点为 null
+ * @property {number} [width] - 节点宽度（运行时计算）
+ * @property {number} [height] - 节点高度（运行时计算）
+ * @property {string} [icon] - 节点图标
+ * @property {string} [color] - 节点颜色
+ * @property {boolean} [_skipLayout] - 是否跳过自动布局（容器节点用）
+ * @property {Object} [_dragListeners] - 拖拽监听器缓存
  */
 
 /**
@@ -44,18 +50,28 @@
  * @property {string} target - 目标节点ID
  * @property {string} [sourcePort] - 源端口标识（分支节点、容器节点使用）
  * @property {string} [targetPort] - 目标端口标识（容器节点使用）
+ * @property {string} [error] - 创建失败时的错误信息
  */
 
 /**
  * 历史记录快照
  * @typedef {Object} HistoryState
- * @property {WorkflowNode[]} nodes - 节点数组快照
- * @property {WorkflowEdge[]} edges - 边数组快照
+ * @property {number} baseIndex - 基准快照索引，-1表示完整快照
+ * @property {WorkflowNode[]|HistoryChanges} nodes - 节点数组快照或变更差异
+ * @property {WorkflowEdge[]|HistoryChanges} edges - 边数组快照或变更差异
  * @property {string|null} selectedNode - 当前选中的节点ID
  * @property {string|null} selectedEdge - 当前选中的边ID
  * @property {string} actionKey - i18n 操作名称键
  * @property {Object} actionParams - i18n 插值参数
  * @property {number} timestamp - 时间戳（毫秒）
+ */
+
+/**
+ * 历史记录变更差异（增量模式）
+ * @typedef {Object} HistoryChanges
+ * @property {string[]} [deleted] - 删除的ID列表
+ * @property {Object.<string, WorkflowNode|WorkflowEdge>} [added] - 新增的对象映射
+ * @property {Object.<string, WorkflowNode|WorkflowEdge>} [updated] - 更新的对象映射
  */
 
 /**
@@ -67,6 +83,8 @@
  * @property {boolean} hasInput - 是否有输入端口
  * @property {boolean} hasOutput - 是否有输出端口
  * @property {boolean} [hasContainer] - 是否为容器节点
+ * @property {number} [containerMinWidth] - 容器最小宽度
+ * @property {number} [containerMinHeight] - 容器最小高度
  * @property {NodeParamConfig[]} [parameters] - 业务参数配置
  */
 

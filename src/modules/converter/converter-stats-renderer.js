@@ -9,33 +9,33 @@ import { StringUtils, getJsyaml } from '../../utils/helpers.js';
  */
 export function renderStats(container, data, isJson) {
     if (!container) return;
-    
+
     let stats = {};
-    
+
     try {
         const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
-        
+
         if (parsed && typeof parsed === 'object') {
             if (Array.isArray(parsed)) {
                 stats = {
                     type: 'array',
-                    length: parsed.length
+                    length: parsed.length,
                 };
             } else {
                 stats = {
                     type: 'object',
-                    keys: Object.keys(parsed).length
+                    keys: Object.keys(parsed).length,
                 };
             }
         }
     } catch {
         // 解析失败时显示默认统计
     }
-    
+
     const lines = data.split('\n').length;
     const chars = data.length;
     const words = data.trim().split(/\s+/).length;
-    
+
     container.innerHTML = `
         <div class="stat-item">
             <span class="stat-label">行数</span>
@@ -49,12 +49,16 @@ export function renderStats(container, data, isJson) {
             <span class="stat-label">单词</span>
             <span class="stat-value">${words}</span>
         </div>
-        ${stats.type ? `
+        ${
+            stats.type
+                ? `
         <div class="stat-item">
             <span class="stat-label">${stats.type === 'array' ? '元素数' : '键数'}</span>
             <span class="stat-value">${stats.length || stats.keys}</span>
         </div>
-        ` : ''}
+        `
+                : ''
+        }
     `;
 }
 
@@ -66,34 +70,34 @@ export function renderStats(container, data, isJson) {
  */
 export function renderStatsDetail(container, data, isJson) {
     if (!container) return;
-    
+
     let detailStats = /** @type {*} */ ({});
-    
+
     try {
         const parsed = isJson ? JSON.parse(data) : getJsyaml().load(convertLargeNumbersToStrings(data));
-        
+
         if (parsed && typeof parsed === 'object') {
             const workflowData = isJson ? parsed.json : parsed;
-            
+
             detailStats = {
                 name: parsed.name || workflowData?.name || '未命名',
                 type: isJson ? 'Coze JSON' : 'YAML',
                 nodeCount: workflowData?.nodes?.length || 0,
                 edgeCount: workflowData?.edges?.length || 0,
-                keys: Object.keys(parsed).length
+                keys: Object.keys(parsed).length,
             };
-            
+
             if (workflowData?.nodes && Array.isArray(workflowData.nodes)) {
                 const nodeTypes = {};
                 const nodeTypeNames = {};
-                
-                workflowData.nodes.forEach(node => {
+
+                workflowData.nodes.forEach((node) => {
                     const type = node.type;
                     nodeTypes[type] = (nodeTypes[type] || 0) + 1;
                     const rawType = node.raw_type || node.type;
                     nodeTypeNames[type] = getNodeTypeName(rawType);
                 });
-                
+
                 detailStats.nodeTypes = nodeTypes;
                 detailStats.nodeTypeNames = nodeTypeNames;
             }
@@ -101,24 +105,28 @@ export function renderStatsDetail(container, data, isJson) {
     } catch {
         // 解析失败
     }
-    
+
     let nodeTypeHtml = '';
     if (detailStats.nodeTypes) {
         nodeTypeHtml = `
             <div class="stats-detail-section">
                 <h4>节点类型分布</h4>
                 <div class="node-type-list">
-                    ${Object.entries(detailStats.nodeTypes).map(([type, count]) => `
+                    ${Object.entries(detailStats.nodeTypes)
+                        .map(
+                            ([type, count]) => `
                         <div class="node-type-item">
                             <span class="node-type-name">${StringUtils.escapeHtml(detailStats.nodeTypeNames[type] || type)}</span>
                             <span class="node-type-count">${count}</span>
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
             </div>
         `;
     }
-    
+
     container.innerHTML = `
         <h3>${StringUtils.escapeHtml(detailStats.name)}</h3>
         <div class="stats-detail-grid">

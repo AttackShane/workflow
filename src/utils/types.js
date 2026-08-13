@@ -393,7 +393,7 @@ const INFER_RAW_CACHE = {
     float: { type: RAW_TYPE.float },
     boolean: { type: RAW_TYPE.boolean },
     list: { type: RAW_TYPE.list },
-    object: { type: RAW_TYPE.string },
+    object: { type: RAW_TYPE.objectList },
 };
 
 export function inferRawMetaFromType(type, assist) {
@@ -408,7 +408,11 @@ export function inferRawMetaFromValue(val) {
     const t = typeof val;
     if (t === 'number') return { type: val % 1 === 0 ? 2 : 4 };
     if (t === 'boolean') return { type: 3 };
-    if (Array.isArray(val)) return { type: RAW_TYPE.list };
+    if (t === 'object') {
+        if (val === null) return { type: 1 };
+        if (Array.isArray(val)) return { type: RAW_TYPE.list };
+        return { type: RAW_TYPE.objectList };
+    }
     return { type: 1 };
 }
 

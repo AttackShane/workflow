@@ -12,6 +12,7 @@ const DEFAULT_SHORTCUTS = {
     redo: 'Ctrl+Y',
     save: 'Ctrl+S',
     search: 'Ctrl+F',
+    autoLayout: 'Ctrl+Shift+L',
     lock: 'Ctrl+L',
     escape: 'Escape',
 };
@@ -193,6 +194,11 @@ export class WorkflowKeyboard {
 
         if (this.matchShortcut(e, s.search)) {
             e.preventDefault();
+            this.ui.focusSearchInput();
+        }
+
+        if (this.matchShortcut(e, s.autoLayout)) {
+            e.preventDefault();
             this.ui.canvas.autoOptimizeLayout();
         }
 
@@ -218,6 +224,7 @@ export class WorkflowKeyboard {
             redo: t('messages.shortcutLabels.redo'),
             save: t('messages.shortcutLabels.save'),
             search: t('messages.shortcutLabels.search'),
+            autoLayout: t('messages.shortcutLabels.autoLayout'),
             lock: t('messages.shortcutLabels.lock'),
             escape: t('messages.shortcutLabels.escape'),
         };

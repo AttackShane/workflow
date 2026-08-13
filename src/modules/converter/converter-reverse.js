@@ -26,7 +26,20 @@ const TYPE_PARAMS_MAP = {
     code: ['code', 'language'],
     llm: ['llmParam'],
     image_generate: ['modelSetting', 'prompt', 'references'],
-    video_generation: ['duration', 'model', 'prompt', 'cameraFixed', 'generateAudio', 'generateMode', 'firstFrame', 'ratio', 'resolution', 'seed', 'watermark', 'dynamicParameters'],
+    video_generation: [
+        'duration',
+        'model',
+        'prompt',
+        'cameraFixed',
+        'generateAudio',
+        'generateMode',
+        'firstFrame',
+        'ratio',
+        'resolution',
+        'seed',
+        'watermark',
+        'dynamicParameters',
+    ],
     condition: ['branches'],
     plugin: ['apiParam'],
     loop: ['loopType', 'loopCount', 'loopItems', 'iterationVariable', 'variableParameters'],
@@ -42,7 +55,7 @@ const TYPE_PARAMS_MAP = {
     question: ['llmParam', 'extra_output', 'answer_type', 'option_type', 'dynamic_option', 'options', 'limit'],
     output: ['streamingOutput', 'callTransferVoice', 'chatHistoryWriting', 'content'],
     input: ['outputSchema'],
-    common: ['settingOnError']
+    common: ['settingOnError'],
 };
 
 /**
@@ -87,7 +100,7 @@ function convertValue(val, options = {}) {
     }
 
     if (Array.isArray(val)) {
-        return val.map(v => convertValue(v, options));
+        return val.map((v) => convertValue(v, options));
     }
 
     const result = {};
@@ -129,7 +142,7 @@ function buildOutputDefinition(o) {
             def.value = {
                 path: input.value.content.name,
                 ref_node: input.value.content.blockID,
-                source: input.value.content.source
+                source: input.value.content.source,
             };
         } else {
             def.value = null;
@@ -144,14 +157,14 @@ function buildOutputDefinition(o) {
         def.items = { type: o.schema.type || 'string' };
         if (o.schema.properties) {
             def.items.properties = o.schema.properties;
-            Object.keys(def.items.properties).forEach(key => {
+            Object.keys(def.items.properties).forEach((key) => {
                 if (def.items.properties[key].value === undefined) {
                     def.items.properties[key].value = null;
                 }
             });
         }
     }
-    if (o.value === null || o.value) {
+    if (o.value === null || o.value !== undefined) {
         def.value = o.value;
     } else {
         def.value = null;
@@ -197,8 +210,8 @@ function revNode(node) {
         description: node.data?.nodeMeta?.description || '',
         position: {
             x: typeof pos.x === 'number' ? pos.x : 0,
-            y: typeof pos.y === 'number' ? pos.y : 0
-        }
+            y: typeof pos.y === 'number' ? pos.y : 0,
+        },
     };
 
     if (node.meta?.canvasPosition) yNode.canvas_position = node.meta.canvasPosition;
@@ -207,42 +220,48 @@ function revNode(node) {
     const params = {};
     const data = node.data || {};
 
-    if (data.inputs?.inputParameters && Array.isArray(data.inputs.inputParameters) && data.inputs.inputParameters.length > 0) {
-        params.node_inputs = data.inputs.inputParameters.map(ip => ({
+    if (
+        data.inputs?.inputParameters &&
+        Array.isArray(data.inputs.inputParameters) &&
+        data.inputs.inputParameters.length > 0
+    ) {
+        params.node_inputs = data.inputs.inputParameters.map((ip) => ({
             name: ip.name,
             input: {
                 type: ip.input?.type || 'literal',
-                value: convertValue(ip.input?.value)
-            }
+                value: convertValue(ip.input?.value),
+            },
         }));
     }
 
     if (data.outputs && Array.isArray(data.outputs) && data.outputs.length > 0) {
         params.node_outputs = {};
-        data.outputs.forEach(o => {
+        data.outputs.forEach((o) => {
             params.node_outputs[o.name] = buildOutputDefinition(o);
         });
     }
 
-    (TYPE_PARAMS_MAP[type] || []).forEach(param => {
+    (TYPE_PARAMS_MAP[type] || []).forEach((param) => {
         if (data.inputs?.[param] !== undefined) {
             const rawValue = data.inputs[param];
             if (Array.isArray(rawValue) && param === 'llmParam') {
-                params[param] = rawValue.map(item => ({
+                params[param] = rawValue.map((item) => ({
                     name: item.name,
                     input: {
                         type: item.input?.type || 'literal',
-                        value: convertValue(item.input?.value)
-                    }
+                        value: convertValue(item.input?.value),
+                    },
                 }));
             } else if (param === 'llmParam' && typeof rawValue === 'object' && rawValue !== null) {
                 params[param] = convertValue(rawValue);
-            } else if ((type === 'loop' && (param === 'loopCount' || param === 'loopItems')) ||
-                   (type === 'batch' && (param === 'batchSize' || param === 'concurrentSize'))) {
+            } else if (
+                (type === 'loop' && (param === 'loopCount' || param === 'loopItems')) ||
+                (type === 'batch' && (param === 'batchSize' || param === 'concurrentSize'))
+            ) {
                 if (rawValue.type && rawValue.value !== undefined) {
                     params[param] = {
                         type: rawValue.type,
-                        value: convertValue(rawValue.value, { keepLiteral: true, keepRawMeta: true })
+                        value: convertValue(rawValue.value, { keepLiteral: true, keepRawMeta: true }),
                     };
                 } else {
                     params[param] = convertValue(rawValue, { keepLiteral: true, keepRawMeta: true });
@@ -253,7 +272,7 @@ function revNode(node) {
         }
     });
 
-    TYPE_PARAMS_MAP.common.forEach(param => {
+    TYPE_PARAMS_MAP.common.forEach((param) => {
         if (data.inputs?.[param] !== undefined) {
             params[param] = convertValue(data.inputs[param]);
         }
@@ -267,14 +286,14 @@ function revNode(node) {
     }
 
     if (node.blocks?.length) {
-        yNode.nodes = node.blocks.map(b => revNode(b));
+        yNode.nodes = node.blocks.map((b) => revNode(b));
     }
 
     if (node.edges?.length) {
-        yNode.edges = node.edges.map(e => {
+        yNode.edges = node.edges.map((e) => {
             const edge = {
                 source_node: String(e.sourceNodeID),
-                target_node: String(e.targetNodeID)
+                target_node: String(e.targetNodeID),
             };
             if (e.sourcePortID !== undefined) edge.source_port = String(e.sourcePortID);
             if (e.targetPortID !== undefined) edge.target_port = String(e.targetPortID);
@@ -306,10 +325,10 @@ export function convertClipboardToYaml(clip) {
     validateClipboardInput(clip);
     const json = clip.json;
     return {
-        schema_version: "1.0.0",
-        name: json.name || "imported_workflow",
+        schema_version: '1.0.0',
+        name: json.name || 'imported_workflow',
         id: String(clip.source.workflowId),
-        nodes: json.nodes.map(n => revNode(n)),
-        edges: convertEdgesReverse(json.edges)
+        nodes: json.nodes.map((n) => revNode(n)),
+        edges: convertEdgesReverse(json.edges),
     };
 }

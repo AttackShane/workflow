@@ -56,7 +56,8 @@ export class WorkflowUI {
 
         this._lastSavedVersion = this._captureSnapshot();
         this.autoSave.startAutoSave();
-        i18n.addListener(() => this.handleLanguageChange());
+        this._i18nChangeListener = () => this.handleLanguageChange();
+        i18n.addListener(this._i18nChangeListener);
     }
 
     /**
@@ -112,9 +113,10 @@ export class WorkflowUI {
         this.setupWorkflowInfoClick();
         this.renderNodePalette();
 
-        document.addEventListener('languagechange', () => {
+        this._languageChangeHandler = () => {
             this.renderNodePalette();
-        });
+        };
+        document.addEventListener('languagechange', this._languageChangeHandler);
 
         this.search.setupSearchHandler();
         this.align.setupAlignToolbar();
@@ -565,7 +567,7 @@ export class WorkflowUI {
         if (result.valid) {
             this.showMessage(t('editor.validateSuccess'), 'success');
         } else {
-            this.showMessage(t('editor.validateError') + '：<br>' + result.message.replace(/\n/g, '<br>'), 'error');
+            this.showMessage(t('editor.validateError'), 'error', { items: result.errors });
         }
     }
 
@@ -597,7 +599,18 @@ export class WorkflowUI {
     exportAsSvg() {
         if (!this.canvas || !this.canvas.exportAsImage) return;
         this.canvas.exportAsImage('svg');
-        this.showMessage('SVG 已导出', 'success');
+        this.showMessage(t('editor.exportSvgSuccess'), 'success');
+    }
+
+    /**
+     * 聚焦节点搜索输入框（供搜索快捷键调用）
+     */
+    focusSearchInput() {
+        const searchInput = /** @type {HTMLInputElement|null} */ (DOM.get('nodeSearchInput'));
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+        }
     }
 
     /**
@@ -765,13 +778,14 @@ export class WorkflowUI {
             });
         });
 
-        document.addEventListener('click', () => {
+        this._dropdownOutsideClickHandler = () => {
             document.querySelectorAll('.dropdown-menu').forEach((m) => {
                 m.classList.remove('show');
                 const parentGroup = m.closest('.dropdown-group') || m.closest('.dropdown');
                 if (parentGroup) parentGroup.classList.remove('open');
             });
-        });
+        };
+        document.addEventListener('click', this._dropdownOutsideClickHandler);
     }
 
     /**
@@ -779,8 +793,8 @@ export class WorkflowUI {
      * @param {string} text
      * @param {string} type
      */
-    showMessage(text, type) {
-        this.messages.show(text, type);
+    showMessage(text, type, options) {
+        this.messages.show(text, type, options);
     }
 
     /**
@@ -800,9 +814,9 @@ export class WorkflowUI {
         this.node.selector.openInputParamRefSelector(prefix, index);
     }
 
-    clearInputParamRef(nodeId, prefix, index) {
+    clearInputParamRef(prefix, index) {
         if (!this.node || !this.node.selector) return;
-        this.node.selector.clearInputParamRef(nodeId, prefix, index);
+        this.node.selector.clearInputParamRef(prefix, index);
     }
 
     addMergeVariable(nodeId, gi) {
@@ -858,5 +872,42 @@ export class WorkflowUI {
     clearLoopIntermediateVarRef(nodeId, vi) {
         if (!this.node || !this.node.paramEditor) return;
         this.node.paramEditor.clearLoopIntermediateVarRef(nodeId, vi);
+    }
+
+    /**
+     * 销毁 UI 实例，清理全局事件监听器和子模块
+     */
+    destroy() {
+        if (this._languageChangeHandler) {
+            document.removeEventListener('languagechange', this._languageChangeHandler);
+            this._languageChangeHandler = null;
+        }
+        if (this._i18nChangeListener) {
+            i18n.removeListener(this._i18nChangeListener);
+            this._i18nChangeListener = null;
+        }
+        if (this._dropdownOutsideClickHandler) {
+            document.removeEventListener('click', this._dropdownOutsideClickHandler);
+            this._dropdownOutsideClickHandler = null;
+        }
+        if (this.canvas) {
+            this.canvas.destroy();
+        }
+        if (this.autoSave) {
+            this.autoSave.destroy();
+        }
+        if (this.history) {
+            this.history.destroy();
+        }
+        if (this.keyboard) {
+            this.keyboard.destroy();
+        }
+        if (this.node && this.node.panel) {
+            this.node.panel.destroy();
+        }
+        // 销毁 core（移除 languagechange 全局监听器，避免内存泄漏）
+        if (this.core) {
+            this.core.destroy();
+        }
     }
 }

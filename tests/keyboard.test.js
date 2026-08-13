@@ -60,6 +60,7 @@ function createMockUI() {
         confirmExit: jest.fn(),
         quickSave: jest.fn(),
         toggleSelectedNodesLock: jest.fn(),
+        focusSearchInput: jest.fn(),
         canvas: {
             autoOptimizeLayout: jest.fn(),
         },
@@ -350,8 +351,26 @@ describe('WorkflowKeyboard', () => {
             expect(mockUI.quickSave).toHaveBeenCalled();
         });
 
-        it('should handle Ctrl+F (auto layout)', () => {
+        it('should handle Ctrl+F (focus search input)', () => {
             const event = createMockEvent({ key: 'f', ctrlKey: true });
+
+            keyboard.handleKeydown(event);
+
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(mockUI.focusSearchInput).toHaveBeenCalled();
+        });
+
+        it('should handle Cmd+F (focus search input on Mac)', () => {
+            const event = createMockEvent({ key: 'f', metaKey: true });
+
+            keyboard.handleKeydown(event);
+
+            expect(event.preventDefault).toHaveBeenCalled();
+            expect(mockUI.focusSearchInput).toHaveBeenCalled();
+        });
+
+        it('should handle Ctrl+Shift+L (auto optimize layout)', () => {
+            const event = createMockEvent({ key: 'L', ctrlKey: true, shiftKey: true });
 
             keyboard.handleKeydown(event);
 
@@ -359,8 +378,8 @@ describe('WorkflowKeyboard', () => {
             expect(mockUI.canvas.autoOptimizeLayout).toHaveBeenCalled();
         });
 
-        it('should handle Cmd+F (auto layout on Mac)', () => {
-            const event = createMockEvent({ key: 'f', metaKey: true });
+        it('should handle Cmd+Shift+L (auto optimize layout on Mac)', () => {
+            const event = createMockEvent({ key: 'L', metaKey: true, shiftKey: true });
 
             keyboard.handleKeydown(event);
 

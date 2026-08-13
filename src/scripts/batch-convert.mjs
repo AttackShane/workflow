@@ -13,7 +13,7 @@ async function main() {
     console.log('─────────────────────────────');
     
     try {
-        const converter = await import('../modules/converter.js');
+        const converter = await import('../modules/converter/converter.js');
         
         if (!fs.existsSync(exampleDir)) {
             console.error(`❌ 示例目录不存在: ${exampleDir}`);

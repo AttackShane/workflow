@@ -1,11 +1,11 @@
 import { nodeHandlers } from '../../src/components/nodeHandlers.js';
 
 jest.mock('../../src/utils/types.js', () => ({
-    mapLang: jest.fn(lang => lang === 'javascript' ? 'js' : lang),
-    toValueObject: jest.fn(val => {
+    mapLang: jest.fn((lang) => (lang === 'javascript' ? 'js' : lang)),
+    toValueObject: jest.fn((val) => {
         if (val && typeof val === 'object' && val.type) return val;
         return { type: 'literal', content: val };
-    })
+    }),
 }));
 
 jest.mock('../../src/components/outputMapper.js', () => ({
@@ -14,27 +14,30 @@ jest.mock('../../src/components/outputMapper.js', () => ({
         return Object.entries(outputs)
             .filter(([name]) => name !== 'reasoning_content' && name !== 'thinking_result')
             .map(([name, def]) => ({ name, type: def.type || 'string' }));
-    })
+    }),
 }));
 
 jest.mock('../../src/components/inputMapper.js', () => ({
     convertInputParameters: jest.fn((inputs, outputMap) => {
         if (!Array.isArray(inputs)) return [];
-        return inputs.map(inp => ({ name: inp.name, input: { type: 'string', value: { type: 'literal', content: '' } } }));
-    })
+        return inputs.map((inp) => ({
+            name: inp.name,
+            input: { type: 'string', value: { type: 'literal', content: '' } },
+        }));
+    }),
 }));
 
 jest.mock('../../src/components/containerHandler.js', () => ({
     processContainerNode: jest.fn((data, params, ctx, type) => {
         data.type = type;
-    })
+    }),
 }));
 
 const createMockCtx = (overrides = {}) => ({
     inputParams: [],
     node: {},
     outputMap: new Map(),
-    ...overrides
+    ...overrides,
 });
 
 describe('nodeHandlers', () => {
@@ -211,14 +214,18 @@ describe('nodeHandlers', () => {
         it('should convert condition values', () => {
             const data = {};
             const params = {
-                branches: [{
-                    condition: {
-                        conditions: [{
-                            left: { input: { value: { type: 'literal', content: 'left' } } },
-                            right: { input: { value: { type: 'literal', content: 'right' } } }
-                        }]
-                    }
-                }]
+                branches: [
+                    {
+                        condition: {
+                            conditions: [
+                                {
+                                    left: { input: { value: { type: 'literal', content: 'left' } } },
+                                    right: { input: { value: { type: 'literal', content: 'right' } } },
+                                },
+                            ],
+                        },
+                    },
+                ],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.condition(data, params, ctx);
@@ -376,7 +383,7 @@ describe('nodeHandlers', () => {
         it('should convert concatParams with values', () => {
             const data = {};
             const params = {
-                concatParams: [{ name: 'p1', input: { value: { type: 'literal', content: 'test' } } }]
+                concatParams: [{ name: 'p1', input: { value: { type: 'literal', content: 'test' } } }],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.text(data, params, ctx);
@@ -458,8 +465,8 @@ describe('nodeHandlers', () => {
             const params = {
                 question: 'What is your name?',
                 llmParam: [
-                    { name: 'systemPrompt', input: { type: 'string', value: { type: 'literal', content: 'prompt' } } }
-                ]
+                    { name: 'systemPrompt', input: { type: 'string', value: { type: 'literal', content: 'prompt' } } },
+                ],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -473,8 +480,8 @@ describe('nodeHandlers', () => {
                 question: 'test',
                 llmParam: {
                     systemPrompt: 'hello',
-                    '0': { name: 'p1', input: { type: 'string', value: { type: 'literal', content: 'v1' } } }
-                }
+                    0: { name: 'p1', input: { type: 'string', value: { type: 'literal', content: 'v1' } } },
+                },
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -485,7 +492,7 @@ describe('nodeHandlers', () => {
             const data = {};
             const params = {
                 question: 'test',
-                dynamic_option: { type: 'string', value: { type: 'literal', content: 'dynamic' } }
+                dynamic_option: { type: 'string', value: { type: 'literal', content: 'dynamic' } },
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -496,7 +503,7 @@ describe('nodeHandlers', () => {
             const data = {};
             const params = {
                 question: 'test',
-                options: [{ name: 'opt1', value: 'v1' }, { name: 'opt2' }]
+                options: [{ name: 'opt1', value: 'v1' }, { name: 'opt2' }],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -507,7 +514,7 @@ describe('nodeHandlers', () => {
             const data = {};
             const params = {
                 question: 'test',
-                options: ['opt1', 'opt2']
+                options: ['opt1', 'opt2'],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -519,8 +526,8 @@ describe('nodeHandlers', () => {
             const params = {
                 question: 'test',
                 node_outputs: {
-                    result: { type: 'string', required: true }
-                }
+                    result: { type: 'string', required: true },
+                },
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -536,10 +543,10 @@ describe('nodeHandlers', () => {
                         type: 'object',
                         properties: {
                             field1: { type: 'string', required: true },
-                            field2: { type: 'list', items: { type: 'object', properties: {} } }
-                        }
-                    }
-                }
+                            field2: { type: 'list', items: { type: 'object', properties: {} } },
+                        },
+                    },
+                },
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.question(data, params, ctx);
@@ -579,7 +586,7 @@ describe('nodeHandlers', () => {
         it('should convert with variables array', () => {
             const data = {};
             const params = {
-                variables: [{ left: 'a', right: 'b' }]
+                variables: [{ left: 'a', right: 'b' }],
             };
             const ctx = createMockCtx({ inputParams: [] });
             nodeHandlers.loop_set_variable(data, params, ctx);
@@ -599,7 +606,7 @@ describe('nodeHandlers', () => {
             const params = {};
             const ctx = createMockCtx({
                 inputParams: [],
-                node: { parameters: { variables: [{ left: 'x', right: 'y' }] } }
+                node: { parameters: { variables: [{ left: 'x', right: 'y' }] } },
             });
             nodeHandlers.loop_set_variable(data, params, ctx);
             expect(data.inputs.inputParameters).toEqual([{ left: 'x', right: 'y' }]);

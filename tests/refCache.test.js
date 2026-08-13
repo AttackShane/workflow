@@ -96,7 +96,7 @@ describe('RefCache', () => {
 
         it('should find nested ref in object', () => {
             const nested = {
-                a: { b: { path: 'output.x', ref_node: 'node_456' } }
+                a: { b: { path: 'output.x', ref_node: 'node_456' } },
             };
             const result = cache.findRef(nested);
             expect(result).toEqual({ path: 'output.x', ref_node: 'node_456' });
@@ -107,10 +107,10 @@ describe('RefCache', () => {
                 level1: {
                     level2: {
                         level3: {
-                            level4: { path: 'deep.path', ref_node: 'deep_node' }
-                        }
-                    }
-                }
+                            level4: { path: 'deep.path', ref_node: 'deep_node' },
+                        },
+                    },
+                },
             };
             const result = cache.findRef(deep);
             expect(result).toEqual({ path: 'deep.path', ref_node: 'deep_node' });
@@ -130,7 +130,7 @@ describe('RefCache', () => {
         it('should find first ref in object with multiple refs', () => {
             const multi = {
                 a: { path: 'first.ref', ref_node: 'first' },
-                b: { path: 'second.ref', ref_node: 'second' }
+                b: { path: 'second.ref', ref_node: 'second' },
             };
             const result = cache.findRef(multi);
             expect(result).toBeTruthy();

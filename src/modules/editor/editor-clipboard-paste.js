@@ -630,7 +630,7 @@ export class WorkflowClipboardPaste {
             });
         });
 
-        this.clipboard.ui.node.select(el);
+        this.clipboard.ui.node.render.select(el);
     }
 
     pasteFromSimpleNodes(data) {
@@ -662,7 +662,7 @@ export class WorkflowClipboardPaste {
                 this.clipboard.ui.canvas.canvasContent.appendChild(el);
                 this.clipboard.ui.canvas.setEmptyState(false);
             });
-            this.clipboard.ui.node.batchMeasureElements(elements);
+            this.clipboard.ui.node.render.batchMeasureElements(elements);
 
             data.edges?.forEach((edge) => {
                 const newEdge = {

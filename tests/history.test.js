@@ -57,7 +57,7 @@ describe('WorkflowHistory', () => {
             core.saveHistory('initial');
             core.nodes = [
                 { id: 'node_1', type: 'start' },
-                { id: 'node_2', type: 'end' }
+                { id: 'node_2', type: 'end' },
             ];
             core.saveHistory('add_node');
         });

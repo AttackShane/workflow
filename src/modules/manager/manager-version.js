@@ -228,7 +228,8 @@ export function generateVersionDiff(versionA, versionB) {
             if (a.type !== n.type) changes.push(t('manager.versionChangeType', { old: a.type, new: n.type }));
             if (a.x !== n.x || a.y !== n.y)
                 changes.push(t('manager.versionChangePosition', { x1: a.x, y1: a.y, x2: n.x, y2: n.y }));
-            if (JSON.stringify(a.data) !== JSON.stringify(n.data)) changes.push(t('manager.versionChangeParams'));
+            if (JSON.stringify(a.parameters) !== JSON.stringify(n.parameters))
+                changes.push(t('manager.versionChangeParams'));
             if (changes.length > 0) {
                 modifiedNodes.push({ id: n.id, title: n.title, changes });
             } else {

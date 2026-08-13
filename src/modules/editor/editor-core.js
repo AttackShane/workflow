@@ -3,12 +3,12 @@
  *
  * 负责管理工作流的节点、边、历史记录和验证逻辑
  * 节点类型定义由 editor-node-types.js 提供
- * @typedef {import('../../types/workflow.js').WorkflowNode WorkflowNode}
- * @typedef {import('../../types/workflow.js').WorkflowEdge WorkflowEdge}
- * @typedef {import('../../types/workflow.js').HistoryState HistoryState}
- * @typedef {import('../../types/workflow.js').NodeTypeInfo NodeTypeInfo}
- * @typedef {import('../../types/workflow.js').WorkflowData WorkflowData}
- * @typedef {import('../../types/workflow.js').ChangeCallback ChangeCallback}
+ * @typedef {import('../../types/workflow.js').WorkflowNode} WorkflowNode
+ * @typedef {import('../../types/workflow.js').WorkflowEdge} WorkflowEdge
+ * @typedef {import('../../types/workflow.js').HistoryState} HistoryState
+ * @typedef {import('../../types/workflow.js').NodeTypeInfo} NodeTypeInfo
+ * @typedef {import('../../types/workflow.js').WorkflowData} WorkflowData
+ * @typedef {import('../../types/workflow.js').ChangeCallback} ChangeCallback
  */
 import { REV_TYPE_MAP, resolveNodeType } from '../../utils/types.js';
 import { t } from '../../i18n/i18n.js';
@@ -61,7 +61,7 @@ export class WorkflowCore {
         /** @type {boolean} 是否批量操作中 */
         this._batchMode = false;
 
-        /** @type {Object.<string, NodeTypeInfo>} 节点类型信息缓存 */
+        /** @type {{[key: string]: NodeTypeInfo}} 节点类型信息缓存 */
         this._nodeTypeInfo = getNodeTypeInfo();
         this._nodeTypeInfoHandler = () => {
             this._nodeTypeInfo = getNodeTypeInfo();
@@ -73,6 +73,16 @@ export class WorkflowCore {
         this.storage = new WorkflowStorage(this);
         this.serializer = new WorkflowSerializer(this);
         this.container = new WorkflowContainer(this);
+    }
+
+    /**
+     * 销毁核心实例，清理全局事件监听器
+     */
+    destroy() {
+        if (typeof document !== 'undefined' && this._nodeTypeInfoHandler) {
+            document.removeEventListener('languagechange', this._nodeTypeInfoHandler);
+        }
+        this._nodeTypeInfoHandler = null;
     }
 
     /**
@@ -111,7 +121,7 @@ export class WorkflowCore {
         const nodeMap = new Map(nodes.map((n) => [n.id, n]));
         const edgeMap = new Map(edges.map((e) => [e.id, e]));
 
-        if (state.nodes) {
+        if (state.nodes && !Array.isArray(state.nodes)) {
             if (state.nodes.deleted) {
                 state.nodes.deleted.forEach((id) => nodeMap.delete(id));
             }
@@ -123,7 +133,7 @@ export class WorkflowCore {
             }
         }
 
-        if (state.edges) {
+        if (state.edges && !Array.isArray(state.edges)) {
             if (state.edges.deleted) {
                 state.edges.deleted.forEach((id) => edgeMap.delete(id));
             }
@@ -251,7 +261,7 @@ export class WorkflowCore {
 
     /**
      * 获取节点类型配置信息（动态翻译，语言切换时自动刷新缓存）
-     * @returns {Object.<string, NodeTypeInfo>} 包含每种节点的标题、图标、描述、输入输出属性和参数定义
+     * @returns {{[key: string]: NodeTypeInfo}} 包含每种节点的标题、图标、描述、输入输出属性和参数定义
      */
     get nodeTypeInfo() {
         return this._nodeTypeInfo;
@@ -383,7 +393,7 @@ export class WorkflowCore {
      * @param {string} targetId - 目标节点ID
      * @param {string} [sourcePort] - 源端口标识（分支节点、容器节点使用）
      * @param {string} [targetPort] - 目标端口标识（容器节点使用）
-     * @returns {WorkflowEdge|null} 创建的边对象，如果已存在或校验失败则返回null
+     * @returns {WorkflowEdge|{error: string}|null} 创建的边对象，校验失败返回{error}，已存在返回null
      */
     createEdge(sourceId, targetId, sourcePort = '', targetPort = '') {
         const validation = this.container.validateContainerPorts(sourceId, targetId, sourcePort, targetPort);

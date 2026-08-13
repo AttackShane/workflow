@@ -14,28 +14,47 @@ import {
     validateClipboardInput,
     getNodeTypeName,
     getNodeColor,
-    formatError
+    formatError,
 } from '../src/utils/utils.js';
 
 // Mock the types module used by utils
 jest.mock('../src/utils/types.js', () => ({
     REV_TYPE_MAP: {
-        '1': 'start', '2': 'end', '3': 'llm', '4': 'plugin',
-        '5': 'code', '8': 'condition', '21': 'loop', '28': 'batch',
-        '45': 'http', '18': 'question'
+        1: 'start',
+        2: 'end',
+        3: 'llm',
+        4: 'plugin',
+        5: 'code',
+        8: 'condition',
+        21: 'loop',
+        28: 'batch',
+        45: 'http',
+        18: 'question',
     },
     NODE_DISPLAY_NAMES: {
-        start: '🚀 开始', end: '🏁 结束', llm: '🤖 大模型',
-        plugin: '🔌 插件', code: '💻 代码', condition: '🔀 条件',
-        http: '🌐 HTTP请求', question: '❓ 问答', loop: '🔄 循环',
-        batch: '📤 批处理'
+        start: '🚀 开始',
+        end: '🏁 结束',
+        llm: '🤖 大模型',
+        plugin: '🔌 插件',
+        code: '💻 代码',
+        condition: '🔀 条件',
+        http: '🌐 HTTP请求',
+        question: '❓ 问答',
+        loop: '🔄 循环',
+        batch: '📤 批处理',
     },
     NODE_COLORS: {
-        start: '#5C62FF', end: '#5C62FF', llm: '#5C62FF',
-        plugin: '#CA61FF', code: '#00B2B2', condition: '#00B2B2',
-        http: '#F59E0B', question: '#3071F2', loop: '#00B2B2',
-        batch: '#00B2B2'
-    }
+        start: '#5C62FF',
+        end: '#5C62FF',
+        llm: '#5C62FF',
+        plugin: '#CA61FF',
+        code: '#00B2B2',
+        condition: '#00B2B2',
+        http: '#F59E0B',
+        question: '#3071F2',
+        loop: '#00B2B2',
+        batch: '#00B2B2',
+    },
 }));
 
 describe('ERROR_CODES', () => {
@@ -90,10 +109,7 @@ describe('ConversionError', () => {
         });
 
         it('should set optional properties', () => {
-            const err = new ConversionError(
-                'msg', 'CODE',
-                { key: 'value' }, 10, 5, 'node_123'
-            );
+            const err = new ConversionError('msg', 'CODE', { key: 'value' }, 10, 5, 'node_123');
             expect(err.details).toEqual({ key: 'value' });
             expect(err.line).toBe(10);
             expect(err.column).toBe(5);
@@ -119,20 +135,14 @@ describe('ConversionError', () => {
 
     describe('getFriendlyMessage', () => {
         it('should use template for MISSING_NODE_TYPE (has {nodeId})', () => {
-            const err = new ConversionError(
-                'raw msg', ERROR_CODES.MISSING_NODE_TYPE,
-                null, null, null, 'node_abc'
-            );
+            const err = new ConversionError('raw msg', ERROR_CODES.MISSING_NODE_TYPE, null, null, null, 'node_abc');
             const msg = err.getFriendlyMessage();
             expect(msg).toContain('node_abc');
             expect(msg).toContain('缺少type字段');
         });
 
         it('should use template for MISSING_NODE_ID with details.index', () => {
-            const err = new ConversionError(
-                'raw msg', ERROR_CODES.MISSING_NODE_ID,
-                { index: 5 }, null, null, 'node_x'
-            );
+            const err = new ConversionError('raw msg', ERROR_CODES.MISSING_NODE_ID, { index: 5 }, null, null, 'node_x');
             const msg = err.getFriendlyMessage();
             expect(msg).toContain('5');
         });
@@ -144,9 +154,12 @@ describe('ConversionError', () => {
 
         it('should replace template placeholders in INVALID_EDGE', () => {
             const err = new ConversionError(
-                'msg', ERROR_CODES.INVALID_EDGE,
+                'msg',
+                ERROR_CODES.INVALID_EDGE,
                 { source: 'A', target: 'B' },
-                null, null, 'node_A'
+                null,
+                null,
+                'node_A'
             );
             const msg = err.getFriendlyMessage();
             expect(msg).toContain('A');
@@ -154,20 +167,14 @@ describe('ConversionError', () => {
         });
 
         it('should replace {line} and {column} in YAML_PARSE_ERROR', () => {
-            const err = new ConversionError(
-                'msg', ERROR_CODES.YAML_PARSE_ERROR,
-                null, 10, 5
-            );
+            const err = new ConversionError('msg', ERROR_CODES.YAML_PARSE_ERROR, null, 10, 5);
             const msg = err.getFriendlyMessage();
             expect(msg).toContain('10');
             expect(msg).toContain('5');
         });
 
         it('should replace {details} in INVALID_STRUCTURE', () => {
-            const err = new ConversionError(
-                'msg', ERROR_CODES.INVALID_STRUCTURE,
-                { missingField: 'nodes' }
-            );
+            const err = new ConversionError('msg', ERROR_CODES.INVALID_STRUCTURE, { missingField: 'nodes' });
             const msg = err.getFriendlyMessage();
             expect(msg).toContain('nodes');
         });
@@ -260,18 +267,14 @@ describe('convertEdges', () => {
     });
 
     it('should convert source_node/target_node format', () => {
-        const edges = [
-            { source_node: 'n1', target_node: 'n2' }
-        ];
+        const edges = [{ source_node: 'n1', target_node: 'n2' }];
         const result = convertEdges(edges);
         expect(result[0].sourceNodeID).toBe('n1');
         expect(result[0].targetNodeID).toBe('n2');
     });
 
     it('should convert sourceNodeID/targetNodeID format', () => {
-        const edges = [
-            { sourceNodeID: 'n1', targetNodeID: 'n2' }
-        ];
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2' }];
         const result = convertEdges(edges);
         expect(result[0].sourceNodeID).toBe('n1');
         expect(result[0].targetNodeID).toBe('n2');
@@ -280,9 +283,11 @@ describe('convertEdges', () => {
     it('should convert port IDs', () => {
         const edges = [
             {
-                source_node: 'n1', target_node: 'n2',
-                source_port: 'p1', target_port: 'p2'
-            }
+                source_node: 'n1',
+                target_node: 'n2',
+                source_port: 'p1',
+                target_port: 'p2',
+            },
         ];
         const result = convertEdges(edges);
         expect(result[0].sourcePortID).toBe('p1');
@@ -292,16 +297,14 @@ describe('convertEdges', () => {
     it('should convert multiple edges', () => {
         const edges = [
             { source_node: 'n1', target_node: 'n2' },
-            { source_node: 'n2', target_node: 'n3' }
+            { source_node: 'n2', target_node: 'n3' },
         ];
         const result = convertEdges(edges);
         expect(result).toHaveLength(2);
     });
 
     it('should convert all values to strings', () => {
-        const edges = [
-            { source_node: 123, target_node: 456 }
-        ];
+        const edges = [{ source_node: 123, target_node: 456 }];
         const result = convertEdges(edges);
         expect(result[0].sourceNodeID).toBe('123');
         expect(result[0].targetNodeID).toBe('456');
@@ -319,36 +322,37 @@ describe('convertEdgesReverse', () => {
     });
 
     it('should convert sourceNodeID/targetNodeID to source_node/target_node', () => {
-        const edges = [
-            { sourceNodeID: 'n1', targetNodeID: 'n2' }
-        ];
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2' }];
         const result = convertEdgesReverse(edges);
         expect(result[0].source_node).toBe('n1');
         expect(result[0].target_node).toBe('n2');
     });
 
     it('should include port IDs when present', () => {
-        const edges = [
-            { sourceNodeID: 'n1', targetNodeID: 'n2', sourcePortID: 'p1', targetPortID: 'p2' }
-        ];
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2', sourcePortID: 'p1', targetPortID: 'p2' }];
         const result = convertEdgesReverse(edges);
         expect(result[0].source_port).toBe('p1');
         expect(result[0].target_port).toBe('p2');
     });
 
     it('should omit port IDs when not present', () => {
-        const edges = [
-            { sourceNodeID: 'n1', targetNodeID: 'n2' }
-        ];
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2' }];
         const result = convertEdgesReverse(edges);
         expect(result[0].source_port).toBeUndefined();
         expect(result[0].target_port).toBeUndefined();
     });
 
+    it('should include port IDs when they are 0', () => {
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2', sourcePortID: 0, targetPortID: 0 }];
+        const result = convertEdgesReverse(edges);
+        expect(result[0].source_port).toBe('0');
+        expect(result[0].target_port).toBe('0');
+    });
+
     it('should handle multiple edges', () => {
         const edges = [
             { sourceNodeID: 'n1', targetNodeID: 'n2' },
-            { sourceNodeID: 'n2', targetNodeID: 'n3' }
+            { sourceNodeID: 'n2', targetNodeID: 'n3' },
         ];
         const result = convertEdgesReverse(edges);
         expect(result).toHaveLength(2);
@@ -487,8 +491,8 @@ describe('validateYamlInput', () => {
         const input = {
             nodes: [
                 { id: 'n1', type: 'start' },
-                { id: 'n1', type: 'end' }
-            ]
+                { id: 'n1', type: 'end' },
+            ],
         };
         expect(() => validateYamlInput(input)).toThrow(ConversionError);
     });
@@ -498,8 +502,8 @@ describe('validateYamlInput', () => {
             nodes: [
                 { id: 'n1', type: 'start' },
                 { id: 'n2', type: 'llm' },
-                { id: 'n3', type: 'end' }
-            ]
+                { id: 'n3', type: 'end' },
+            ],
         };
         expect(() => validateYamlInput(input)).not.toThrow();
     });
@@ -508,35 +512,25 @@ describe('validateYamlInput', () => {
         const input = {
             nodes: [
                 { id: 'n1', type: 'start' },
-                { id: 'n2', type: 'end' }
+                { id: 'n2', type: 'end' },
             ],
-            edges: [
-                { source_node: 'n1', target_node: 'n2' }
-            ]
+            edges: [{ source_node: 'n1', target_node: 'n2' }],
         };
         expect(() => validateYamlInput(input)).not.toThrow();
     });
 
     it('should throw for edge referencing non-existent source node', () => {
         const input = {
-            nodes: [
-                { id: 'n1', type: 'start' }
-            ],
-            edges: [
-                { source_node: 'n999', target_node: 'n1' }
-            ]
+            nodes: [{ id: 'n1', type: 'start' }],
+            edges: [{ source_node: 'n999', target_node: 'n1' }],
         };
         expect(() => validateYamlInput(input)).toThrow(ConversionError);
     });
 
     it('should throw for edge referencing non-existent target node', () => {
         const input = {
-            nodes: [
-                { id: 'n1', type: 'start' }
-            ],
-            edges: [
-                { source_node: 'n1', target_node: 'n999' }
-            ]
+            nodes: [{ id: 'n1', type: 'start' }],
+            edges: [{ source_node: 'n1', target_node: 'n999' }],
         };
         expect(() => validateYamlInput(input)).toThrow(ConversionError);
     });
@@ -544,7 +538,7 @@ describe('validateYamlInput', () => {
     it('should pass for empty edges array', () => {
         const input = {
             nodes: [{ id: 'n1', type: 'start' }],
-            edges: []
+            edges: [],
         };
         expect(() => validateYamlInput(input)).not.toThrow();
     });
@@ -552,7 +546,7 @@ describe('validateYamlInput', () => {
     it('should pass when edges is not an array', () => {
         const input = {
             nodes: [{ id: 'n1', type: 'start' }],
-            edges: 'not_array'
+            edges: 'not_array',
         };
         expect(() => validateYamlInput(input)).not.toThrow();
     });
@@ -562,9 +556,7 @@ describe('validateEdges', () => {
     const nodeIds = new Set(['n1', 'n2', 'n3']);
 
     it('should pass for valid edges', () => {
-        const edges = [
-            { source_node: 'n1', target_node: 'n2' }
-        ];
+        const edges = [{ source_node: 'n1', target_node: 'n2' }];
         expect(() => validateEdges(edges, nodeIds)).not.toThrow();
     });
 
@@ -589,9 +581,7 @@ describe('validateEdges', () => {
     });
 
     it('should handle sourceNodeID/targetNodeID format', () => {
-        const edges = [
-            { sourceNodeID: 'n1', targetNodeID: 'n2' }
-        ];
+        const edges = [{ sourceNodeID: 'n1', targetNodeID: 'n2' }];
         expect(() => validateEdges(edges, nodeIds)).not.toThrow();
     });
 });
@@ -614,7 +604,7 @@ describe('validateClipboardInput', () => {
     it('should throw for missing nodes in json', () => {
         const clip = {
             type: 'coze-workflow-clipboard-data',
-            json: {}
+            json: {},
         };
         expect(() => validateClipboardInput(clip)).toThrow(ConversionError);
     });
@@ -622,7 +612,7 @@ describe('validateClipboardInput', () => {
     it('should throw for non-array nodes in json', () => {
         const clip = {
             type: 'coze-workflow-clipboard-data',
-            json: { nodes: 'not_array' }
+            json: { nodes: 'not_array' },
         };
         expect(() => validateClipboardInput(clip)).toThrow(ConversionError);
     });
@@ -630,7 +620,7 @@ describe('validateClipboardInput', () => {
     it('should pass for valid clipboard data', () => {
         const clip = {
             type: 'coze-workflow-clipboard-data',
-            json: { nodes: [] }
+            json: { nodes: [] },
         };
         expect(() => validateClipboardInput(clip)).not.toThrow();
     });
@@ -638,7 +628,7 @@ describe('validateClipboardInput', () => {
     it('should pass for valid clipboard with nodes', () => {
         const clip = {
             type: 'coze-workflow-clipboard-data',
-            json: { nodes: [{ id: 'n1', type: 'start' }] }
+            json: { nodes: [{ id: 'n1', type: 'start' }] },
         };
         expect(() => validateClipboardInput(clip)).not.toThrow();
     });

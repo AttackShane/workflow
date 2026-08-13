@@ -1,5 +1,4 @@
 import { t } from '../../i18n/i18n.js';
-import { deepClone } from '../../utils/helpers.js';
 
 export class WorkflowHistory {
     constructor(ui, prefix = '') {

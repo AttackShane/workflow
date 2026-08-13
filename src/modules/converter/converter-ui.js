@@ -128,13 +128,17 @@ class UIController {
         if (!file) return;
 
         if (!this._isValidFile(file)) {
-            this.msg('不支持的文件类型', true);
+            this.msg(t('converter.unsupportedFileType') || '不支持的文件类型', true);
+            event.target.value = '';
             return;
         }
 
         const fileNameDisplay = DOM.get(SELECTORS.CONVERTER.FILE_NAME_DISPLAY);
         const inputText = DOM.get(SELECTORS.CONVERTER.INPUT_TEXT);
-        if (!fileNameDisplay || !inputText) return;
+        if (!fileNameDisplay || !inputText) {
+            event.target.value = '';
+            return;
+        }
 
         this._selectedFile = file;
         DOM.setText(fileNameDisplay, `已选择: ${file.name}`);
@@ -144,7 +148,12 @@ class UIController {
             DOM.setText(inputText, String(e.target?.result || ''));
             this.handleConvert();
         };
+        reader.onerror = () => {
+            this.msg(t('converter.fileReadFailed') || '文件读取失败', true);
+        };
         reader.readAsText(file);
+        // 重置 value，便于再次选择同一文件时触发 change
+        event.target.value = '';
     };
 
     handleConvert = async () => {
@@ -356,6 +365,29 @@ class UIController {
         }
     };
 
+    destroy() {
+        if (this._virtualScroll) {
+            this._virtualScroll.destroy();
+            this._virtualScroll = null;
+        }
+        if (typeof document !== 'undefined' && this._handleFontSizeChange) {
+            document.removeEventListener('fontsizechange', this._handleFontSizeChange);
+        }
+        // 移除行号滚动同步监听器
+        if (this._scrollSyncHandler) {
+            const outputWrapper = DOM.get('outputWrapper');
+            if (outputWrapper) outputWrapper.removeEventListener('scroll', this._scrollSyncHandler);
+            this._scrollSyncHandler = null;
+        }
+        // 终止 Worker 进程
+        this._terminateWorker();
+        // 清空缓存
+        this._conversionCache?.clear?.();
+        this._highlightCache?.clear?.();
+    }
+
+    _scrollSyncHandler = null;
+
     _initLineNumberScrollSync = () => {
         const { lineNumbers } = this._elements;
         const outputWrapper = DOM.get('outputWrapper');
@@ -365,9 +397,14 @@ class UIController {
         lineNumbers.style.pointerEvents = 'none';
         lineNumbers.style.userSelect = 'none';
 
-        outputWrapper.addEventListener('scroll', () => {
+        // 移除旧监听器，避免多次调用累积监听器
+        if (this._scrollSyncHandler) {
+            outputWrapper.removeEventListener('scroll', this._scrollSyncHandler);
+        }
+        this._scrollSyncHandler = () => {
             lineNumbers.scrollTop = outputWrapper.scrollTop;
-        });
+        };
+        outputWrapper.addEventListener('scroll', this._scrollSyncHandler, { passive: true });
     };
 
     _bindEvents = () => {
@@ -439,7 +476,7 @@ class UIController {
                 if (this._isValidFile(file)) {
                     this._handleDroppedFile(file);
                 } else {
-                    this.msg('不支持的文件类型', true);
+                    this.msg(t('converter.unsupportedFileType') || '不支持的文件类型', true);
                 }
             }
         });
@@ -494,7 +531,9 @@ class UIController {
 
 const _instance = new UIController();
 export const getCurData = () => _instance.getCurData();
-export const setCurData = (data) => { _instance._curData = data; };
+export const setCurData = (data) => {
+    _instance._curData = data;
+};
 export const getCurDataType = () => _instance.getCurDataType();
 // @ts-ignore
 export const msg = (...args) => _instance.msg(...args);

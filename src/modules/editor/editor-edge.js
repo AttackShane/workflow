@@ -383,21 +383,21 @@ export class WorkflowEdge {
                     <input class="property-input" type="text" value="${StringUtils.escapeHtml(target?.title || t('edge.unknown'))}" readonly>
                 </div>
                 ${
-                    edge.sourcePortID
+                    edge.sourcePort
                         ? `
                 <div class="property-group">
                     <label class="property-label">${t('edge.sourcePort')}</label>
-                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.sourcePortID)}" readonly>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.sourcePort)}" readonly>
                 </div>
                 `
                         : ''
                 }
                 ${
-                    edge.targetPortID
+                    edge.targetPort
                         ? `
                 <div class="property-group">
                     <label class="property-label">${t('edge.targetPort')}</label>
-                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.targetPortID)}" readonly>
+                    <input class="property-input" type="text" value="${StringUtils.escapeHtml(edge.targetPort)}" readonly>
                 </div>
                 `
                         : ''

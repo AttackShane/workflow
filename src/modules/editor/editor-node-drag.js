@@ -59,13 +59,20 @@ export class WorkflowNodeDrag {
         const dragCtx = { rafId: null, dropTarget: null };
         const onMouseMove = (e) => this._onDragMove(e, selectedNodeEls, nodeStartPositions, dragCtx);
         const onMouseUp = (e) => this._onDragEnd(e, selectedNodeEls, nodeStartPositions, dragCtx, el);
-        const onKeyDown = this._makeEscapeHandler(dragCtx, selectedNodeEls, el, onMouseMove, onMouseUp);
+        const onKeyDown = this._makeEscapeHandler(
+            dragCtx,
+            selectedNodeEls,
+            el,
+            onMouseMove,
+            onMouseUp,
+            nodeStartPositions
+        );
 
         document.addEventListener('mousemove', onMouseMove);
         document.addEventListener('mouseup', onMouseUp);
         document.addEventListener('keydown', onKeyDown);
 
-        this.node._dragListeners = { onMouseMove, onMouseUp, onKeyDown };
+        /** @type {any} */ (this.node)._dragListeners = { onMouseMove, onMouseUp, onKeyDown };
     }
 
     // ====================================================================
@@ -194,10 +201,12 @@ export class WorkflowNodeDrag {
      * @returns {HTMLElement[]}
      */
     _getDraggableSelectedEls() {
-        return Array.from(document.querySelectorAll('.canvas-node.selected')).filter((nodeEl) => {
-            const nd = this.node.core.getNode(/** @type {HTMLElement} */ (nodeEl).dataset.nodeId);
-            return !nd || !nd.locked;
-        });
+        return /** @type {HTMLElement[]} */ (Array.from(document.querySelectorAll('.canvas-node.selected'))).filter(
+            (nodeEl) => {
+                const nd = this.node.core.getNode(/** @type {HTMLElement} */ (nodeEl).dataset.nodeId);
+                return !nd || !nd.locked;
+            }
+        );
     }
 
     /**
@@ -309,6 +318,35 @@ export class WorkflowNodeDrag {
             if (parent) {
                 const absX = (parent.x || 0) + newX;
                 const absY = (parent.y || 0) + APP_CONFIG.NODE.CONTAINER_BODY_OFFSET + newY;
+
+                // 保存撤销信息，供 Escape 回滚使用
+                const undoStack = this.node.ui._detachUndo || (this.node.ui._detachUndo = []);
+                const removedEdges = this.node.core.edges.filter((edge) => {
+                    if (edge.source === nodeId || edge.target === nodeId) {
+                        const oldChildren = this.node.core.container.getChildren(parent.id);
+                        const childIds = new Set(oldChildren.map((c) => c.id));
+                        if (
+                            edge.source === nodeId &&
+                            (childIds.has(edge.target) ||
+                                (edge.target === parent.id && edge.targetPort === 'container_end'))
+                        )
+                            return true;
+                        if (
+                            edge.target === nodeId &&
+                            (childIds.has(edge.source) ||
+                                (edge.source === parent.id && edge.sourcePort === 'container_start'))
+                        )
+                            return true;
+                    }
+                    return false;
+                });
+                undoStack.push({
+                    nodeId,
+                    oldParentId: parent.id,
+                    oldX: nodeData.x,
+                    oldY: nodeData.y,
+                    removedEdges,
+                });
 
                 el.remove();
                 this.node.ui.canvas.canvasContent.appendChild(el);
@@ -559,7 +597,7 @@ export class WorkflowNodeDrag {
     /**
      * 创建 Escape 键处理器
      */
-    _makeEscapeHandler(ctx, selectedNodeEls, el, onMouseMove, onMouseUp) {
+    _makeEscapeHandler(ctx, selectedNodeEls, el, onMouseMove, onMouseUp, nodeStartPositions) {
         const self = this;
         return (e) => {
             if (e.key !== 'Escape') return;
@@ -574,23 +612,77 @@ export class WorkflowNodeDrag {
                 ctx.dropTarget = null;
             }
 
+            // 回滚所有被拖拽节点到拖拽起始位置
             for (const nodeEl of selectedNodeEls) {
                 const nel = /** @type {HTMLElement} */ (nodeEl);
+                const nid = nel.dataset.nodeId;
+                const start = nodeStartPositions[nid];
+                if (start) {
+                    nel.dataset.x = String(start.x);
+                    nel.dataset.y = String(start.y);
+                    nel.style.transform = `translate(${start.x}px, ${start.y}px)`;
+                    const nd = self.node.core.getNode(nid);
+                    if (nd && !self.node.ui._detachUndo?.some((u) => u.nodeId === nid)) {
+                        nd.x = start.x;
+                        nd.y = start.y;
+                    }
+                }
                 nel.classList.remove('dragging');
                 nel.style.zIndex = '';
             }
             el.classList.remove('dragging');
             el.style.zIndex = '';
 
+            // 回滚 Ctrl 拖出操作：恢复 parentId/x/y、重新插入原父容器、恢复被删的边
+            const undoStack = self.node.ui._detachUndo;
+            if (Array.isArray(undoStack) && undoStack.length > 0) {
+                undoStack.forEach((undo) => {
+                    const nd = self.node.core.getNode(undo.nodeId);
+                    if (!nd) return;
+                    nd.parentId = undo.oldParentId;
+                    nd.x = undo.oldX;
+                    nd.y = undo.oldY;
+                    const undoEl = /** @type {HTMLElement | undefined} */ (
+                        /** @type {any} */ (self.node)._elMap?.get(undo.nodeId)
+                    );
+                    if (undoEl) {
+                        undoEl.remove();
+                        self.node.container.renderContainerChildren(undo.oldParentId);
+                    }
+                    if (Array.isArray(undo.removedEdges)) {
+                        undo.removedEdges.forEach((edge) => {
+                            if (!self.node.core.edges.some((ed) => ed.id === edge.id)) {
+                                self.node.core.edges.push(edge);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // 更新受影响容器尺寸
+            const pending = self.node.ui._pendingContainers;
+            if (pending) {
+                pending.forEach((pid) => {
+                    self.node.container.updateContainerSize(pid);
+                });
+            }
+
             self.node.ui._ctrlDetached = null;
             self.node.ui._pendingContainers = null;
+            self.node.ui._detachUndo = null;
 
             document.removeEventListener('mousemove', onMouseMove);
             document.removeEventListener('mouseup', onMouseUp);
-            document.removeEventListener('keydown', self.node._dragListeners.onKeyDown);
+            document.removeEventListener('keydown', /** @type {any} */ (self.node)._dragListeners.onKeyDown);
 
             const guidesEl = document.getElementById('alignmentGuides');
             if (guidesEl) guidesEl.innerHTML = '';
+
+            // 刷新边和 SVG 以反映回滚后的状态
+            const allAffected = new Set(selectedNodeEls.map((n) => /** @type {HTMLElement} */ (n).dataset.nodeId));
+            if (undoStack) undoStack.forEach((u) => allAffected.add(u.oldParentId));
+            self.node.ui.edge.updateAffectedEdges(Array.from(allAffected));
+            self.node.ui.canvas.updateSvgSize();
         };
     }
 
@@ -599,6 +691,7 @@ export class WorkflowNodeDrag {
      */
     _cleanupDragState(affectedNodeIds) {
         this.node.ui._ctrlDetached = null;
+        this.node.ui._detachUndo = null;
         if (this.node.ui._pendingContainers) {
             this.node.ui._pendingContainers.forEach((pid) => {
                 affectedNodeIds.add(pid);
@@ -611,13 +704,13 @@ export class WorkflowNodeDrag {
     /**
      * 完成拖拽：移除监听器、保存历史、更新边和 SVG
      */
-    _finalizeDrag(affectedNodeIds, el) {
-        const listeners = this.node._dragListeners;
+    _finalizeDrag(affectedNodeIds, _el) {
+        const listeners = /** @type {any} */ (this.node)._dragListeners;
         if (listeners) {
             document.removeEventListener('mousemove', listeners.onMouseMove);
             document.removeEventListener('mouseup', listeners.onMouseUp);
             document.removeEventListener('keydown', listeners.onKeyDown);
-            this.node._dragListeners = null;
+            /** @type {any} */ (this.node)._dragListeners = null;
         }
 
         if (this.node.ui.hasDragged) {

@@ -10,7 +10,7 @@ import { convertClipboardToInternal } from '../shared/shared-serializer.js';
  * @param {{ _pendingZipFile: File | null }} manager - 管理器实例
  */
 export function handleFileSelect(event, manager) {
-    const file = event.target.files[0];
+    const file = /** @type {HTMLInputElement} */ (event.target).files?.[0];
     if (file) {
         manager._pendingZipFile = file;
     }
@@ -101,19 +101,22 @@ export async function importWorkflow(manager) {
     if (manager._pendingZipFile) {
         try {
             zipResult = await importFromZip(manager._pendingZipFile);
-            manager._pendingZipFile = null;
         } catch (e) {
             await Dialog.error(t('manager.fileReadError') + ': ' + (e.message || ''));
+            manager._pendingZipFile = null;
             return;
         }
+        manager._pendingZipFile = null;
     } else if (manager.elements.importFile.files[0]) {
         const file = manager.elements.importFile.files[0];
         try {
             zipResult = await importFromZip(file);
         } catch (e) {
             await Dialog.error(t('manager.fileReadError') + ': ' + (e.message || ''));
+            manager.elements.importFile.value = '';
             return;
         }
+        manager.elements.importFile.value = '';
     } else {
         await Dialog.alert(t('manager.provideData'));
         return;

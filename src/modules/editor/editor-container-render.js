@@ -4,6 +4,7 @@
  */
 
 import { APP_CONFIG } from '../../config/constants.js';
+import { t } from '../../i18n/i18n.js';
 
 /**
  * 容器渲染相关的 mixin 方法
@@ -55,7 +56,7 @@ export class WorkflowContainerRender {
             if (!placeholder) {
                 placeholder = document.createElement('div');
                 placeholder.className = 'container-placeholder';
-                placeholder.textContent = '拖入节点到此处';
+                placeholder.textContent = t('editor.dropNodeHere');
                 containerBody.appendChild(placeholder);
             }
         } else {

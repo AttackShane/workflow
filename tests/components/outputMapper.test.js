@@ -1,7 +1,7 @@
 import { buildOutputMap, convertOutputs } from '../../src/components/outputMapper.js';
 
 jest.mock('../../src/utils/types.js', () => ({
-    getAssistFromType: jest.fn(type => {
+    getAssistFromType: jest.fn((type) => {
         if (type === 'image') return 5;
         if (type === 'audio') return 6;
         if (type === 'video') return 7;
@@ -11,8 +11,8 @@ jest.mock('../../src/utils/types.js', () => ({
         if (type === 'string') return { type: 1 };
         return { type: 0 };
     }),
-    mapOutType: jest.fn(type => type),
-    RAW_TYPE: { stringList: 1, imageList: 5, audioList: 6, videoList: 7, list: 100 }
+    mapOutType: jest.fn((type) => type),
+    RAW_TYPE: { stringList: 1, imageList: 5, audioList: 6, videoList: 7, list: 100 },
 }));
 
 describe('buildOutputMap', () => {
@@ -27,10 +27,10 @@ describe('buildOutputMap', () => {
                 id: 'node1',
                 parameters: {
                     node_outputs: {
-                        result: { type: 'string', description: 'result output' }
-                    }
-                }
-            }
+                        result: { type: 'string', description: 'result output' },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.has('node1.result')).toBe(true);
@@ -45,10 +45,10 @@ describe('buildOutputMap', () => {
                 id: 'node1',
                 parameters: {
                     node_outputs: {
-                        img: { type: 'image', assistType: 5 }
-                    }
-                }
-            }
+                        img: { type: 'image', assistType: 5 },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.get('node1.img').assistType).toBe(5);
@@ -60,10 +60,10 @@ describe('buildOutputMap', () => {
                 id: 'node1',
                 parameters: {
                     node_outputs: {
-                        img: { type: 'image' }
-                    }
-                }
-            }
+                        img: { type: 'image' },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.get('node1.img').assistType).toBe(5);
@@ -75,10 +75,10 @@ describe('buildOutputMap', () => {
                 id: 'node1',
                 parameters: {
                     node_outputs: {
-                        result: { type: 'string', required: true, default_value: 'default' }
-                    }
-                }
-            }
+                        result: { type: 'string', required: true, default_value: 'default' },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         const entry = map.get('node1.result');
@@ -92,10 +92,10 @@ describe('buildOutputMap', () => {
                 id: 'node1',
                 parameters: {
                     node_outputs: {
-                        listOutput: { type: 'list', items: { type: 'string' } }
-                    }
-                }
-            }
+                        listOutput: { type: 'list', items: { type: 'string' } },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         const entry = map.get('node1.listOutput');
@@ -113,12 +113,12 @@ describe('buildOutputMap', () => {
                             type: 'string',
                             value: {
                                 type: 'image',
-                                value: { ref_node: 'other', path: 'img' }
-                            }
-                        }
-                    }
-                }
-            }
+                                value: { ref_node: 'other', path: 'img' },
+                            },
+                        },
+                    },
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.has('node1.output1')).toBe(true);
@@ -134,12 +134,12 @@ describe('buildOutputMap', () => {
                         {
                             id: 'inner1',
                             parameters: {
-                                node_outputs: { innerResult: { type: 'string' } }
-                            }
-                        }
-                    ]
-                }
-            }
+                                node_outputs: { innerResult: { type: 'string' } },
+                            },
+                        },
+                    ],
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.has('container.result')).toBe(true);
@@ -155,12 +155,12 @@ describe('buildOutputMap', () => {
                         {
                             id: 'inner1',
                             parameters: {
-                                node_outputs: { innerResult: { type: 'string' } }
-                            }
-                        }
-                    ]
-                }
-            }
+                                node_outputs: { innerResult: { type: 'string' } },
+                            },
+                        },
+                    ],
+                },
+            },
         ];
         const map = buildOutputMap(nodes);
         expect(map.has('inner1.innerResult')).toBe(true);
@@ -182,7 +182,7 @@ describe('convertOutputs', () => {
 
     it('should convert basic output', () => {
         const outputs = {
-            result: { type: 'string', description: 'result' }
+            result: { type: 'string', description: 'result' },
         };
         const result = convertOutputs(outputs);
         expect(result).toHaveLength(1);
@@ -195,7 +195,7 @@ describe('convertOutputs', () => {
         const outputs = {
             result: { type: 'string' },
             reasoning_content: { type: 'string' },
-            thinking_result: { type: 'string' }
+            thinking_result: { type: 'string' },
         };
         const result = convertOutputs(outputs);
         expect(result).toHaveLength(1);
@@ -204,7 +204,7 @@ describe('convertOutputs', () => {
 
     it('should include assistType when keepAssist is true', () => {
         const outputs = {
-            img: { type: 'image', assistType: 5 }
+            img: { type: 'image', assistType: 5 },
         };
         const result = convertOutputs(outputs, true);
         expect(result[0].assistType).toBe(5);
@@ -212,7 +212,7 @@ describe('convertOutputs', () => {
 
     it('should exclude assistType when keepAssist is false', () => {
         const outputs = {
-            img: { type: 'image', assistType: 5 }
+            img: { type: 'image', assistType: 5 },
         };
         const result = convertOutputs(outputs, false);
         expect(result[0].assistType).toBeUndefined();
@@ -220,7 +220,7 @@ describe('convertOutputs', () => {
 
     it('should handle required and default_value', () => {
         const outputs = {
-            result: { type: 'string', required: true, default_value: 'default' }
+            result: { type: 'string', required: true, default_value: 'default' },
         };
         const result = convertOutputs(outputs);
         expect(result[0].required).toBe(true);
@@ -231,8 +231,8 @@ describe('convertOutputs', () => {
         const outputs = {
             listOutput: {
                 type: 'list',
-                items: { type: 'string', assistType: 5 }
-            }
+                items: { type: 'string', assistType: 5 },
+            },
         };
         const result = convertOutputs(outputs);
         expect(result[0].schema).toBeDefined();
@@ -245,9 +245,9 @@ describe('convertOutputs', () => {
                 type: 'object',
                 properties: {
                     name: { type: 'string', required: true, description: 'name field' },
-                    age: { type: 'integer', description: 'age field' }
-                }
-            }
+                    age: { type: 'integer', description: 'age field' },
+                },
+            },
         };
         const result = convertOutputs(outputs);
         expect(result[0].schema).toHaveLength(2);
@@ -258,7 +258,7 @@ describe('convertOutputs', () => {
 
     it('should infer rawMeta from type', () => {
         const outputs = {
-            result: { type: 'string' }
+            result: { type: 'string' },
         };
         const result = convertOutputs(outputs);
         expect(result[0].rawMeta).toBeDefined();

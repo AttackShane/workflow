@@ -200,6 +200,7 @@ export class WorkflowSelection {
         if (selectedEls.length === 0) return;
 
         // 第一遍：构建旧ID → 新ID 映射，生成克隆节点
+        /** @type {Record<string, string>} */
         const idMap = {};
         const newNodes = [];
 
@@ -222,7 +223,7 @@ export class WorkflowSelection {
         });
 
         // 第二遍：重映射 blockID 引用，加入核心数据并渲染
-        newNodes.forEach(({ el, newNode }) => {
+        newNodes.forEach(({ el: _el, newNode }) => {
             this._remapBlockIdsForNode(newNode, idMap);
             this.core.addNode(newNode);
             const newEl = this.ui.node.render.createElement(newNode);

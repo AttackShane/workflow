@@ -151,7 +151,7 @@ function _buildNodeFromCoze(cozeNode, resolveType, newNodeId) {
     const icon = cozeNode.data?.nodeMeta?.icon || cozeNode.icon || '';
     const mainColor = cozeNode.data?.nodeMeta?.mainColor || '';
 
-    const newNode = {
+    const newNode = /** @type {import('../../types/workflow.js').WorkflowNode} */ ({
         id: newNodeId,
         type,
         x: nodeX,
@@ -160,7 +160,7 @@ function _buildNodeFromCoze(cozeNode, resolveType, newNodeId) {
         description,
         parameters,
         ...getDefaultSize(type),
-    };
+    });
 
     if (icon) newNode.icon = icon;
     if (mainColor) newNode.color = mainColor;
@@ -224,8 +224,8 @@ function _processCozeNodeTree(cozeNodes, resolveType, startCounter = 0) {
 
         if (parentId) {
             newNode.parentId = parentId;
-            newNode.x = cozeNode.meta?.position?.x || 0;
-            newNode.y = cozeNode.meta?.position?.y || 0;
+            newNode.x = cozeNode.meta?.position?.x ?? cozeNode.x ?? 0;
+            newNode.y = cozeNode.meta?.position?.y ?? cozeNode.y ?? 0;
         }
 
         nodes.push(newNode);
@@ -482,12 +482,12 @@ function _serializeNodeParameters(node, cozeNode) {
     // 补充 inputParameters (旧格式)
     if (node.inputParameters && Array.isArray(node.inputParameters)) {
         cozeNode.data.inputs.inputParameters = node.inputParameters.map((param) => ({
-            name: param.name || '',
+            name: param.name ?? '',
             input: {
-                type: param.type || 'string',
+                type: param.type ?? 'string',
                 value: {
-                    type: param.valueType || 'literal',
-                    content: param.value || '',
+                    type: param.valueType ?? 'literal',
+                    content: param.value ?? '',
                     ...(param.rawMeta && { rawMeta: param.rawMeta }),
                 },
             },
@@ -571,7 +571,7 @@ function _serializeInputParams(node, cozeNode) {
                 type: p.type || 'string',
                 value: isRef
                     ? { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) }
-                    : { type: 'literal', content: p.value || '', ...(p.rawMeta && { rawMeta: p.rawMeta }) },
+                    : { type: 'literal', content: p.value ?? '', ...(p.rawMeta && { rawMeta: p.rawMeta }) },
                 ...(p.schema && { schema: p.schema }),
             },
         };
@@ -593,7 +593,7 @@ function _serializeOutputParams(node, cozeNode) {
                     value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) },
                 };
                 delete exists.defaultValue;
-            } else if (!isRef && p.value && p.value !== '') {
+            } else if (!isRef && p.value !== undefined && p.value !== null && p.value !== '') {
                 exists.defaultValue = p.value;
             }
         } else {
@@ -607,7 +607,7 @@ function _serializeOutputParams(node, cozeNode) {
                     type: p.type || 'string',
                     value: { ...p.value, ...(p.rawMeta && { rawMeta: p.rawMeta }) },
                 };
-            } else if (p.value && p.value !== '') {
+            } else if (p.value !== undefined && p.value !== null && p.value !== '') {
                 outEntry.defaultValue = p.value;
             }
             cozeNode.data.outputs.push(outEntry);
@@ -951,7 +951,7 @@ export class WorkflowSerializer {
                 type = this.core.getTypeFromNumber(type);
             }
 
-            const node = {
+            const node = /** @type {import('../../types/workflow.js').WorkflowNode} */ ({
                 id: nodeId,
                 type: type,
                 x: nodeData.position?.x || 0,
@@ -960,7 +960,7 @@ export class WorkflowSerializer {
                 description: nodeData.description || '',
                 parameters: nodeData.parameters || {},
                 parentId: nodeData.parentId || null,
-            };
+            });
             if (nodeData.icon) node.icon = nodeData.icon;
 
             if (nodeData.nodes && Array.isArray(nodeData.nodes)) {
@@ -971,7 +971,7 @@ export class WorkflowSerializer {
                     if (/^\d+$/.test(String(childType))) {
                         childType = this.core.getTypeFromNumber(childType);
                     }
-                    const child = {
+                    const child = /** @type {import('../../types/workflow.js').WorkflowNode} */ ({
                         id: childNodeId,
                         type: childType,
                         x: childNodeData.position?.x || 0,
@@ -980,7 +980,7 @@ export class WorkflowSerializer {
                         description: childNodeData.description || '',
                         parameters: childNodeData.parameters || {},
                         parentId: nodeId,
-                    };
+                    });
                     if (childNodeData.icon) child.icon = childNodeData.icon;
                     this.core.nodes.push(child);
 
@@ -1107,7 +1107,7 @@ export class WorkflowSerializer {
         _remapBlockIDs(nodes, idMap, variableMergeEdgeMap);
 
         _processEdges(data.json.edges, idMap, {
-            createEdge: (src, tgt, srcPort, tgtPort) => {
+            createEdge: (src, tgt, srcPort, _tgtPort) => {
                 if (srcPort) {
                     this.core.createEdge(src, tgt, srcPort);
                 } else {
@@ -1121,18 +1121,21 @@ export class WorkflowSerializer {
 }
 
 /**
- * importWorkflow 专用的 blockID 重映射（处理 Map<number, string> 格式）
+ * importWorkflow 专用的 blockID 重映射（处理 Map<number | string, string> 格式，兼容 JSON/YAML 解析出的混合键类型）
  * @param {object} node - 内部节点
- * @param {Map<number, string>} nodeIdMap
+ * @param {Map<number | string, string>} nodeIdMap
  */
 function _remapBlockIDs_import(node, nodeIdMap) {
     if (!Array.isArray(node.parameters?.variables)) return;
     node.parameters.variables.forEach((v) => {
         ['left', 'right'].forEach((side) => {
-            if (v[side]?.value?.content?.blockID && typeof v[side].value.content.blockID === 'string') {
-                const newBlockId = nodeIdMap.get(Number(v[side].value.content.blockID));
-                if (newBlockId) v[side].value.content.blockID = newBlockId;
-            }
+            const blockID = v[side]?.value?.content?.blockID;
+            if (blockID === undefined || blockID === null) return;
+            // nodeIdMap 的 key 可能是 number 或 string（取决于 YAML/JSON 解析），
+            // 按原值、String、Number 顺序查找，兼容两种类型
+            const newBlockId =
+                nodeIdMap.get(blockID) || nodeIdMap.get(String(blockID)) || nodeIdMap.get(Number(blockID));
+            if (newBlockId) v[side].value.content.blockID = newBlockId;
         });
     });
 }

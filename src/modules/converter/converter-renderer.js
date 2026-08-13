@@ -56,7 +56,7 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
             content: outputArea,
             lineNumbers: lineNumbers,
             lineNumbersContent: lineNumbersContent,
-            buffer: outputBuffer
+            buffer: outputBuffer,
         });
     }
 
@@ -85,7 +85,7 @@ export function renderWithVirtualScroll(ctrl, data, type, contentKey) {
     ctrl._worker.addEventListener('message', function handler(e) {
         if (e.data.id === currentTaskId) {
             ctrl._worker.removeEventListener('message', handler);
-            ctrl._worker.onerror = null;
+            // 不清空 onerror，避免清掉后续并发任务设置的处理器导致卡死
             ctrl._isHighlighting = false;
             const result = e.data.result;
             const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
@@ -117,9 +117,7 @@ export function renderSync(ctrl, data, type, contentKey) {
         return;
     }
 
-    const highlighted = type === 'json'
-        ? highlightJson(data)
-        : highlightYaml(data);
+    const highlighted = type === 'json' ? highlightJson(data) : highlightYaml(data);
 
     addToCache(ctrl._highlightCache, contentKey, highlighted);
     DOM.setHtml(outputArea, highlighted);
@@ -150,7 +148,7 @@ export async function renderAsync(ctrl, data, type, contentKey) {
             const handler = (e) => {
                 if (e.data.id === currentTaskId) {
                     ctrl._worker.removeEventListener('message', handler);
-                    ctrl._worker.onerror = null;
+                    // 不清空 onerror，避免清掉后续并发任务设置的处理器导致其 Promise 永远 pending
                     const result = e.data.result;
                     const safe = isHighlightHtmlSafe(result) ? result : StringUtils.escapeHtml(data);
                     addToCache(ctrl._highlightCache, contentKey, safe);

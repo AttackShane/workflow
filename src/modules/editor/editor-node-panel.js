@@ -43,16 +43,25 @@ export class WorkflowNodePanel {
         { value: 6, label: '<' },
         { value: 7, label: '>=' },
         { value: 8, label: '<=' },
-        { value: 3, label: '包含' },
-        { value: 4, label: '不包含' },
-        { value: 9, label: '为空' },
-        { value: 10, label: '非空' },
+        { value: 3, label: '包含', i18nKey: 'nodes.opContains' },
+        { value: 4, label: '不包含', i18nKey: 'nodes.opNotContains' },
+        { value: 9, label: '为空', i18nKey: 'nodes.opIsEmpty' },
+        { value: 10, label: '非空', i18nKey: 'nodes.opIsNotEmpty' },
     ];
 
     static LOGIC_OPTIONS = [
         { value: 1, label: 'AND' },
         { value: 2, label: 'OR' },
     ];
+
+    /** 取带 i18n 的操作符 options HTML */
+    static getOpsOptionsHtml(selectedValue) {
+        return WorkflowNodePanel.OPERATORS.map((o) => {
+            const label = o.i18nKey ? t(o.i18nKey) || o.label : o.label;
+            const sel = selectedValue !== undefined && o.value === selectedValue ? ' selected' : '';
+            return `<option value="${o.value}"${sel}>${label}</option>`;
+        }).join('');
+    }
 
     static OPS_OPTIONS_HTML = WorkflowNodePanel.OPERATORS.map(
         (o) => '<option value=' + o.value + '>' + o.label + '</option>'
@@ -103,7 +112,9 @@ export class WorkflowNodePanel {
             '</span>' +
             '<button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentCondItem">×</button>' +
             '</div>' +
-            '<div class="cond-row"><span class="cond-label">左值</span><div class="cond-side">' +
+            '<div class="cond-row"><span class="cond-label">' +
+            (t('nodes.leftValue') || '左值') +
+            '</span><div class="cond-side">' +
             '<input type="text" class="property-input cond-left" placeholder="引用或值">' +
             '<button class="btn btn-sm" style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
             'data-action="openConditionRef" data-node-id="' +
@@ -115,9 +126,11 @@ export class WorkflowNodePanel {
             '" data-side="left" title="选择引用">🔗</button>' +
             '</div></div>' +
             '<div class="cond-row"><span class="cond-label">运算符</span><select class="property-input cond-operator">' +
-            WorkflowNodePanel.OPS_OPTIONS_HTML +
+            WorkflowNodePanel.getOpsOptionsHtml() +
             '</select></div>' +
-            '<div class="cond-row"><span class="cond-label">右值</span><div class="cond-side">' +
+            '<div class="cond-row"><span class="cond-label">' +
+            (t('nodes.rightOperand') || '右值') +
+            '</span><div class="cond-side">' +
             '<input type="text" class="property-input cond-right" placeholder="引用或值">' +
             '<button class="btn btn-sm" style="padding:0.15rem 0.3rem;font-size:0.7rem;flex-shrink:0" ' +
             'data-action="openConditionRef" data-node-id="' +
@@ -363,10 +376,7 @@ export class WorkflowNodePanel {
         const leftRefDisplay = leftIsRef ? this._conditionRefDisplay(cond.left) : '';
         const rightRefDisplay = rightIsRef ? this._conditionRefDisplay(cond.right) : '';
         const op = cond.operator !== undefined ? cond.operator : 1;
-        const opsHtml = WorkflowNodePanel.OPERATORS.map((o) => {
-            const sel = o.value === op ? ' selected' : '';
-            return `<option value="${o.value}"${sel}>${o.label}</option>`;
-        }).join('');
+        const opsHtml = WorkflowNodePanel.getOpsOptionsHtml(op);
 
         const renderSide = (side, text, isRef, refDisplay, label) => {
             const escNodeId = StringUtils.escapeHtml(nodeId);
@@ -398,12 +408,12 @@ export class WorkflowNodePanel {
                 <span class="cond-item-title">条件 ${i + 1}</span>
                 <button type="button" class="btn btn-sm btn-danger" data-action="wfRemoveParentCondItem">×</button>
             </div>
-            ${renderSide('left', leftText, leftIsRef, leftRefDisplay, '左值')}
+            ${renderSide('left', leftText, leftIsRef, leftRefDisplay, t('nodes.leftValue') || '左值')}
             <div class="cond-row">
                 <span class="cond-label">运算符</span>
                 <select class="property-input cond-operator">${opsHtml}</select>
             </div>
-            ${renderSide('right', rightText, rightIsRef, rightRefDisplay, '右值')}
+            ${renderSide('right', rightText, rightIsRef, rightRefDisplay, t('nodes.rightOperand') || '右值')}
         </div>`;
     }
     renderPropertyPanel(targetNode) {
@@ -652,7 +662,7 @@ export class WorkflowNodePanel {
             <div class="property-panel-section">
                 <h4 style="display: flex; justify-content: space-between; align-items: center;">
                     <span>${info.icon || '📦'} ${StringUtils.escapeHtml(targetNode.title)}</span>
-                    <button class="btn btn-sm lock-toggle-btn" data-action="toggleLock" data-node-id="${StringUtils.escapeHtml(targetNode.id)}" title="${targetNode.locked ? '解锁节点' : '锁定节点'}">
+                    <button class="btn btn-sm lock-toggle-btn" data-action="toggleLock" data-node-id="${StringUtils.escapeHtml(targetNode.id)}" title="${targetNode.locked ? t('nodes.unlockNode') || '解锁节点' : t('nodes.lockNode') || '锁定节点'}">
                         ${targetNode.locked ? '🔒 解锁' : '🔓 锁定'}
                     </button>
                 </h4>

@@ -176,7 +176,10 @@ describe('Logger', () => {
 
     describe('table', () => {
         it('should call console.table with data', () => {
-            const data = [{ name: 'a', value: 1 }, { name: 'b', value: 2 }];
+            const data = [
+                { name: 'a', value: 1 },
+                { name: 'b', value: 2 },
+            ];
             Logger.table(data);
             expect(consoleTableSpy).toHaveBeenCalledWith(data);
         });
@@ -218,7 +221,7 @@ describe('Logger', () => {
                 INFO: 1,
                 WARN: 2,
                 ERROR: 3,
-                OFF: 4
+                OFF: 4,
             });
         });
 

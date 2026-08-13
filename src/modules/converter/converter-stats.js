@@ -181,7 +181,12 @@ class StatsView {
                 msg('导入失败：无效的 JSON 文件', true);
             }
         };
+        reader.onerror = () => {
+            msg('文件读取失败', true);
+        };
         reader.readAsText(file);
+        // 重置 value，便于再次选择同一文件时触发 change
+        event.target.value = '';
     };
 
     clearHistory = () => {
@@ -344,6 +349,13 @@ class StatsView {
             }
         }
         return Promise.resolve();
+    }
+
+    destroy() {
+        if (typeof document !== 'undefined' && this._languageChangeHandler) {
+            document.removeEventListener('languagechange', this._languageChangeHandler);
+            this._languageChangeHandler = null;
+        }
     }
 }
 

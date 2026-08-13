@@ -1,12 +1,12 @@
 import { convertInputParameters } from '../../src/components/inputMapper.js';
 
 jest.mock('../../src/utils/types.js', () => ({
-    mapOutType: jest.fn(type => type === 'image' ? 'image' : type === 'file' ? 'file' : 'string'),
+    mapOutType: jest.fn((type) => (type === 'image' ? 'image' : type === 'file' ? 'file' : 'string')),
     INHERIT_ASSIST_NODES: new Set(['llm', 'code']),
-    toValueObject: jest.fn(val => {
+    toValueObject: jest.fn((val) => {
         if (val && typeof val === 'object' && val.type) return val;
         return { type: 'literal', content: val };
-    })
+    }),
 }));
 
 describe('convertInputParameters', () => {
@@ -22,9 +22,7 @@ describe('convertInputParameters', () => {
     });
 
     it('should convert basic input parameter', () => {
-        const inputs = [
-            { name: 'param1', input: { type: 'string', value: { type: 'literal', content: 'hello' } } }
-        ];
+        const inputs = [{ name: 'param1', input: { type: 'string', value: { type: 'literal', content: 'hello' } } }];
         const result = convertInputParameters(inputs, new Map(), 'start');
         expect(result).toHaveLength(1);
         expect(result[0].name).toBe('param1');
@@ -33,9 +31,7 @@ describe('convertInputParameters', () => {
     });
 
     it('should handle input without value', () => {
-        const inputs = [
-            { name: 'param1', input: { type: 'string' } }
-        ];
+        const inputs = [{ name: 'param1', input: { type: 'string' } }];
         const result = convertInputParameters(inputs, new Map(), 'start');
         expect(result[0].input.value).toEqual({ type: 'literal', content: '' });
     });
@@ -52,9 +48,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'image', assistType: 5 });
@@ -67,9 +63,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'list', itemsType: 'string', assistType: 5 });
@@ -83,9 +79,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'object', schema: [{ name: 'a', type: 'string' }] });
@@ -98,9 +94,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'string', rawMeta: { type: 1 } });
@@ -113,9 +109,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'string', assistType: 5 });
@@ -128,9 +124,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'string', assistType: 5 });
@@ -145,9 +141,9 @@ describe('convertInputParameters', () => {
                 input: {
                     type: 'string',
                     value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
-                    assistType: 3
-                }
-            }
+                    assistType: 3,
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'string', assistType: 5 });
@@ -160,9 +156,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'node1', name: 'output1' } },
+                },
+            },
         ];
         const outputMap = new Map();
         outputMap.set('node1.output1', { type: 'list', itemsType: 'object' });
@@ -177,9 +173,9 @@ describe('convertInputParameters', () => {
                 input: {
                     type: 'string',
                     value: { type: 'literal', content: 'test' },
-                    rawMeta: { type: 1 }
-                }
-            }
+                    rawMeta: { type: 1 },
+                },
+            },
         ];
         const result = convertInputParameters(inputs, new Map(), 'start');
         expect(result[0].input.value.rawMeta).toEqual({ type: 1 });
@@ -188,7 +184,7 @@ describe('convertInputParameters', () => {
     it('should handle multiple inputs', () => {
         const inputs = [
             { name: 'a', input: { type: 'string', value: { type: 'literal', content: 'a' } } },
-            { name: 'b', input: { type: 'integer', value: { type: 'literal', content: 1 } } }
+            { name: 'b', input: { type: 'integer', value: { type: 'literal', content: 1 } } },
         ];
         const result = convertInputParameters(inputs, new Map(), 'start');
         expect(result).toHaveLength(2);
@@ -201,9 +197,9 @@ describe('convertInputParameters', () => {
             {
                 name: 'param1',
                 input: {
-                    value: { type: 'ref', content: { blockID: 'nonexistent', name: 'output' } }
-                }
-            }
+                    value: { type: 'ref', content: { blockID: 'nonexistent', name: 'output' } },
+                },
+            },
         ];
         const result = convertInputParameters(inputs, new Map(), 'start');
         expect(result[0].input.type).toBe('string');

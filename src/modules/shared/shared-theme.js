@@ -52,7 +52,10 @@ class ThemeController {
         this._currentTheme = newTheme;
 
         document.documentElement.setAttribute('data-theme', newTheme);
-        DOM.setText(this._elements.themeBtn, newTheme === 'dark' ? t('converter.themeLight') : t('converter.themeDark'));
+        DOM.setText(
+            this._elements.themeBtn,
+            newTheme === 'dark' ? t('converter.themeLight') : t('converter.themeDark')
+        );
 
         this._saveThemeToStorage(newTheme);
     };
@@ -87,7 +90,7 @@ class ThemeController {
         DOM.setStyle(this._elements.lineNumbers, 'minWidth', `${lineNumbersWidth}px`);
 
         const event = new CustomEvent('fontsizechange', {
-            detail: { fontSize: this._currentFontSize, lineHeight: lineHeight }
+            detail: { fontSize: this._currentFontSize, lineHeight: lineHeight },
         });
         document.dispatchEvent(event);
 

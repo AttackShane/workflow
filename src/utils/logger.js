@@ -3,7 +3,7 @@ const LOG_LEVELS = {
     INFO: 1,
     WARN: 2,
     ERROR: 3,
-    OFF: 4
+    OFF: 4,
 };
 
 let currentLevel = LOG_LEVELS.INFO;
@@ -55,7 +55,7 @@ export const Logger = {
 
     timeEnd(label) {
         console.timeEnd(label);
-    }
+    },
 };
 
 export const LOG_LEVELS_CONST = LOG_LEVELS;

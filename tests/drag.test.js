@@ -1023,9 +1023,10 @@ describe('WorkflowNodeDrag', () => {
             const ctx = { rafId: null, dropTarget: null };
             // _makeEscapeHandler 内部访问 self.node._dragListeners.onKeyDown
             node._dragListeners = { onMouseMove, onMouseUp, onKeyDown };
+            const nodeStartPositions = { n1: { x: 100, y: 100 } };
 
             const removeSpy = jest.spyOn(document, 'removeEventListener');
-            const handler = drag._makeEscapeHandler(ctx, selectedEls, el, onMouseMove, onMouseUp);
+            const handler = drag._makeEscapeHandler(ctx, selectedEls, el, onMouseMove, onMouseUp, nodeStartPositions);
 
             const guidesEl = document.createElement('div');
             guidesEl.id = 'alignmentGuides';
@@ -1044,10 +1045,78 @@ describe('WorkflowNodeDrag', () => {
             removeSpy.mockRestore();
         });
 
+        it('按 Escape 时应回滚节点位置到拖拽起始位置', () => {
+            const el = createNodeEl('n1', 150, 150);
+            el.classList.add('dragging');
+            const selectedEls = [el];
+            const ctx = { rafId: null, dropTarget: null };
+            node._dragListeners = { onMouseMove: jest.fn(), onMouseUp: jest.fn(), onKeyDown: jest.fn() };
+            // 拖拽起始位置为 (100, 100)，当前 DOM 已被移到 (150, 150)
+            const nodeStartPositions = { n1: { x: 100, y: 100 } };
+            core.nodes = [{ id: 'n1', x: 150, y: 150 }];
+
+            const handler = drag._makeEscapeHandler(ctx, selectedEls, el, jest.fn(), jest.fn(), nodeStartPositions);
+
+            handler({ key: 'Escape', preventDefault: jest.fn() });
+
+            // DOM 应回滚到起始位置
+            expect(el.dataset.x).toBe('100');
+            expect(el.dataset.y).toBe('100');
+            expect(el.style.transform).toBe('translate(100px, 100px)');
+            // 数据模型也应回滚
+            expect(core.nodes[0].x).toBe(100);
+            expect(core.nodes[0].y).toBe(100);
+        });
+
+        it('按 Escape 时应回滚 Ctrl 拖出操作（parentId/位置/边）', () => {
+            const childEl = createNodeEl('n1', 200, 200);
+            childEl.classList.add('dragging');
+            const selectedEls = [childEl];
+            const ctx = { rafId: null, dropTarget: null };
+            node._dragListeners = { onMouseMove: jest.fn(), onMouseUp: jest.fn(), onKeyDown: jest.fn() };
+            const nodeStartPositions = { n1: { x: 200, y: 200 } };
+
+            // 节点已被 Ctrl 拖出，parentId 当前为 null
+            const childNode = { id: 'n1', x: 200, y: 200, type: 'code', parentId: null };
+            core.nodes = [childNode];
+            // 模拟 Ctrl 拖出时保存的撤销信息
+            const removedEdge = { id: 'edge_1', source: 'n1', target: 'n2' };
+            ui._detachUndo = [
+                {
+                    nodeId: 'n1',
+                    oldParentId: 'c1',
+                    oldX: 50,
+                    oldY: 50,
+                    removedEdges: [removedEdge],
+                },
+            ];
+
+            const handler = drag._makeEscapeHandler(
+                ctx,
+                selectedEls,
+                childEl,
+                jest.fn(),
+                jest.fn(),
+                nodeStartPositions
+            );
+
+            handler({ key: 'Escape', preventDefault: jest.fn() });
+
+            // parentId 应恢复为原父容器
+            expect(childNode.parentId).toBe('c1');
+            // 位置应恢复为 Ctrl 拖出前的原位置（undo.oldX/oldY 优先）
+            expect(childNode.x).toBe(50);
+            expect(childNode.y).toBe(50);
+            // 被删除的边应被恢复
+            expect(core.edges).toContainEqual(removedEdge);
+            // _detachUndo 应被清空
+            expect(ui._detachUndo).toBe(null);
+        });
+
         it('非 Escape 键时应忽略', () => {
             const el = createNodeEl('n1', 100, 100);
             const ctx = { rafId: null, dropTarget: null };
-            const handler = drag._makeEscapeHandler(ctx, [el], el, jest.fn(), jest.fn());
+            const handler = drag._makeEscapeHandler(ctx, [el], el, jest.fn(), jest.fn(), { n1: { x: 100, y: 100 } });
 
             handler({ key: 'Enter', preventDefault: jest.fn() });
 

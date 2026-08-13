@@ -45,10 +45,7 @@ export class WorkflowClipboard {
         );
 
         // 先分类边，确定哪些节点是顶层（非选中容器的子节点）
-        const { globalEdges, containerEdges, containerNodeIds, childNodeIds } = this._classifyEdges(
-            selectedEdges,
-            selectedNodes
-        );
+        const { globalEdges, containerEdges, childNodeIds } = this._classifyEdges(selectedEdges, selectedNodes);
 
         // 使用 shared-serializer 统一序列化：只序列化顶层节点，子节点由递归 blocks 处理
         const topLevelNodes = selectedNodes.filter((n) => !childNodeIds.has(n.id));

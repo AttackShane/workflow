@@ -19,9 +19,9 @@ describe('Reverse Module', () => {
                             data: {
                                 nodeMeta: { title: '开始', icon: '', description: '', mainColor: '#10b981' },
                                 inputs: { inputParameters: [], inputs: {} },
-                                outputs: []
+                                outputs: [],
                             },
-                            _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
+                            _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} },
                         },
                         {
                             id: '2',
@@ -30,20 +30,20 @@ describe('Reverse Module', () => {
                             data: {
                                 nodeMeta: { title: '结束', icon: '', description: '', mainColor: '#ef4444' },
                                 inputs: { inputParameters: [], inputs: {} },
-                                outputs: []
+                                outputs: [],
                             },
-                            _temp: { bounds: { x: 400, y: 200, width: 200, height: 100 }, externalData: {} }
-                        }
+                            _temp: { bounds: { x: 400, y: 200, width: 200, height: 100 }, externalData: {} },
+                        },
                     ],
                     edges: [
                         {
                             sourceNodeId: '1',
                             targetNodeId: '2',
                             sourcePortId: 'output',
-                            targetPortId: 'input'
-                        }
-                    ]
-                }
+                            targetPortId: 'input',
+                        },
+                    ],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -60,28 +60,30 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_llm' },
                 json: {
                     name: 'LLM Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: 'AI Model', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: 'AI Model', mainColor: '#8b5cf6' },
                                 inputs: {
-                                    prompt: {
-                                        name: 'prompt',
-                                        type: 'string',
-                                        input: { type: 'string', value: { content: 'Hello' } }
-                                    }
-                                }
+                                    inputParameters: [],
+                                    inputs: {
+                                        prompt: {
+                                            name: 'prompt',
+                                            type: 'string',
+                                            input: { type: 'string', value: { content: 'Hello' } },
+                                        },
+                                    },
+                                },
+                                outputs: [{ name: 'output', type: 'string', to: 'output' }],
                             },
-                            outputs: [{ name: 'output', type: 'string', to: 'output' }]
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -94,19 +96,21 @@ describe('Reverse Module', () => {
                 type: 'coze-workflow-clipboard-data',
                 source: { workflowId: 'wf_no_name' },
                 json: {
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: '', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: '', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -119,19 +123,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_no_pos' },
                 json: {
                     name: 'Test',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: {},
-                        data: {
-                            nodeMeta: { title: 'Node', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: {},
+                            data: {
+                                nodeMeta: { title: 'Node', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -145,7 +151,7 @@ describe('Reverse Module', () => {
             const clipboardData = {
                 type: 'coze-workflow-clipboard-data',
                 source: { workflowId: 'wf_empty' },
-                json: { nodes: [], edges: [], name: 'Empty' }
+                json: { nodes: [], edges: [], name: 'Empty' },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -163,22 +169,24 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_cond' },
                 json: {
                     name: 'Condition Test',
-                    nodes: [{
-                        id: '1',
-                        type: '8',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Condition', icon: '', description: '', mainColor: '#f59e0b' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: [
-                                { name: 'optionId', type: 'optionId', to: 'true' },
-                                { name: 'optionContent', type: 'optionContent', to: 'false' }
-                            ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '8',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Condition', icon: '', description: '', mainColor: '#f59e0b' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [
+                                    { name: 'optionId', type: 'optionId', to: 'true' },
+                                    { name: 'optionContent', type: 'optionContent', to: 'false' },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -191,29 +199,31 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_http' },
                 json: {
                     name: 'HTTP Test',
-                    nodes: [{
-                        id: '1',
-                        type: '45',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'HTTP', icon: '', description: '', mainColor: '#06b6d4' },
-                            inputs: {
-                                inputParameters: [],
-                                url: {
-                                    type: 'string',
-                                    value: { content: 'https://api.example.com' }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '45',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'HTTP', icon: '', description: '', mainColor: '#06b6d4' },
+                                inputs: {
+                                    inputParameters: [],
+                                    url: {
+                                        type: 'string',
+                                        value: { content: 'https://api.example.com' },
+                                    },
+                                    method: {
+                                        type: 'string',
+                                        value: { content: 'GET' },
+                                    },
                                 },
-                                method: {
-                                    type: 'string',
-                                    value: { content: 'GET' }
-                                }
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -229,26 +239,28 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_code' },
                 json: {
                     name: 'Code Test',
-                    nodes: [{
-                        id: '1',
-                        type: '5',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#6366f1' },
-                            inputs: {
-                                inputParameters: [],
-                                code: {
-                                    name: 'code',
-                                    type: 'string',
-                                    input: { type: 'string', value: { content: 'console.log(1)' } }
-                                }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '5',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#6366f1' },
+                                inputs: {
+                                    inputParameters: [],
+                                    code: {
+                                        name: 'code',
+                                        type: 'string',
+                                        input: { type: 'string', value: { content: 'console.log(1)' } },
+                                    },
+                                },
+                                outputs: [{ name: 'output', type: 'string', to: 'output' }],
                             },
-                            outputs: [{ name: 'output', type: 'string', to: 'output' }]
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -263,26 +275,28 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_loop' },
                 json: {
                     name: 'Loop Test',
-                    nodes: [{
-                        id: '1',
-                        type: '21',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                loopCount: {
-                                    name: 'loopCount',
-                                    type: 'integer',
-                                    input: { type: 'integer', value: { content: '5' } }
-                                }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '21',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    loopCount: {
+                                        name: 'loopCount',
+                                        type: 'integer',
+                                        input: { type: 'integer', value: { content: '5' } },
+                                    },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -297,25 +311,27 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_plugin' },
                 json: {
                     name: 'Plugin Test',
-                    nodes: [{
-                        id: '1',
-                        type: '4',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                apiParam: {
-                                    name: 'apiParam',
-                                    input: { type: 'array', value: [{ pluginName: 'MyPlugin', apiName: 'myApi' }] }
-                                }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    apiParam: {
+                                        name: 'apiParam',
+                                        input: { type: 'array', value: [{ pluginName: 'MyPlugin', apiName: 'myApi' }] },
+                                    },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -329,26 +345,28 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_var' },
                 json: {
                     name: 'Variable Test',
-                    nodes: [{
-                        id: '1',
-                        type: '40',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Variable', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: {
-                                inputParameters: [],
-                                value: {
-                                    name: 'value',
-                                    type: 'string',
-                                    input: { type: 'string', value: { content: 'hello' } }
-                                }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '40',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Variable', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: {
+                                    inputParameters: [],
+                                    value: {
+                                        name: 'value',
+                                        type: 'string',
+                                        input: { type: 'string', value: { content: 'hello' } },
+                                    },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -361,19 +379,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_know' },
                 json: {
                     name: 'Knowledge Test',
-                    nodes: [{
-                        id: '1',
-                        type: '6',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Knowledge', icon: '', description: '', mainColor: '#f59e0b' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '6',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Knowledge', icon: '', description: '', mainColor: '#f59e0b' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -386,19 +406,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_break' },
                 json: {
                     name: 'Break Test',
-                    nodes: [{
-                        id: '1',
-                        type: '19',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Break', icon: '', description: '', mainColor: '#ef4444' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '19',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Break', icon: '', description: '', mainColor: '#ef4444' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -411,19 +433,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_no_edges' },
                 json: {
                     name: 'No Edges',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -436,19 +460,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_ver' },
                 json: {
                     name: 'Version Test',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -461,33 +487,38 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_map' },
                 json: {
                     name: 'Map Test',
-                    nodes: [{
-                        id: '1',
-                        type: '45',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'HTTP', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                headers: {
-                                    name: 'headers',
-                                    type: 'map',
-                                    input: {
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '45',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'HTTP', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    headers: {
+                                        name: 'headers',
                                         type: 'map',
-                                        value: {
-                                            entries: [
-                                                { key: { content: 'Content-Type' }, value: { content: 'application/json' } }
-                                            ]
-                                        }
-                                    }
-                                }
+                                        input: {
+                                            type: 'map',
+                                            value: {
+                                                entries: [
+                                                    {
+                                                        key: { content: 'Content-Type' },
+                                                        value: { content: 'application/json' },
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -507,14 +538,16 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_no_data' },
                 json: {
                     name: 'No Data',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -528,19 +561,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_id' },
                 json: {
                     name: 'ID Test',
-                    nodes: [{
-                        id: 12345,
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [], inputs: {} },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: 12345,
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [], inputs: {} },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -554,19 +589,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_canvas' },
                 json: {
                     name: 'Canvas Test',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 100, y: 200 }, canvasPosition: { x: 500, y: 600 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 100, y: 200 }, canvasPosition: { x: 500, y: 600 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 200, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -579,19 +616,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_color' },
                 json: {
                     name: 'Color Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -604,30 +643,42 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_blocks' },
                 json: {
                     name: 'Blocks Test',
-                    nodes: [{
-                        id: '1',
-                        type: '21',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [], loopCount: { type: 'integer', value: { type: 'literal', content: 3 } } },
-                            outputs: []
-                        },
-                        blocks: [{
-                            id: '2',
-                            type: '5',
-                            meta: { position: { x: 50, y: 50 } },
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '21',
+                            meta: { position: { x: 0, y: 0 } },
                             data: {
-                                nodeMeta: { title: 'Inner Code', icon: '', description: '', mainColor: '#6366f1' },
-                                inputs: { inputParameters: [], code: 'print(1)' },
-                                outputs: []
+                                nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    loopCount: { type: 'integer', value: { type: 'literal', content: 3 } },
+                                },
+                                outputs: [],
                             },
-                            _temp: { bounds: { x: 50, y: 50, width: 200, height: 100 }, externalData: {} }
-                        }],
-                        _temp: { bounds: { x: 0, y: 0, width: 300, height: 200 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                            blocks: [
+                                {
+                                    id: '2',
+                                    type: '5',
+                                    meta: { position: { x: 50, y: 50 } },
+                                    data: {
+                                        nodeMeta: {
+                                            title: 'Inner Code',
+                                            icon: '',
+                                            description: '',
+                                            mainColor: '#6366f1',
+                                        },
+                                        inputs: { inputParameters: [], code: 'print(1)' },
+                                        outputs: [],
+                                    },
+                                    _temp: { bounds: { x: 50, y: 50, width: 200, height: 100 }, externalData: {} },
+                                },
+                            ],
+                            _temp: { bounds: { x: 0, y: 0, width: 300, height: 200 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -643,22 +694,24 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_edges' },
                 json: {
                     name: 'Edges Test',
-                    nodes: [{
-                        id: '1',
-                        type: '21',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '21',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            edges: [
+                                { sourceNodeID: '2', targetNodeID: '3', sourcePortID: 'output', targetPortID: 'input' },
+                            ],
+                            _temp: { bounds: { x: 0, y: 0, width: 300, height: 200 }, externalData: {} },
                         },
-                        edges: [
-                            { sourceNodeID: '2', targetNodeID: '3', sourcePortID: 'output', targetPortID: 'input' }
-                        ],
-                        _temp: { bounds: { x: 0, y: 0, width: 300, height: 200 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -675,20 +728,22 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_comment' },
                 json: {
                     name: 'Comment Test',
-                    nodes: [{
-                        id: '1',
-                        type: '31',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Comment', icon: '', description: '', mainColor: '#f59e0b' },
-                            inputs: { inputParameters: [], note: 'This is a comment', schemaType: 'slate' },
-                            outputs: [],
-                            size: { width: 300, height: 200 }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '31',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Comment', icon: '', description: '', mainColor: '#f59e0b' },
+                                inputs: { inputParameters: [], note: 'This is a comment', schemaType: 'slate' },
+                                outputs: [],
+                                size: { width: 300, height: 200 },
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 300, height: 200 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 300, height: 200 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -704,19 +759,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_end' },
                 json: {
                     name: 'End Test',
-                    nodes: [{
-                        id: '1',
-                        type: '2',
-                        meta: { position: { x: 400, y: 200 } },
-                        data: {
-                            nodeMeta: { title: 'End', icon: '', description: '', mainColor: '#ef4444' },
-                            inputs: { inputParameters: [], terminatePlan: { type: 'literal', content: 'done' } },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '2',
+                            meta: { position: { x: 400, y: 200 } },
+                            data: {
+                                nodeMeta: { title: 'End', icon: '', description: '', mainColor: '#ef4444' },
+                                inputs: { inputParameters: [], terminatePlan: { type: 'literal', content: 'done' } },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 400, y: 200, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 400, y: 200, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -730,22 +787,24 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_question' },
                 json: {
                     name: 'Question Test',
-                    nodes: [{
-                        id: '1',
-                        type: '18',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Question', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                llmParam: { modelName: 'gpt-4', temperature: 0.7 }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '18',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Question', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    llmParam: { modelName: 'gpt-4', temperature: 0.7 },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -759,23 +818,28 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_loop_cmplx' },
                 json: {
                     name: 'Loop Complex Test',
-                    nodes: [{
-                        id: '1',
-                        type: '21',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                loopCount: { type: 'integer', value: { type: 'literal', content: 5, rawMeta: {} } },
-                                loopItems: { type: 'array', value: { type: 'ref', content: { name: 'items', blockID: '2' } } }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '21',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Loop', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    loopCount: { type: 'integer', value: { type: 'literal', content: 5, rawMeta: {} } },
+                                    loopItems: {
+                                        type: 'array',
+                                        value: { type: 'ref', content: { name: 'items', blockID: '2' } },
+                                    },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -792,23 +856,25 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_batch' },
                 json: {
                     name: 'Batch Test',
-                    nodes: [{
-                        id: '1',
-                        type: '28',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Batch', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                batchSize: { type: 'integer', value: { type: 'literal', content: 10 } },
-                                concurrentSize: 5
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '28',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Batch', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    batchSize: { type: 'integer', value: { type: 'literal', content: 10 } },
+                                    concurrentSize: 5,
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -823,22 +889,24 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_error' },
                 json: {
                     name: 'Error Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                settingOnError: { type: 'literal', content: 'continue' }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    settingOnError: { type: 'literal', content: 'continue' },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -851,19 +919,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_unknown' },
                 json: {
                     name: 'Unknown Test',
-                    nodes: [{
-                        id: '1',
-                        type: '999',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Unknown', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '999',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Unknown', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -876,23 +946,28 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_inputs' },
                 json: {
                     name: 'InputParams Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [
-                                    { name: 'prompt', input: { type: 'string', value: { type: 'literal', content: 'Hello' } } }
-                                ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [
+                                        {
+                                            name: 'prompt',
+                                            input: { type: 'string', value: { type: 'literal', content: 'Hello' } },
+                                        },
+                                    ],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -907,21 +982,29 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_outputs' },
                 json: {
                     name: 'Outputs Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: [
-                                { name: 'text', type: 'string', defaultValue: 'hello', required: true, description: 'output text' }
-                            ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'text',
+                                        type: 'string',
+                                        defaultValue: 'hello',
+                                        required: true,
+                                        description: 'output text',
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -937,21 +1020,30 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_schema' },
                 json: {
                     name: 'Schema Test',
-                    nodes: [{
-                        id: '1',
-                        type: '4',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: [
-                                { name: 'data', type: 'object', schema: { type: 'object', properties: { field1: { type: 'string', value: undefined } } } }
-                            ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'data',
+                                        type: 'object',
+                                        schema: {
+                                            type: 'object',
+                                            properties: { field1: { type: 'string', value: undefined } },
+                                        },
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -967,29 +1059,34 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_input_ref' },
                 json: {
                     name: 'Input Ref Test',
-                    nodes: [{
-                        id: '1',
-                        type: '4',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: [
-                                {
-                                    name: 'result',
-                                    type: 'string',
-                                    input: {
-                                        type: 'list',
-                                        schema: { type: 'string' },
-                                        value: { type: 'ref', content: { name: 'output', blockID: '2', source: 'block-output' } }
-                                    }
-                                }
-                            ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'result',
+                                        type: 'string',
+                                        input: {
+                                            type: 'list',
+                                            schema: { type: 'string' },
+                                            value: {
+                                                type: 'ref',
+                                                content: { name: 'output', blockID: '2', source: 'block-output' },
+                                            },
+                                        },
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1006,23 +1103,34 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_ip_ref' },
                 json: {
                     name: 'IP Ref Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [
-                                    { name: 'prompt', input: { type: 'ref', value: { type: 'ref', content: { name: 'text', blockID: '2', source: 'block-output' } } } }
-                                ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [
+                                        {
+                                            name: 'prompt',
+                                            input: {
+                                                type: 'ref',
+                                                value: {
+                                                    type: 'ref',
+                                                    content: { name: 'text', blockID: '2', source: 'block-output' },
+                                                },
+                                            },
+                                        },
+                                    ],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1038,19 +1146,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_empty_ip' },
                 json: {
                     name: 'Empty IP Test',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1063,23 +1173,23 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_null' },
                 json: {
                     name: 'Null Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [
-                                    { name: 'param', input: { type: 'string', value: null } }
-                                ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [{ name: 'param', input: { type: 'string', value: null } }],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1092,19 +1202,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_out_null' },
                 json: {
                     name: 'Output Null Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: [{ name: 'text', type: 'string', value: null }]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [{ name: 'text', type: 'string', value: null }],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1117,25 +1229,33 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_llm_arr' },
                 json: {
                     name: 'LLM Array Test',
-                    nodes: [{
-                        id: '1',
-                        type: '3',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                llmParam: [
-                                    { name: 'modelName', input: { type: 'string', value: { type: 'literal', content: 'gpt-4' } } },
-                                    { name: 'temperature', input: { type: 'number', value: { type: 'literal', content: 0.7 } } }
-                                ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    llmParam: [
+                                        {
+                                            name: 'modelName',
+                                            input: { type: 'string', value: { type: 'literal', content: 'gpt-4' } },
+                                        },
+                                        {
+                                            name: 'temperature',
+                                            input: { type: 'number', value: { type: 'literal', content: 0.7 } },
+                                        },
+                                    ],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1144,30 +1264,67 @@ describe('Reverse Module', () => {
             expect(result.nodes[0].parameters.llmParam.length).toBe(2);
         });
 
+        it('should handle output with non-ref input value', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_out_nonref' },
+                json: {
+                    name: 'Output Non-ref Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'result',
+                                        type: 'string',
+                                        input: {
+                                            type: 'string',
+                                            value: { content: 'hello' },
+                                        },
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.node_outputs.result).toBeDefined();
+            expect(result.nodes[0].parameters.node_outputs.result.value).toBeNull();
+        });
+
         it('should handle node with branches parameter', () => {
             const clipboardData = {
                 type: 'coze-workflow-clipboard-data',
                 source: { workflowId: 'wf_branches' },
                 json: {
                     name: 'Branches Test',
-                    nodes: [{
-                        id: '1',
-                        type: '8',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Condition', icon: '', description: '', mainColor: '#f59e0b' },
-                            inputs: {
-                                inputParameters: [],
-                                branches: [
-                                    { condition: { type: 'literal', content: 'true' }, name: 'branch1' }
-                                ]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '8',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Condition', icon: '', description: '', mainColor: '#f59e0b' },
+                                inputs: {
+                                    inputParameters: [],
+                                    branches: [{ condition: { type: 'literal', content: 'true' }, name: 'branch1' }],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1181,23 +1338,25 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_text' },
                 json: {
                     name: 'Text Test',
-                    nodes: [{
-                        id: '1',
-                        type: '15',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Text', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                concatParams: [{ type: 'literal', content: 'hello' }],
-                                method: 'concat'
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '15',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Text', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    concatParams: [{ type: 'literal', content: 'hello' }],
+                                    method: 'concat',
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1212,21 +1371,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_edge' },
                 json: {
                     name: 'Edge Test',
-                    nodes: [{
-                        id: '1',
-                        type: '1',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: [
-                        { sourceNodeId: '1', targetNodeId: '2' }
-                    ]
-                }
+                    ],
+                    edges: [{ sourceNodeId: '1', targetNodeId: '2' }],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1241,19 +1400,21 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_no_color' },
                 json: {
                     name: 'No Color Test',
-                    nodes: [{
-                        id: '1',
-                        type: '999',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Unknown', icon: '', description: '' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '999',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Unknown', icon: '', description: '' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1267,25 +1428,27 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_output' },
                 json: {
                     name: 'Output Test',
-                    nodes: [{
-                        id: '1',
-                        type: '13',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Output', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                content: { type: 'literal', content: 'result text' },
-                                streamingOutput: true,
-                                callTransferVoice: false,
-                                chatHistoryWriting: 'historyWrite'
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '13',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Output', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    content: { type: 'literal', content: 'result text' },
+                                    streamingOutput: true,
+                                    callTransferVoice: false,
+                                    chatHistoryWriting: 'historyWrite',
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1302,22 +1465,24 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_merge' },
                 json: {
                     name: 'Merge Test',
-                    nodes: [{
-                        id: '1',
-                        type: '32',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Merge', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                mergeGroups: [{ name: 'group1', variables: [] }]
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '32',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Merge', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    mergeGroups: [{ name: 'group1', variables: [] }],
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1331,23 +1496,25 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_assign' },
                 json: {
                     name: 'Assign Test',
-                    nodes: [{
-                        id: '1',
-                        type: '40',
-                        meta: { position: { x: 100, y: 100 } },
-                        data: {
-                            nodeMeta: { title: 'Assign', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: {
-                                inputParameters: [],
-                                variableName: 'myVar',
-                                variableValue: { type: 'literal', content: 'hello' }
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '40',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Assign', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    variableName: 'myVar',
+                                    variableValue: { type: 'literal', content: 'hello' },
+                                },
+                                outputs: [],
                             },
-                            outputs: []
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
                         },
-                        _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1362,41 +1529,60 @@ describe('Reverse Module', () => {
                 source: { workflowId: 'wf_deep' },
                 json: {
                     name: 'Deep Nest Test',
-                    nodes: [{
-                        id: '1',
-                        type: '21',
-                        meta: { position: { x: 0, y: 0 } },
-                        data: {
-                            nodeMeta: { title: 'Outer Loop', icon: '', description: '', mainColor: '#8b5cf6' },
-                            inputs: { inputParameters: [] },
-                            outputs: []
-                        },
-                        blocks: [{
-                            id: '2',
+                    nodes: [
+                        {
+                            id: '1',
                             type: '21',
-                            meta: { position: { x: 50, y: 50 } },
+                            meta: { position: { x: 0, y: 0 } },
                             data: {
-                                nodeMeta: { title: 'Inner Loop', icon: '', description: '', mainColor: '#8b5cf6' },
+                                nodeMeta: { title: 'Outer Loop', icon: '', description: '', mainColor: '#8b5cf6' },
                                 inputs: { inputParameters: [] },
-                                outputs: []
+                                outputs: [],
                             },
-                            blocks: [{
-                                id: '3',
-                                type: '5',
-                                meta: { position: { x: 100, y: 100 } },
-                                data: {
-                                    nodeMeta: { title: 'Code', icon: '', description: '', mainColor: '#6366f1' },
-                                    inputs: { inputParameters: [], code: 'print(1)' },
-                                    outputs: []
+                            blocks: [
+                                {
+                                    id: '2',
+                                    type: '21',
+                                    meta: { position: { x: 50, y: 50 } },
+                                    data: {
+                                        nodeMeta: {
+                                            title: 'Inner Loop',
+                                            icon: '',
+                                            description: '',
+                                            mainColor: '#8b5cf6',
+                                        },
+                                        inputs: { inputParameters: [] },
+                                        outputs: [],
+                                    },
+                                    blocks: [
+                                        {
+                                            id: '3',
+                                            type: '5',
+                                            meta: { position: { x: 100, y: 100 } },
+                                            data: {
+                                                nodeMeta: {
+                                                    title: 'Code',
+                                                    icon: '',
+                                                    description: '',
+                                                    mainColor: '#6366f1',
+                                                },
+                                                inputs: { inputParameters: [], code: 'print(1)' },
+                                                outputs: [],
+                                            },
+                                            _temp: {
+                                                bounds: { x: 100, y: 100, width: 200, height: 100 },
+                                                externalData: {},
+                                            },
+                                        },
+                                    ],
+                                    _temp: { bounds: { x: 50, y: 50, width: 300, height: 200 }, externalData: {} },
                                 },
-                                _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} }
-                            }],
-                            _temp: { bounds: { x: 50, y: 50, width: 300, height: 200 }, externalData: {} }
-                        }],
-                        _temp: { bounds: { x: 0, y: 0, width: 400, height: 300 }, externalData: {} }
-                    }],
-                    edges: []
-                }
+                            ],
+                            _temp: { bounds: { x: 0, y: 0, width: 400, height: 300 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
             };
 
             const result = convertClipboardToYaml(clipboardData);
@@ -1404,6 +1590,278 @@ describe('Reverse Module', () => {
             expect(result.nodes[0].nodes.length).toBe(1);
             expect(result.nodes[0].nodes[0].nodes).toBeDefined();
             expect(result.nodes[0].nodes[0].nodes[0].type).toBe('code');
+        });
+
+        it('should handle position with non-number x/y', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_pos_str' },
+                json: {
+                    name: 'Pos String Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 'abc', y: null } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].position.x).toBe(0);
+            expect(result.nodes[0].position.y).toBe(0);
+        });
+
+        it('should handle output with input but no type', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_out_notype' },
+                json: {
+                    name: 'Output No Type Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'result',
+                                        input: {
+                                            value: { type: 'ref', content: { name: 'out', blockID: '2' } },
+                                        },
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.node_outputs.result.type).toBe('string');
+            expect(result.nodes[0].parameters.node_outputs.result.value).toBeDefined();
+        });
+
+        it('should handle output with list input and schema', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_list_schema' },
+                json: {
+                    name: 'List Schema Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '4',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'Plugin', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'items',
+                                        input: {
+                                            type: 'list',
+                                            schema: { type: 'object' },
+                                            value: null,
+                                        },
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.node_outputs.items.items.type).toBe('object');
+            expect(result.nodes[0].parameters.node_outputs.items.value).toBeNull();
+        });
+
+        it('should handle llmParam array item without input type', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_llm_no_type' },
+                json: {
+                    name: 'LLM No Type Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    llmParam: [
+                                        {
+                                            name: 'modelName',
+                                            input: { value: { type: 'literal', content: 'gpt-4' } },
+                                        },
+                                    ],
+                                },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.llmParam[0].input.type).toBe('literal');
+        });
+
+        it('should handle inputParameters item without input type', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_ip_no_type' },
+                json: {
+                    name: 'IP No Type Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [
+                                        {
+                                            name: 'prompt',
+                                            input: { value: { type: 'literal', content: 'Hello' } },
+                                        },
+                                    ],
+                                },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.node_inputs[0].input.type).toBe('literal');
+        });
+
+        it('should handle edges with zero port IDs', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_edge_zero' },
+                json: {
+                    name: 'Edge Zero Port Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '1',
+                            meta: { position: { x: 0, y: 0 } },
+                            data: {
+                                nodeMeta: { title: 'Start', icon: '', description: '', mainColor: '#10b981' },
+                                inputs: { inputParameters: [] },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 0, y: 0, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [{ sourceNodeID: '1', targetNodeID: '2', sourcePortID: 0, targetPortID: 0 }],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.edges[0].source_port).toBe('0');
+            expect(result.edges[0].target_port).toBe('0');
+        });
+
+        it('should handle convertValue with inherited properties', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_inherit' },
+                json: {
+                    name: 'Inherit Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '45',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'HTTP', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: {
+                                    inputParameters: [],
+                                    body: {
+                                        type: 'object',
+                                        value: {
+                                            entries: [
+                                                {
+                                                    key: { content: 'data' },
+                                                    value: { content: 'test' },
+                                                },
+                                            ],
+                                        },
+                                    },
+                                },
+                                outputs: [],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.body).toBeDefined();
+        });
+
+        it('should handle output with defaultValue 0 and falsy value', () => {
+            const clipboardData = {
+                type: 'coze-workflow-clipboard-data',
+                source: { workflowId: 'wf_out_zero' },
+                json: {
+                    name: 'Output Zero Test',
+                    nodes: [
+                        {
+                            id: '1',
+                            type: '3',
+                            meta: { position: { x: 100, y: 100 } },
+                            data: {
+                                nodeMeta: { title: 'LLM', icon: '', description: '', mainColor: '#8b5cf6' },
+                                inputs: { inputParameters: [] },
+                                outputs: [
+                                    {
+                                        name: 'count',
+                                        type: 'integer',
+                                        defaultValue: 0,
+                                        value: false,
+                                    },
+                                ],
+                            },
+                            _temp: { bounds: { x: 100, y: 100, width: 200, height: 100 }, externalData: {} },
+                        },
+                    ],
+                    edges: [],
+                },
+            };
+
+            const result = convertClipboardToYaml(clipboardData);
+            expect(result.nodes[0].parameters.node_outputs.count.default_value).toBe(0);
+            expect(result.nodes[0].parameters.node_outputs.count.value).toBe(false);
         });
     });
 });

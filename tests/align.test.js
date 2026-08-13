@@ -23,6 +23,9 @@ function createMockNode(id, x, y, width, height) {
 function createMockUI() {
     const core = {
         nodes: [],
+        getNode: function (id) {
+            return this.nodes.find((n) => n.id === id);
+        },
         updateNodePosition: function (id, newX, newY) {
             const node = this.nodes.find((n) => n.id === id);
             if (node) {
@@ -393,6 +396,154 @@ describe('WorkflowAlign', () => {
             expect(mockToolbar.style.left).toBeDefined();
             expect(mockToolbar.style.top).toBeDefined();
             expect(mockToolbar.classList.add).toHaveBeenCalledWith('visible');
+        });
+    });
+
+    describe('alignNodes', () => {
+        it('should return early when less than 2 nodes selected', () => {
+            global.document.querySelectorAll = jest.fn(() => [{ dataset: { nodeId: '1' } }]);
+            const saveHistorySpy = jest.spyOn(core, 'saveHistory');
+
+            align.alignNodes('left');
+
+            expect(saveHistorySpy).not.toHaveBeenCalled();
+            saveHistorySpy.mockRestore();
+        });
+
+        it('should return early when only 1 valid node found', () => {
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1' } },
+                { dataset: { nodeId: 'invalid' } },
+            ]);
+            core.nodes = [{ id: '1', x: 0, y: 0 }];
+            const saveHistorySpy = jest.spyOn(core, 'saveHistory');
+
+            align.alignNodes('left');
+
+            expect(saveHistorySpy).not.toHaveBeenCalled();
+            saveHistorySpy.mockRestore();
+        });
+
+        it('should delegate to alignLeft for left mode', () => {
+            const nodes = [createMockNode('1', 10, 20, 50, 60), createMockNode('2', 100, 40, 60, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '20' }, style: {} },
+                { dataset: { nodeId: '2', x: '100', y: '40' }, style: {} },
+            ]);
+
+            align.alignNodes('left');
+
+            expect(nodes[0].node.x).toBe(10);
+            expect(nodes[1].node.x).toBe(10);
+        });
+
+        it('should delegate to alignCenterH for centerH mode', () => {
+            const nodes = [createMockNode('1', 10, 20, 50, 60), createMockNode('2', 100, 40, 60, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '20' }, style: {} },
+                { dataset: { nodeId: '2', x: '100', y: '40' }, style: {} },
+            ]);
+
+            align.alignNodes('centerH');
+
+            const avgCenter = (10 + 25 + 100 + 30) / 2;
+            expect(nodes[0].node.x).toBeCloseTo(avgCenter - 25, 0);
+            expect(nodes[1].node.x).toBeCloseTo(avgCenter - 30, 0);
+        });
+
+        it('should delegate to alignRight for right mode', () => {
+            const nodes = [createMockNode('1', 10, 20, 50, 60), createMockNode('2', 100, 40, 60, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '20' }, style: {} },
+                { dataset: { nodeId: '2', x: '100', y: '40' }, style: {} },
+            ]);
+
+            align.alignNodes('right');
+
+            expect(nodes[0].node.x).toBe(110);
+            expect(nodes[1].node.x).toBe(100);
+        });
+
+        it('should delegate to alignTop for top mode', () => {
+            const nodes = [createMockNode('1', 10, 100, 50, 60), createMockNode('2', 20, 20, 50, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '100' }, style: {} },
+                { dataset: { nodeId: '2', x: '20', y: '20' }, style: {} },
+            ]);
+
+            align.alignNodes('top');
+
+            expect(nodes[0].node.y).toBe(20);
+            expect(nodes[1].node.y).toBe(20);
+        });
+
+        it('should delegate to alignCenterV for centerV mode', () => {
+            const nodes = [createMockNode('1', 10, 10, 50, 60), createMockNode('2', 20, 100, 50, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '10' }, style: {} },
+                { dataset: { nodeId: '2', x: '20', y: '100' }, style: {} },
+            ]);
+
+            align.alignNodes('centerV');
+
+            const avgCenter = (10 + 30 + 100 + 25) / 2;
+            expect(nodes[0].node.y).toBeCloseTo(avgCenter - 30, 0);
+            expect(nodes[1].node.y).toBeCloseTo(avgCenter - 25, 0);
+        });
+
+        it('should delegate to alignBottom for bottom mode', () => {
+            const nodes = [createMockNode('1', 10, 10, 50, 60), createMockNode('2', 20, 20, 50, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '10' }, style: {} },
+                { dataset: { nodeId: '2', x: '20', y: '20' }, style: {} },
+            ]);
+
+            align.alignNodes('bottom');
+
+            expect(nodes[0].node.y).toBe(10);
+            expect(nodes[1].node.y).toBe(20);
+        });
+
+        it('should save history for align modes', () => {
+            const nodes = [createMockNode('1', 10, 20, 50, 60), createMockNode('2', 100, 40, 60, 50)];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '10', y: '20' }, style: {} },
+                { dataset: { nodeId: '2', x: '100', y: '40' }, style: {} },
+            ]);
+            const saveHistorySpy = jest.spyOn(core, 'saveHistory');
+
+            align.alignNodes('left');
+
+            expect(saveHistorySpy).toHaveBeenCalledWith('messages.alignNodes');
+            saveHistorySpy.mockRestore();
+        });
+
+        it('should save distribute-specific history for distribute modes', () => {
+            const nodes = [
+                createMockNode('1', 0, 0, 50, 50),
+                createMockNode('2', 100, 0, 50, 50),
+                createMockNode('3', 300, 0, 50, 50),
+            ];
+            core.nodes = nodes.map((n) => n.node);
+            global.document.querySelectorAll = jest.fn(() => [
+                { dataset: { nodeId: '1', x: '0', y: '0' }, style: {} },
+                { dataset: { nodeId: '2', x: '100', y: '0' }, style: {} },
+                { dataset: { nodeId: '3', x: '300', y: '0' }, style: {} },
+            ]);
+            const saveHistorySpy = jest.spyOn(core, 'saveHistory');
+
+            align.alignNodes('distH');
+
+            expect(saveHistorySpy).toHaveBeenCalledWith('messages.distributeHorizontal');
+            expect(saveHistorySpy).not.toHaveBeenCalledWith('messages.alignNodes');
+            saveHistorySpy.mockRestore();
         });
     });
 });

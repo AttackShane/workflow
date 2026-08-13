@@ -367,9 +367,9 @@ class GraphView {
                     };
 
                     container.addEventListener('mousedown', handleMouseDown);
-                    container.addEventListener('mousemove', handleMouseMove);
-                    container.addEventListener('mouseup', handleMouseUp);
-                    container.addEventListener('mouseleave', handleMouseUp);
+                    // 绑定到 document，避免鼠标移出 container 后拖动卡住
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
 
                     container.style.cursor = 'grab';
                 }

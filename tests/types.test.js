@@ -27,13 +27,13 @@ import {
     resolveNodeType,
     inferRawMetaFromType,
     inferRawMetaFromValue,
-    toValueObject
+    toValueObject,
 } from '../src/utils/types.js';
 
 // Mock the dependencies
 jest.mock('../src/utils/refCache.js', () => ({
     findRef: jest.fn(() => null),
-    clearRefCache: jest.fn()
+    clearRefCache: jest.fn(),
 }));
 
 jest.mock('../src/utils/logger.js', () => ({
@@ -41,9 +41,9 @@ jest.mock('../src/utils/logger.js', () => ({
         warn: jest.fn(),
         info: jest.fn(),
         error: jest.fn(),
-        debug: jest.fn()
+        debug: jest.fn(),
     },
-    LOG_LEVELS_CONST: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 }
+    LOG_LEVELS_CONST: { DEBUG: 0, INFO: 1, WARN: 2, ERROR: 3, OFF: 4 },
 }));
 
 describe('Constants', () => {
@@ -121,9 +121,22 @@ describe('TYPE_MAP', () => {
 
     it('should include all major node types', () => {
         const requiredTypes = [
-            'start', 'end', 'llm', 'plugin', 'code', 'condition',
-            'http', 'loop', 'batch', 'intent', 'question', 'output',
-            'input', 'variable_assign', 'variable_merge', 'comment'
+            'start',
+            'end',
+            'llm',
+            'plugin',
+            'code',
+            'condition',
+            'http',
+            'loop',
+            'batch',
+            'intent',
+            'question',
+            'output',
+            'input',
+            'variable_assign',
+            'variable_merge',
+            'comment',
         ];
         for (const type of requiredTypes) {
             expect(TYPE_MAP[type]).toBeDefined();
@@ -371,16 +384,17 @@ describe('getBounds', () => {
     it('should return default bounds for null/undefined', () => {
         const bounds = getBounds(null);
         expect(bounds).toEqual({
-            x: 0, y: 0,
+            x: 0,
+            y: 0,
             width: NODE_DEFAULT_WIDTH,
-            height: NODE_DEFAULT_HEIGHT
+            height: NODE_DEFAULT_HEIGHT,
         });
     });
 
     it('should use node position when available', () => {
         const node = {
             position: { x: 100, y: 200 },
-            type: 'start'
+            type: 'start',
         };
         const bounds = getBounds(node);
         expect(bounds.x).toBe(100 - NODE_CENTER_OFFSET);
@@ -390,7 +404,7 @@ describe('getBounds', () => {
     it('should use question height for question type', () => {
         const node = {
             position: { x: 0, y: 0 },
-            type: 'question'
+            type: 'question',
         };
         const bounds = getBounds(node);
         expect(bounds.height).toBe(NODE_QUESTION_HEIGHT);
@@ -399,7 +413,7 @@ describe('getBounds', () => {
     it('should use default height for non-question types', () => {
         const node = {
             position: { x: 0, y: 0 },
-            type: 'start'
+            type: 'start',
         };
         const bounds = getBounds(node);
         expect(bounds.height).toBe(NODE_DEFAULT_HEIGHT);
@@ -452,7 +466,7 @@ describe('inferRawMetaFromType', () => {
         expect(inferRawMetaFromType('float')).toEqual({ type: 4 });
         expect(inferRawMetaFromType('boolean')).toEqual({ type: 3 });
         expect(inferRawMetaFromType('list')).toEqual({ type: 100 });
-        expect(inferRawMetaFromType('object')).toEqual({ type: 1 });
+        expect(inferRawMetaFromType('object')).toEqual({ type: 103 });
     });
 
     it('should return image meta for assist=2', () => {
@@ -493,7 +507,12 @@ describe('inferRawMetaFromValue', () => {
 
     it('should default to string type', () => {
         expect(inferRawMetaFromValue('hello')).toEqual({ type: 1 });
-        expect(inferRawMetaFromValue({})).toEqual({ type: 1 });
+        expect(inferRawMetaFromValue(null)).toEqual({ type: 1 });
+    });
+
+    it('should infer objectList type from plain object', () => {
+        expect(inferRawMetaFromValue({})).toEqual({ type: RAW_TYPE.objectList });
+        expect(inferRawMetaFromValue({ a: 1 })).toEqual({ type: RAW_TYPE.objectList });
     });
 });
 

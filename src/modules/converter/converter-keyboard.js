@@ -53,7 +53,7 @@ class KeyboardShortcuts {
                 this._safeClick(this._elements.copyOutputBtn);
             }
 
-            if ((e.ctrlKey || e.metaKey) && e.key === 'r' && !this._isInputFocused()) {
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'r' || e.key === 'R') && !this._isInputFocused()) {
                 e.preventDefault();
                 this._safeClick(this._elements.resetBtn);
             }

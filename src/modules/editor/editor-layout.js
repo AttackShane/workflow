@@ -9,7 +9,7 @@ import { APP_CONFIG } from '../../config/constants.js';
 /**
  * 自动优化布局
  * @param {import('./editor-core').WorkflowCore} core - 工作流核心实例
- * @param {import('./editor-canvas').WorkflowCanvas} canvas - 画布实例
+ * @param {import('./editor-canvas').WorkflowCanvas & {node?: {container: {renderContainerChildren: (id: string) => void}}, _elMap?: Map<string, HTMLElement>}} canvas - 画布实例
  */
 export function autoOptimizeLayout(core, canvas) {
     if (!core || !core.nodes || core.nodes.length === 0) {
@@ -25,29 +25,38 @@ export function autoOptimizeLayout(core, canvas) {
     const HEADER_H = APP_CONFIG.NODE.CONTAINER_HEADER_H;
     const DESC_H = APP_CONFIG.NODE.CONTAINER_DESC_H;
     const BORDER = 4;
-    const CONN_POINT_Y = 30;
 
     const defaultW = 200;
     const defaultH = 100;
 
     const getNodeSize = (node) => {
-        const info = core.nodeTypeInfo[node.type] || {};
+        const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (core.nodeTypeInfo[node.type] || {});
         const isContainer = info.hasContainer === true;
         const w = node.width || (isContainer ? info.containerMinWidth || 300 : 200);
         const h = node.height || (isContainer ? info.containerMinHeight || 200 : 100);
         return { w, h };
     };
 
-    const layoutNodeGroup = (groupNodes, startX, startY, gapH, gapV, isInner = false) => {
+    const layoutNodeGroup = (
+        /** @type {import('../../types/workflow.js').WorkflowNode[]} */ groupNodes,
+        startX,
+        startY,
+        gapH,
+        gapV,
+        isInner = false
+    ) => {
         if (groupNodes.length === 0) return { commentGroups: new Map() };
 
         // 分离连接的节点和孤立节点
+        /** @type {Set<string>} */
         const connectedIds = new Set();
         core.edges.forEach((edge) => {
             connectedIds.add(edge.source);
             connectedIds.add(edge.target);
         });
+        /** @type {import('../../types/workflow.js').WorkflowNode[]} */
         const isolatedNodes = groupNodes.filter((n) => !connectedIds.has(n.id));
+        /** @type {import('../../types/workflow.js').WorkflowNode[]} */
         const connectedNodes = groupNodes.filter((n) => connectedIds.has(n.id));
 
         // 保存所有节点的原始坐标（用于注释节点吸附匹配）
@@ -76,7 +85,9 @@ export function autoOptimizeLayout(core, canvas) {
         connectedNodes.forEach((n) => groupSizes.set(n.id, getNodeSize(n)));
 
         const nodeIsContainer = (node) => {
-            const info = core.nodeTypeInfo[node.type] || {};
+            const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+                core.nodeTypeInfo[node.type] || {}
+            );
             return info.hasContainer === true;
         };
 
@@ -93,9 +104,6 @@ export function autoOptimizeLayout(core, canvas) {
 
         const nodeYFromConnY = (node, connY) => {
             return connY - getConnOffset(node);
-        };
-        const connYFromNodeY = (node, nodeY) => {
-            return nodeY + getConnOffset(node);
         };
 
         // 构建邻接表和入度表
@@ -122,16 +130,21 @@ export function autoOptimizeLayout(core, canvas) {
         const nodeLevel = new Map();
         const sources = connectedNodes.filter((n) => inDeg.get(n.id) === 0);
         const queue = sources.map((n) => n.id);
+        const inQueue = new Set(queue);
         sources.forEach((n) => nodeLevel.set(n.id, 0));
 
         while (queue.length > 0) {
             const id = queue.shift();
+            inQueue.delete(id);
             adj.get(id).forEach((nextId) => {
                 const predMax = Math.max(...preds.get(nextId).map((pid) => nodeLevel.get(pid) ?? -1));
                 const newLevel = predMax + 1;
                 if (!nodeLevel.has(nextId) || nodeLevel.get(nextId) < newLevel) {
                     nodeLevel.set(nextId, newLevel);
-                    if (!queue.includes(nextId)) queue.push(nextId);
+                    if (!inQueue.has(nextId)) {
+                        queue.push(nextId);
+                        inQueue.add(nextId);
+                    }
                 }
             });
         }
@@ -140,12 +153,16 @@ export function autoOptimizeLayout(core, canvas) {
             if (!nodeLevel.has(n.id)) nodeLevel.set(n.id, 0);
         });
 
+        // 构建节点ID到节点的快速查找Map
+        const nodeById = new Map();
+        connectedNodes.forEach((n) => nodeById.set(n.id, n));
+
         // 按层级分组
         const levels = [];
         const levelMaxW = [];
         nodeLevel.forEach((level, id) => {
             if (!levels[level]) levels[level] = [];
-            const node = connectedNodes.find((n) => n.id === id);
+            const node = nodeById.get(id);
             if (node) {
                 levels[level].push(node);
                 const sz = groupSizes.get(id) || { w: defaultW, h: defaultH };
@@ -231,9 +248,12 @@ export function autoOptimizeLayout(core, canvas) {
         const commentNodes = isolatedNodes.filter(isCommentType);
 
         // 吸附候选：包含所有连接节点 + 容器节点（即使没有外部边）
+        /** @type {import('../../types/workflow.js').WorkflowNode[]} */
         const snapCandidates = [...connectedNodes];
         groupNodes.forEach((node) => {
-            const info = core.nodeTypeInfo[node.type] || {};
+            const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+                core.nodeTypeInfo[node.type] || {}
+            );
             if (info.hasContainer && !snapCandidates.includes(node)) {
                 snapCandidates.push(node);
             }
@@ -247,6 +267,7 @@ export function autoOptimizeLayout(core, canvas) {
             const commentOrig = originalPositions.get(commentNode.id) || { x: 0, y: 0 };
 
             // 在吸附候选中找最近节点（使用欧几里得距离平方）
+            /** @type {import('../../types/workflow.js').WorkflowNode | null} */
             let nearest = null;
             let minDistanceSq = Infinity;
             snapCandidates.forEach((node) => {
@@ -444,7 +465,9 @@ export function autoOptimizeLayout(core, canvas) {
     };
 
     core.nodes.forEach((container) => {
-        const info = core.nodeTypeInfo[container.type] || {};
+        const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+            core.nodeTypeInfo[container.type] || {}
+        );
         if (!info.hasContainer) return;
         const children = core.container.getChildren(container.id);
         if (children.length === 0) return;
@@ -492,7 +515,9 @@ export function autoOptimizeLayout(core, canvas) {
     // 必须先刷新DOM，因为updateContainerSize会根据DOM重新计算容器实际高度。
     if (canvas.node && canvas.node.container) {
         core.nodes.forEach((node) => {
-            const info = core.nodeTypeInfo[node.type] || {};
+            const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+                core.nodeTypeInfo[node.type] || {}
+            );
             if (info.hasContainer) {
                 canvas.node.container.renderContainerChildren(node.id);
             }
@@ -504,7 +529,7 @@ export function autoOptimizeLayout(core, canvas) {
     rootCommentGroups.forEach((comments, nodeId) => {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) return;
-        const info = core.nodeTypeInfo[node.type] || {};
+        const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (core.nodeTypeInfo[node.type] || {});
         if (!info.hasContainer) return;
         const gapV = vGap;
         let currentY = node.y + node.height + gapV;
@@ -519,7 +544,6 @@ export function autoOptimizeLayout(core, canvas) {
     });
 
     // 碰撞检测：检测容器注释调整后是否与后续节点产生碰撞，自动推移
-    const rootLevelNodes = [];
     const rootCommentNodes = [];
     rootCommentGroups.forEach((comments) => {
         comments.forEach((c) => rootCommentNodes.push(c));
@@ -533,6 +557,7 @@ export function autoOptimizeLayout(core, canvas) {
         for (let i = 0; i < sortedByY.length; i++) {
             const nodeA = sortedByY[i];
             const aSz = nodeA.width && nodeA.height ? { w: nodeA.width, h: nodeA.height } : getNodeSize(nodeA);
+            const aLeft = nodeA.x;
             const aRight = nodeA.x + aSz.w;
             const aBottom = nodeA.y + aSz.h;
 
@@ -543,7 +568,7 @@ export function autoOptimizeLayout(core, canvas) {
                 const bRight = nodeB.x + bSz.w;
                 const bTop = nodeB.y;
 
-                const overlapX = !(aRight <= bLeft || aRight >= bRight);
+                const overlapX = aLeft < bRight && aRight > bLeft;
                 if (!overlapX) continue;
 
                 if (aBottom > bTop) {
@@ -564,7 +589,9 @@ export function autoOptimizeLayout(core, canvas) {
     // refreshCanvas 重建了容器外壳，需要重新添加容器子节点
     if (canvas.node && canvas.node.container) {
         core.nodes.forEach((node) => {
-            const info = core.nodeTypeInfo[node.type] || {};
+            const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+                core.nodeTypeInfo[node.type] || {}
+            );
             if (info.hasContainer) {
                 canvas.node.container.renderContainerChildren(node.id);
             }
@@ -577,19 +604,21 @@ export function autoOptimizeLayout(core, canvas) {
             const el = canvas._elMap.get(node.id);
             if (el) {
                 el.style.transform = `translate(${node.x}px, ${node.y}px)`;
-                el.dataset.x = node.x;
-                el.dataset.y = node.y;
+                el.dataset.x = String(node.x);
+                el.dataset.y = String(node.y);
             }
 
-            const info = core.nodeTypeInfo[node.type] || {};
+            const info = /** @type {import('../../types/workflow.js').NodeTypeInfo} */ (
+                core.nodeTypeInfo[node.type] || {}
+            );
             if (info.hasContainer) {
                 const children = core.container.getChildren(node.id);
                 children.forEach((child) => {
                     const childEl = canvas._elMap.get(child.id);
                     if (childEl) {
                         childEl.style.transform = `translate(${child.x}px, ${child.y}px)`;
-                        childEl.dataset.x = child.x;
-                        childEl.dataset.y = child.y;
+                        childEl.dataset.x = String(child.x);
+                        childEl.dataset.y = String(child.y);
                     }
                 });
             }

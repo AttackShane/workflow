@@ -2218,4 +2218,64 @@ describe('WorkflowCanvas', () => {
             expect(canvas._downloadBlob).toHaveBeenCalled();
         });
     });
+
+    describe('destroy', () => {
+        it('should clear renderDebounceTimer', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas.renderDebounceTimer = setTimeout(() => {}, 1000);
+
+            canvas.destroy();
+
+            expect(canvas.renderDebounceTimer).toBeNull();
+        });
+
+        it('should remove all registered listeners', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            const mockEl = { removeEventListener: jest.fn() };
+            canvas._listeners = [
+                { element: mockEl, event: 'click', handler: () => {} },
+                { element: mockEl, event: 'mousemove', handler: () => {} },
+            ];
+
+            canvas.destroy();
+
+            expect(mockEl.removeEventListener).toHaveBeenCalledTimes(2);
+            expect(canvas._listeners.length).toBe(0);
+        });
+
+        it('should disconnect themeObserver', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            const observer = { disconnect: jest.fn() };
+            canvas._themeObserver = observer;
+
+            canvas.destroy();
+
+            expect(observer.disconnect).toHaveBeenCalled();
+            expect(canvas._themeObserver).toBeNull();
+        });
+
+        it('should handle destroy with null themeObserver', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+
+            expect(() => canvas.destroy()).not.toThrow();
+        });
+
+        it('should handle destroy with null listener element', () => {
+            const core = createMockCore();
+            const ui = createMockUI(core);
+            const canvas = new WorkflowCanvas(ui);
+            canvas._listeners = [{ element: null, event: 'click', handler: () => {} }];
+
+            expect(() => canvas.destroy()).not.toThrow();
+            expect(canvas._listeners.length).toBe(0);
+        });
+    });
 });

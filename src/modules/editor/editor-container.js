@@ -4,8 +4,8 @@
  * 负责容器节点的业务逻辑：层级查询、端口校验、父子关系管理等
  * 将容器相关逻辑从 editor-core.js 中抽离，降低核心模块耦合
  *
- * @typedef {import('../../types/workflow.js').WorkflowNode WorkflowNode}
- * @typedef {import('../../types/workflow.js').WorkflowEdge WorkflowEdge}
+ * @typedef {import('../../types/workflow.js').WorkflowNode} WorkflowNode
+ * @typedef {import('../../types/workflow.js').WorkflowEdge} WorkflowEdge
  */
 
 import { APP_CONFIG } from '../../config/constants.js';
@@ -143,23 +143,28 @@ export class WorkflowContainer {
      */
     /**
      * 校验容器节点端口连接是否合法
-     * @returns {{ valid: true } | { valid: false, reason: string }}
+     * @returns {{valid: boolean, reason?: string}}
      */
     validateContainerPorts(sourceId, targetId, sourcePort = '', targetPort = '') {
         const sourceIsContainer = this.isContainer(sourceId);
         const targetIsContainer = this.isContainer(targetId);
-        const sourceIsChild = !!this.core.getNode(sourceId)?.parentId;
-        const targetIsChild = !!this.core.getNode(targetId)?.parentId;
 
         if (sourceIsContainer) {
             const isInternalPort = sourcePort === 'container_start';
-            if (isInternalPort && !targetIsChild) return { valid: false, reason: t('actions.containerInternalOnly') };
-            if (!isInternalPort && targetIsChild) return { valid: false, reason: t('actions.containerExternalOnly') };
+            // 内部端口只能连本容器的子节点；外部端口不能连本容器的子节点
+            const targetBelongsToThis = this.core.getNode(targetId)?.parentId === sourceId;
+            if (isInternalPort && !targetBelongsToThis)
+                return { valid: false, reason: t('actions.containerInternalOnly') };
+            if (!isInternalPort && targetBelongsToThis)
+                return { valid: false, reason: t('actions.containerExternalOnly') };
         }
         if (targetIsContainer) {
             const isInternalPort = targetPort === 'container_end';
-            if (isInternalPort && !sourceIsChild) return { valid: false, reason: t('actions.containerInternalOnly') };
-            if (!isInternalPort && sourceIsChild) return { valid: false, reason: t('actions.containerExternalOnly') };
+            const sourceBelongsToThis = this.core.getNode(sourceId)?.parentId === targetId;
+            if (isInternalPort && !sourceBelongsToThis)
+                return { valid: false, reason: t('actions.containerInternalOnly') };
+            if (!isInternalPort && sourceBelongsToThis)
+                return { valid: false, reason: t('actions.containerExternalOnly') };
         }
         return { valid: true };
     }

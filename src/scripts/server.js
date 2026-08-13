@@ -6,7 +6,7 @@ import os from 'os';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
-const portArg = args.find(arg => arg.startsWith('--port='));
+const portArg = args.find((arg) => arg.startsWith('--port='));
 const PORT = portArg ? parseInt(portArg.split('=')[1]) : 8080;
 const rootDir = path.join(__dirname, '..');
 
@@ -20,7 +20,7 @@ const mimeTypes = {
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
-    '.txt': 'text/plain'
+    '.txt': 'text/plain',
 };
 
 function getMimeType(filePath) {
@@ -41,11 +41,11 @@ function serveFile(res, filePath, statusCode = 200) {
                 res.end('500 Internal Server Error');
             }
         } else {
-            res.writeHead(statusCode, { 
+            res.writeHead(statusCode, {
                 'Content-Type': getMimeType(filePath),
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
+                Pragma: 'no-cache',
+                Expires: '0',
             });
             res.end(content, 'utf-8');
         }
@@ -64,37 +64,35 @@ const routeMap = {
     '/converter.html': '/views/workflow-converter.html',
     '/editor': '/views/workflow-editor.html',
     '/editor.html': '/views/workflow-editor.html',
-    '/favicon.ico': '/assets/favicon.svg'
+    '/favicon.ico': '/assets/favicon.svg',
 };
 
-const wellKnownPaths = [
-    '/.well-known/appspecific/com.chrome.devtools.json'
-];
+const wellKnownPaths = ['/.well-known/appspecific/com.chrome.devtools.json'];
 
 const server = http.createServer((req, res) => {
     logRequest(req);
-    
+
     let filePath = req.url.split('?')[0];
-    
+
     if (routeMap[filePath]) {
         filePath = routeMap[filePath];
     }
-    
+
     if (wellKnownPaths.includes(filePath)) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end('{}');
         return;
     }
-    
+
     const fullPath = path.join(rootDir, filePath);
-    
+
     if (!fullPath.startsWith(rootDir)) {
         console.warn(`[403] Forbidden: ${req.url}`);
         res.writeHead(403, { 'Content-Type': 'text/plain' });
         res.end('403 Forbidden');
         return;
     }
-    
+
     serveFile(res, fullPath);
 });
 

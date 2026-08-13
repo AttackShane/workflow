@@ -1,25 +1,25 @@
 import { processContainerNode } from '../../src/components/containerHandler.js';
 
 jest.mock('../../src/utils/types.js', () => ({
-    toValueObject: jest.fn(val => {
+    toValueObject: jest.fn((val) => {
         if (val && typeof val === 'object' && val.type) return val;
         return { type: 'literal', content: val };
     }),
-    findRef: jest.fn(val => {
+    findRef: jest.fn((val) => {
         if (val && val.value && val.value.ref_node) {
             return { ref_node: val.value.ref_node, path: val.value.path };
         }
         return null;
     }),
-    mapOutType: jest.fn(type => type),
-    getAssistFromType: jest.fn(type => {
+    mapOutType: jest.fn((type) => type),
+    getAssistFromType: jest.fn((type) => {
         if (type === 'image') return 5;
         return undefined;
-    })
+    }),
 }));
 
 jest.mock('../../src/utils/utils.js', () => ({
-    convertEdges: jest.fn(edges => edges.map(e => ({ ...e, converted: true })))
+    convertEdges: jest.fn((edges) => edges.map((e) => ({ ...e, converted: true }))),
 }));
 
 describe('processContainerNode', () => {
@@ -28,7 +28,7 @@ describe('processContainerNode', () => {
         node: {},
         outputMap: new Map(),
         ...overrides,
-        convertNode: jest.fn(sub => ({ id: sub.id, type: 'converted' }))
+        convertNode: jest.fn((sub) => ({ id: sub.id, type: 'converted' })),
     });
 
     beforeEach(() => {
@@ -134,7 +134,7 @@ describe('processContainerNode', () => {
         it('should convert inner nodes from params.nodes', () => {
             const data = { inputs: {} };
             const params = {
-                nodes: [{ id: 'inner1', type: 'code' }]
+                nodes: [{ id: 'inner1', type: 'code' }],
             };
             const ctx = createMockCtx();
 
@@ -148,7 +148,7 @@ describe('processContainerNode', () => {
             const data = { inputs: {} };
             const params = {};
             const ctx = createMockCtx({
-                node: { nodes: [{ id: 'inner1', type: 'code' }] }
+                node: { nodes: [{ id: 'inner1', type: 'code' }] },
             });
 
             processContainerNode(data, params, ctx, 'loop');
@@ -160,7 +160,7 @@ describe('processContainerNode', () => {
         it('should convert inner nodes from params.blocks', () => {
             const data = { inputs: {} };
             const params = {
-                blocks: [{ id: 'inner1', type: 'code' }]
+                blocks: [{ id: 'inner1', type: 'code' }],
             };
             const ctx = createMockCtx();
 
@@ -184,7 +184,7 @@ describe('processContainerNode', () => {
         it('should convert inner edges from params.edges', () => {
             const data = { inputs: {} };
             const params = {
-                edges: [{ id: 'e1', source: 'a', target: 'b' }]
+                edges: [{ id: 'e1', source: 'a', target: 'b' }],
             };
             const ctx = createMockCtx();
 
@@ -198,7 +198,7 @@ describe('processContainerNode', () => {
             const data = { inputs: {} };
             const params = {};
             const ctx = createMockCtx({
-                node: { edges: [{ id: 'e1', source: 'a', target: 'b' }] }
+                node: { edges: [{ id: 'e1', source: 'a', target: 'b' }] },
             });
 
             processContainerNode(data, params, ctx, 'loop');
@@ -216,10 +216,10 @@ describe('processContainerNode', () => {
                         type: 'string',
                         value: {
                             type: 'ref',
-                            value: { ref_node: 'inner1', path: 'output1' }
-                        }
-                    }
-                }
+                            value: { ref_node: 'inner1', path: 'output1' },
+                        },
+                    },
+                },
             };
             const ctx = createMockCtx();
 
@@ -233,8 +233,8 @@ describe('processContainerNode', () => {
             const data = { inputs: {} };
             const params = {
                 node_outputs: {
-                    result: { type: 'string' }
-                }
+                    result: { type: 'string' },
+                },
             };
             const ctx = createMockCtx();
 
@@ -253,10 +253,10 @@ describe('processContainerNode', () => {
                         items: { type: 'string' },
                         value: {
                             type: 'list',
-                            items: { type: 'string' }
-                        }
-                    }
-                }
+                            items: { type: 'string' },
+                        },
+                    },
+                },
             };
             const ctx = createMockCtx();
 

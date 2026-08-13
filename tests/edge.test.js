@@ -724,7 +724,7 @@ describe('WorkflowEdge', () => {
                     { id: 'n1', x: 0, y: 0, width: 200, height: 100, type: 'start', title: 'Start' },
                     { id: 'n2', x: 300, y: 100, width: 200, height: 100, type: 'end', title: 'End' },
                 ],
-                [{ id: 'e1', source: 'n1', target: 'n2', sourcePortID: 'port_a', targetPortID: 'port_b' }]
+                [{ id: 'e1', source: 'n1', target: 'n2', sourcePort: 'port_a', targetPort: 'port_b' }]
             );
             ui = createMockUI(core);
             edge = new WorkflowEdge(ui);

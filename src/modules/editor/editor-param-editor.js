@@ -148,7 +148,7 @@ export class WorkflowParamEditor {
                 type: def.type || 'string',
                 description: def.description || '',
                 required: def.required || false,
-                value: directRef ? def.value : inputRef ? def.input.value : def.value || '',
+                value: directRef ? def.value : inputRef ? def.input.value : (def.value ?? ''),
                 valueType: directRef || inputRef ? 'ref' : def.valueType || '',
                 rawMeta: directRef
                     ? def.rawMeta || undefined
@@ -307,11 +307,11 @@ export class WorkflowParamEditor {
                     try {
                         value = JSON.parse(refEl.value);
                     } catch (e2) {
-                        value = valueEl ? valueEl.value : p.value || '';
+                        value = valueEl ? valueEl.value : (p.value ?? '');
                     }
                 }
             } else {
-                value = valueEl ? valueEl.value : p.value || '';
+                value = valueEl ? valueEl.value : (p.value ?? '');
             }
 
             const valueIsRef = value && typeof value === 'object' && value.type === 'ref';

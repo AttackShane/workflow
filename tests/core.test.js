@@ -652,6 +652,73 @@ describe('WorkflowCore', () => {
             core.saveHistory('create');
             expect(core.canUndo()).toBe(true);
         });
+
+        it('should merge history within time window', () => {
+            core.resetHistory('init');
+            core.createNode('start', 0, 0);
+            core.saveHistory('create');
+            const historyLengthBefore = core.history.length;
+
+            core.createNode('end', 100, 0);
+            core.saveHistory('create');
+
+            expect(core.history.length).toBe(historyLengthBefore);
+            expect(core.history[core.historyIndex].nodes.length).toBe(2);
+        });
+
+        it('should not merge when action key differs', () => {
+            core.resetHistory('init');
+            core.createNode('start', 0, 0);
+            core.saveHistory('create');
+
+            core.createNode('end', 100, 0);
+            core.saveHistory('move');
+
+            expect(core.history.length).toBe(3);
+        });
+
+        it('should not merge when force is true', () => {
+            core.resetHistory('init');
+            core.createNode('start', 0, 0);
+            core.saveHistory('create');
+
+            core.createNode('end', 100, 0);
+            core.saveHistory('create', {}, true);
+
+            expect(core.history.length).toBe(3);
+        });
+    });
+
+    describe('destroy', () => {
+        it('should clean up languagechange listener without error', () => {
+            expect(() => core.destroy()).not.toThrow();
+            expect(core._nodeTypeInfoHandler).toBeNull();
+        });
+    });
+
+    describe('_getDynamicMaxHistory', () => {
+        it('should return default for small workflows', () => {
+            expect(core._getDynamicMaxHistory()).toBe(50);
+        });
+
+        it('should reduce limit for larger workflows', () => {
+            for (let i = 0; i < 25; i++) {
+                core.createNode('start', i, 0);
+            }
+            expect(core._getDynamicMaxHistory()).toBe(30);
+
+            for (let i = 0; i < 30; i++) {
+                core.createNode('start', i, 0);
+            }
+            expect(core._getDynamicMaxHistory()).toBe(20);
+        });
+    });
+
+    describe('getNode / getEdge', () => {
+        it('should return undefined for non-existent ids', () => {
+            expect(core.getNode('nonexistent')).toBeUndefined();
+            expect(core.getEdge('nonexistent')).toBeUndefined();
+        });
     });
 });
 

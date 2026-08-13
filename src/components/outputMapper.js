@@ -47,7 +47,7 @@ export function buildOutputMap(nodes) {
                     itemsType,
                     required: def.required === true,
                     description: def.description || '',
-                    defaultValue: def.default_value,
+                    defaultValue: def.default_value ?? def.defaultValue ?? def.value,
                 });
             }
 
@@ -71,7 +71,7 @@ export function convertOutputs(outputs, keepAssist = true) {
                 type: mapOutType(def.type),
                 required: def.required === true,
                 description: def.description || '',
-                defaultValue: def.default_value,
+                defaultValue: def.default_value ?? def.defaultValue ?? def.value,
             };
             if (assist !== undefined && keepAssist) base.assistType = assist;
             if (raw) base.rawMeta = raw;
